@@ -26,6 +26,18 @@ namespace MissileGirl
         public static bool FixBeauty = true;
 
         [Main.SettingsField(warmUpValue: false)]
+        public static bool DeepDrillOptimize = true;
+
+        [Main.SettingsField(warmUpValue: false)]
+        public static bool TemperatureTickCheck = true;
+
+        [Main.SettingsField(warmUpValue: false)]
+        public static bool BuildingRepairCheck = true;
+
+        [Main.SettingsField(warmUpValue: false)]
+        public static bool NotifyPawnDamage = true;
+
+        [Main.SettingsField(warmUpValue: false)]
         public static bool LearningAlertEnabled = true;
 
         [Main.SettingsField(warmUpValue: false)]

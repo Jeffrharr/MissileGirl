@@ -251,7 +251,87 @@ namespace MissileGirl
         public static TaggedString MissileGirl_FixBeauty_Tip {
             get => _MissileGirl_FixBeauty_Tip != null ?
                    _MissileGirl_FixBeauty_Tip : _MissileGirl_FixBeauty_Tip = "MissileGirl.FixBeauty.Tip".Translate();
-        }             
+        }
+
+        private static TaggedString _MissileGirl_DeepDrillOptimize = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty</c> with inner text set to:
+        ///
+        /// <code>Dynamic beauty scan radius</code>
+        /// </summary>
+        public static TaggedString MissileGirl_DeepDrillOptimize {
+            get => _MissileGirl_DeepDrillOptimize != null ?
+                    _MissileGirl_DeepDrillOptimize : _MissileGirl_DeepDrillOptimize = "MissileGirl.DeepDrillOptimize".Translate();
+        }
+
+        private static TaggedString _MissileGirl_DeepDrillOptimize_Tip = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty.Tip</c> with inner text set to:
+        ///
+        /// <code>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</code>
+        /// </summary>
+        public static TaggedString MissileGirl_DeepDrillOptimize_Tip {
+            get => _MissileGirl_DeepDrillOptimize_Tip != null ?
+                    _MissileGirl_DeepDrillOptimize_Tip : _MissileGirl_DeepDrillOptimize_Tip = "MissileGirl.DeepDrillOptimize.Tip".Translate();
+        }
+
+        private static TaggedString _MissileGirl_TemperatureTickCheck = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty</c> with inner text set to:
+        ///
+        /// <code>Dynamic beauty scan radius</code>
+        /// </summary>
+        public static TaggedString MissileGirl_TemperatureTickCheck {
+            get => _MissileGirl_TemperatureTickCheck != null ?
+                    _MissileGirl_TemperatureTickCheck : _MissileGirl_TemperatureTickCheck = "MissileGirl.TemperatureTickCheck".Translate();
+        }
+
+        private static TaggedString _MissileGirl_TemperatureTickCheck_Tip = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty.Tip</c> with inner text set to:
+        ///
+        /// <code>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</code>
+        /// </summary>
+        public static TaggedString MissileGirl_TemperatureTickCheck_Tip {
+            get => _MissileGirl_TemperatureTickCheck_Tip != null ?
+                    _MissileGirl_TemperatureTickCheck_Tip : _MissileGirl_TemperatureTickCheck_Tip = "MissileGirl.TemperatureTickCheck.Tip".Translate();
+        }
+
+        private static TaggedString _MissileGirl_BuildingRepairCheck = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty</c> with inner text set to:
+        ///
+        /// <code>Dynamic beauty scan radius</code>
+        /// </summary>
+        public static TaggedString MissileGirl_BuildingRepairCheck {
+            get => _MissileGirl_BuildingRepairCheck != null ?
+                    _MissileGirl_BuildingRepairCheck : _MissileGirl_BuildingRepairCheck = "MissileGirl.BuildingRepairCheck".Translate();
+        }
+
+        private static TaggedString _MissileGirl_BuildingRepairCheck_Tip = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty.Tip</c> with inner text set to:
+        ///
+        /// <code>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</code>
+        /// </summary>
+        public static TaggedString MissileGirl_BuildingRepairCheck_Tip {
+            get => _MissileGirl_BuildingRepairCheck_Tip != null ?
+                    _MissileGirl_BuildingRepairCheck_Tip : _MissileGirl_BuildingRepairCheck_Tip = "MissileGirl.BuildingRepairCheck.Tip".Translate();
+        }
+
+        private static TaggedString _MissileGirl_NotifyPawnDamage = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty</c> with inner text set to:
+        ///
+        /// <code>Dynamic beauty scan radius</code>
+        /// </summary>
+        public static TaggedString MissileGirl_NotifyPawnDamage {
+            get => _MissileGirl_NotifyPawnDamage != null ?
+                    _MissileGirl_NotifyPawnDamage : _MissileGirl_NotifyPawnDamage = "MissileGirl.NotifyPawnDamage".Translate();
+        }
+
+        private static TaggedString _MissileGirl_NotifyPawnDamage_Tip = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty.Tip</c> with inner text set to:
+        ///
+        /// <code>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</code>
+        /// </summary>
+        public static TaggedString MissileGirl_NotifyPawnDamage_Tip {
+            get => _MissileGirl_NotifyPawnDamage_Tip != null ?
+                    _MissileGirl_NotifyPawnDamage_Tip : _MissileGirl_NotifyPawnDamage_Tip = "MissileGirl.NotifyPawnDamage.Tip".Translate();
+        }
                            
         private static TaggedString _MissileGirl_GenMapSize = null;
         /// <summary> Keyed string with key <c>MissileGirl.GenMapSize</c> with inner text set to:

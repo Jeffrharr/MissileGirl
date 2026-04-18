@@ -7,6 +7,10 @@ namespace MissileGirl.Optimizations
     [RocketPatch(typeof(ListerBuildingsRepairable), nameof(ListerBuildingsRepairable.UpdateBuilding))]
     internal class ListerBuildingsRepairable_Patch
     {
+        public static bool Prepare()
+        {
+            return RocketPrefs.BuildingRepairCheck;
+        }
         public static bool Prefix(Building b)
         {
             return b.def.building.repairable && b.def.useHitPoints;

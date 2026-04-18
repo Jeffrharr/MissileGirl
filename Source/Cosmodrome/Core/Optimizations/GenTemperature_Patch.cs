@@ -9,6 +9,11 @@ namespace MissileGirl.Optimizations
         private static Dictionary<int, FloatRange> tempCache = new Dictionary<int, FloatRange>();
         private static int LastTick = 0;
 
+        public static bool Prepare()
+        {
+            return RocketPrefs.TemperatureTickCheck;
+        }
+
         public static bool Prefix(Pawn p, ref FloatRange __result)
         {
 

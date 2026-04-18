@@ -111,6 +111,13 @@ namespace MissileGirl
                 Scribe_Values.Look(ref RocketPrefs.Enabled, "enabled", true);
                 Scribe_Values.Look(ref RocketPrefs.Learning, "learning", true);
                 Scribe_Values.Look(ref RocketPrefs.FixBeauty, "FixBeauty", true);
+
+                // Optimizations
+                Scribe_Values.Look(ref RocketPrefs.DeepDrillOptimize, "DeepDrillOptimize", true);
+                Scribe_Values.Look(ref RocketPrefs.TemperatureTickCheck, "TemperatureTickCheck", true);
+                Scribe_Values.Look(ref RocketPrefs.BuildingRepairCheck, "BuildingRepairCheck", true);
+                Scribe_Values.Look(ref RocketPrefs.NotifyPawnDamage, "NotifyPawnDamage", true);
+
                 Scribe_Values.Look(ref RocketPrefs.StatGearCachingEnabled, "statGearCachingEnabled", true);
                 Scribe_Values.Look(ref RocketPrefs.ShowWarmUpPopup, "showWarmUpPopup", true);
                 Scribe_Values.Look(ref RocketPrefs.PauseAfterWarmup, "pauseAfterWarmup", false);

@@ -7,6 +7,11 @@ namespace MissileGirl.Optimizations
     internal class Lord_Notify_PawnDamaged_Patch
     {
 
+        public static bool Prepare()
+        {
+            return RocketPrefs.NotifyPawnDamage;
+        }
+
         public static bool Prefix(Pawn victim)
         {
             LordToil L = victim.GetLord().CurLordToil;

@@ -199,6 +199,12 @@ namespace MissileGirl
                     collapsible_other.CheckboxLabeled("MissileGirl.EnableGearStatCaching".Translate(), ref RocketPrefs.StatGearCachingEnabled);
                     collapsible_other.Line(1);
                     collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.MissileGirl_FixBeauty_Tip);
+                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_DeepDrillOptimize, ref RocketPrefs.DeepDrillOptimize, KeyedResources.MissileGirl_DeepDrillOptimize_Tip);
+                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_TemperatureTickCheck, ref RocketPrefs.TemperatureTickCheck, KeyedResources.MissileGirl_TemperatureTickCheck_Tip);
+                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_BuildingRepairCheck, ref RocketPrefs.BuildingRepairCheck, KeyedResources.MissileGirl_BuildingRepairCheck_Tip);
+                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_NotifyPawnDamage, ref RocketPrefs.NotifyPawnDamage, KeyedResources.MissileGirl_NotifyPawnDamage_Tip);
+
+
                     collapsible_other.End(ref inRect);
                     inRect.yMin += 5;
 
