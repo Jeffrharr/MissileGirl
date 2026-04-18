@@ -65,7 +65,7 @@ namespace RocketMan
 
         public static string CustomConfigFolderPath
         {
-            get => Path.Combine(Directory.GetParent(GenFilePaths.ConfigFolderPath).FullName, "RocketMan");
+            get => Path.Combine(Directory.GetParent(GenFilePaths.ConfigFolderPath).FullName, "MissileGirl");
         }
 
         public static string RocketSettingsFilePath
