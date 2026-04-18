@@ -2,8 +2,8 @@
 <Defs>
 	<MainButtonDef>
 		<defName>RocketWindow</defName>
-		<label>RocketMan</label>
-		<description>Open RocketMan.</description>
+		<label>MissileGirl</label>
+		<description>Open MissileGirl.</description>
 		<workerClass>RocketMan.MainButton_Toggle</workerClass>
 		<order>79</order>
 		<minimized>True</minimized>

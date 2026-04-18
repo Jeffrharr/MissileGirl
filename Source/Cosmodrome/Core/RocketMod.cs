@@ -214,19 +214,6 @@ namespace RocketMan
                     collapsible_other.End(ref inRect);
                     inRect.yMin += 5;
 
-                    collapsible_GlowGrid.Begin(inRect, KeyedResources.Proton_GlowGrid);
-                    collapsible_GlowGrid.Label(KeyedResources.Proton_GlowGrid_Description);
-                    collapsible_GlowGrid.Line(1);                   
-                    collapsible_GlowGrid.CheckboxLabeled(KeyedResources.Proton_GlowGrid_Enable, ref RocketPrefs.GlowGridOptimization);                    
-                    // if (RocketPrefs.GlowGridOptimization)
-                    // {
-                    // collapsible_GlowGrid.Gap(1);
-                    // collapsible_GlowGrid.Label(KeyedResources.Proton_GlowGrid_Limiter_Tip);
-                    // collapsible_GlowGrid.CheckboxLabeled(KeyedResources.Proton_GlowGrid_Limiter, ref RocketPrefs.GlowGridOptimizationLimiter);
-                    // }
-                    collapsible_GlowGrid.End(ref inRect);
-                    inRect.yMin += 5;
-
                     if (Prefs.DevMode || RocketEnvironmentInfo.IsDevEnv)
                     {
                         collapsible_experimental.Begin(inRect, KeyedResources.RocketMan_Experimental);                        
