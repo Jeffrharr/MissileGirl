@@ -7,7 +7,7 @@ namespace MissileGirl
 {
     public static class Finder
     {
-        public static readonly string HarmonyID = "Krkr.MissileGirl";
+        public static readonly string HarmonyID = "VR.MissileGirl";
 
         public static RocketMod Mod;
 

@@ -9,7 +9,7 @@ namespace MissileGirl.Tabs
         public override string Label => KeyedResources.MissileGirl_Tab;
         public override bool ShouldShow => true;
 
-        private Texture2D graphic = ContentFinder<Texture2D>.Get("MissileGirl/UI/MissileGirl_main_nobackground", true);
+        private Texture2D graphic = ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_main_nobackground", true);
 
         public override void DoContent(Rect rect)
         {

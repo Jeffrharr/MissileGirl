@@ -7,7 +7,7 @@
 		<workerClass>MissileGirl.MainButton_Toggle</workerClass>
 		<order>79</order>
 		<minimized>True</minimized>
-		<iconPath>MissileGirl/UI/MissileGirl_mainmenu_button</iconPath>
+		<iconPath>MissileGirl/UI/missilegirl_mainmenu_button</iconPath>
 		<defaultHotKey>
 		</defaultHotKey>
 	</MainButtonDef>

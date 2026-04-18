@@ -1,10 +1,5 @@
 # <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=2479389928&searchtext=">RimWorld-MissileGirl</a>
 
-[![Build](https://github.com/kbatbouta/RimWorld-MissileGirl/actions/workflows/main.yml/badge.svg)](https://github.com/kbatbouta/RimWorld-MissileGirl/actions/workflows/main.yml) ![Version](https://img.shields.io/badge/Rimworld-1.2-brightgreen.svg)
-
-![Alt text](https://github.com/kbatbouta/RimWorld-MissileGirl/blob/master/Textures/MissileGirl/UI/MissileGirl_main.png?raw=true)
-
-
 ## Description:
 
 MissileGirl is a RimWorld mod that is designed to improve RimWorld performance.
@@ -21,7 +16,7 @@ Description comming soon...
 2. Currently The Multiplayer mod is not supported.
 3. Bug reports with no logs will not get a response.
 
-Github Link: https://github.com/kbatbouta/MissileGirl
+Github Link: https://github.com/ViralReaction/MissileGirl
 
 MissileGirl is OpenSource and for anyone to use, modify, update.
 
@@ -61,16 +56,14 @@ and that prefix notify MissileGirl to clear the cache
 
 ## Special Thanks goes to:
 
+* Karim for creating original RocketMan
 * Madman666 the entire Dubwise server for the help and testing they provided!
 * Trisscar for their awesome thumbnail.
 * Dubwise for hosting me on their discord server.
 * Wiri for their awesome contribution.
 * Bad Vlad (ModderK) for their awesome feedback.
 * Taranchuk for their awesome help.
-* Brrainz for Harmony and ZombieLand which inspired my time dilation solution.
+* Brrainz for Harmony
 
 You can always ask questions on the Dubwise discord server: https://discord.gg/mKVDMqq4
-
-## You can always support me!
-<a href='https://ko-fi.com/karimbat' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
  

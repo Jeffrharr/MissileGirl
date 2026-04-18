@@ -1,15 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using RimWorld;
 using UnityEngine;
-using UnityEngine.XR;
 using Verse;
-using Verse.AI;
-using Verse.AI.Group;
 
 namespace MissileGirl
 {
@@ -189,12 +183,6 @@ namespace MissileGirl
 
                 if (RocketPrefs.Enabled)
                 {
-                    //collapsible_speed.Begin(inRect, "MissileGirl.GameSpeed".Translate());
-                    //collapsible_speed.CheckboxLabeled("MissileGirl.DisableForcedSlowdowns".Translate(), ref RocketPrefs.DisableForcedSlowdowns, "MissileGirl.DisableForcedSlowdowns.Description".Translate());
-                    //collapsible_speed.CheckboxLabeled(KeyedResources.MissileGirl_ProgressBar_Pause, ref RocketPrefs.PauseAfterWarmup);
-                    //collapsible_speed.End(ref inRect);
-                    //inRect.yMin += 5;
-
                     if (RocketEnvironmentInfo.IsDevEnv)
                     {
                         collapsible_junk.Begin(inRect, "MissileGirl.Junk".Translate());
@@ -250,8 +238,6 @@ namespace MissileGirl
                     {
                         collapsible_debug.Line(1);
                         collapsible_debug.CheckboxLabeled("Enable Stat Logging (Will kill performance)", ref RocketDebugPrefs.StatLogging);
-                        collapsible_debug.CheckboxLabeled("Enable GlowGrid flashing", ref RocketDebugPrefs.DrawGlowerUpdates);
-                        collapsible_debug.CheckboxLabeled("Enable GlowGrid refresh", ref RocketPrefs.EnableGridRefresh);
                         collapsible_debug.Gap();
                     }
                     collapsible_debug.End(ref inRect);

@@ -26,7 +26,7 @@
 	<MissileGirl.Tab>Home</MissileGirl.Tab>
 	<MissileGirl.FixBeauty>Dynamic beauty scan radius</MissileGirl.FixBeauty>
 	<MissileGirl.FixBeauty.Tip>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</MissileGirl.FixBeauty.Tip>
-	<MissileGirl.GenMapSize>THIGH-O-TORN 5000</MissileGirl.GenMapSize>
+	<MissileGirl.GenMapSize>Map Size Generation Override</MissileGirl.GenMapSize>
 	<MissileGirl.GenMapSize.Text>Set the map size/shape for the next generated map. (after generating said map this option will reset back to default)</MissileGirl.GenMapSize.Text>
 	<MissileGirl.GenMapSize.Note>Please note that the new map will have a width/height that is dividable by region height (this rounding process is automatic).</MissileGirl.GenMapSize.Note>
 	<MissileGirl.GenMapSize.Mode.Custom>Custom</MissileGirl.GenMapSize.Mode.Custom>
