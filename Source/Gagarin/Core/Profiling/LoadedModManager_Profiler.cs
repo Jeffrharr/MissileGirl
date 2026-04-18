@@ -25,8 +25,11 @@ namespace Gagarin
             public static void Postfix()
             {
                 stopwatch.Stop();
-                Log.Warning($"GAGARIN: <color=white>LoadModXML_Profiler</color> took " +
-                    $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                if (Prefs.LogVerbose)
+                {
+                    Log.Warning($"GAGARIN: <color=white>LoadModXML_Profiler</color> took " +
+                                $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                }
             }
         }
 
@@ -46,8 +49,11 @@ namespace Gagarin
             public static void Postfix()
             {
                 stopwatch.Stop();
-                Log.Warning($"GAGARIN: <color=white>CombineIntoUnifiedXML_Profiler</color> took " +
-                    $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                if (Prefs.LogVerbose)
+                {
+                    Log.Warning($"GAGARIN: <color=white>CombineIntoUnifiedXML_Profiler</color> took " +
+                                $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                }
             }
         }
 
@@ -67,8 +73,11 @@ namespace Gagarin
             public static void Postfix()
             {
                 stopwatch.Stop();
-                Log.Warning($"GAGARIN: <color=white>ApplyPatches_Profiler</color> took " +
-                    $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                if (Prefs.LogVerbose)
+                {
+                    Log.Warning($"GAGARIN: <color=white>ApplyPatches_Profiler</color> took " +
+                                $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                }
             }
         }
 
@@ -88,8 +97,11 @@ namespace Gagarin
             public static void Postfix()
             {
                 stopwatch.Stop();
-                Log.Warning($"GAGARIN: <color=white>ParseAndProcessXML_Profiler</color> took " +
-                    $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                if (Prefs.LogVerbose)
+                {
+                    Log.Warning($"GAGARIN: <color=white>ParseAndProcessXML_Profiler</color> took " +
+                                $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                }
             }
         }
 
@@ -109,8 +121,11 @@ namespace Gagarin
             public static void Postfix()
             {
                 stopwatch.Stop();
-                Log.Warning($"GAGARIN: <color=white>ClearCachedPatches_Profiler</color> took " +
-                    $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                if (Prefs.LogVerbose)
+                {
+                    Log.Warning($"GAGARIN: <color=white>ClearCachedPatches_Profiler</color> took " +
+                                $"<color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+                }
             }
         }
     }

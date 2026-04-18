@@ -181,7 +181,10 @@ namespace Gagarin
                 try
                 {
                     Context.DefsXmlAssets = assetlookup;
-                    Log.Warning($"GAGARIN: CombineIntoUnifiedXML has <color=red>Context.IsUsingCache={ Context.IsUsingCache }</color>");
+                    if (Prefs.LogVerbose)
+                    {
+                        Log.Warning($"GAGARIN: CombineIntoUnifiedXML has <color=red>Context.IsUsingCache={Context.IsUsingCache}</color>");
+                    }
                     if (Context.IsUsingCache)
                     {
                         usedCache = true;

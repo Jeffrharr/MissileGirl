@@ -13,8 +13,8 @@ namespace Gagarin
         [Main.OnInitialization]
         public static void StartUpStarted()
         {
-            Context.RunningMods  = LoadedModManager.RunningMods.ToList();
-            Context.Core         = LoadedModManager.RunningMods.First(m => m.IsCoreMod);
+            Context.RunningMods = LoadedModManager.RunningMods.ToList();
+            Context.Core = LoadedModManager.RunningMods.First(m => m.IsCoreMod);
 
             if (!Directory.Exists(GagarinEnvironmentInfo.CacheFolderPath))
             {
@@ -24,17 +24,22 @@ namespace Gagarin
             {
                 Directory.CreateDirectory(GagarinEnvironmentInfo.TexturesFolderPath);
             }
-            Log.Message("GAGARIN: <color=green>StartUpStarted called!</color>");
+            if (Prefs.LogVerbose)
+            {
+                Log.Message("GAGARIN: <color=green>StartUpStarted called!</color>");
+            }
             if (GagarinEnvironmentInfo.CacheExists)
             {
-                Log.Warning("GAGARIN: <color=green>Cache found</color>");
+                if (Prefs.LogVerbose)
+                {
+                    Log.Warning("GAGARIN: <color=green>Cache found</color>");
+                }
 
                 Context.IsUsingCache = true;
 
                 if (GagarinEnvironmentInfo.ModListChanged)
                 {
                     Context.IsUsingCache = false;
-
                     Log.Warning("GAGARIN: Mod list changed! Deleting cache");
                 }
             }
@@ -76,7 +81,10 @@ namespace Gagarin
         [Main.OnStaticConstructor]
         public static void StartUpFinished()
         {
-            Log.Message("GAGARIN: <color=green>StartUpFinished called!</color>");
+            if (Prefs.LogVerbose)
+            {
+                Log.Message("GAGARIN: <color=green>StartUpFinished called!</color>");
+            }
 
             Context.Assets.Clear();
             Context.AssetsHashes.Clear();

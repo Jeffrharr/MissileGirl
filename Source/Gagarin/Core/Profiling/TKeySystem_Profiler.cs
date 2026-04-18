@@ -22,7 +22,10 @@ namespace Gagarin
         public static void Postfix()
         {
             stopwatch.Stop();
-            Log.Warning($"GAGARIN: <color=white>TKeySystem.Parse</color> took <color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+            if (Prefs.LogVerbose)
+            {
+                Log.Warning($"GAGARIN: <color=white>TKeySystem.Parse</color> took <color=red>{Math.Round((float)stopwatch.ElapsedMilliseconds / 1000f, 4)}</color> seconds");
+            }
         }
     }
 }

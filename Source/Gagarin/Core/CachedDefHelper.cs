@@ -149,7 +149,10 @@ namespace Gagarin
             documentStopwatch.Start();
             unifiedDocument.Load(xmlReader);
             documentStopwatch.Stop();
-            Log.Warning($"GAGARIN: <color=green>Loadeding XmlDocument</color> took <color=red>{(float)documentStopwatch.ElapsedTicks / Stopwatch.Frequency} seconds</color>");
+            if (Prefs.LogVerbose)
+            {
+                Log.Warning($"GAGARIN: <color=green>Loading XmlDocument</color> took <color=red>{(float)documentStopwatch.ElapsedTicks / Stopwatch.Frequency} seconds</color>");
+            }
 
             foreach (XmlElement element in unifiedDocument.DocumentElement.ChildNodes)
             {
@@ -163,7 +166,14 @@ namespace Gagarin
             }
 
             stopwatch.Stop();
-            Log.Warning($"GAGARIN: <color=green>Loaded from cache!</color> Loading cache took <color=red>{stopwatch.ElapsedMilliseconds / 1000} seconds</color>");
+            if (Prefs.LogVerbose)
+            {
+                Log.Warning($"GAGARIN: <color=green>Loaded from cache!</color> Loading cache took <color=red>{stopwatch.ElapsedMilliseconds / 1000} seconds</color>");
+            }
+            else
+            {
+                Log.Warning($"GARGARIN: <color=green>Finished loading XML from cache!</color>");
+            }
         }
 
         private static void Dump()

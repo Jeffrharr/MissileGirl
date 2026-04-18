@@ -21,7 +21,10 @@ namespace Gagarin
 
         public void ExposeData()
         {
-            Log.Message($"b.{VersionControl.CurrentBuild}:{VersionControl.CurrentBuildDate}:{VersionControl.CurrentVersionStringWithRev}");
+            if (Prefs.LogVerbose)
+            {
+                Log.Message($"b.{VersionControl.CurrentBuild}:{VersionControl.CurrentBuildDate}:{VersionControl.CurrentVersionStringWithRev}");
+            }
             if (Scribe.mode == LoadSaveMode.Saving)
             {
                 gameBuild = $"{VersionControl.CurrentBuild}:{VersionControl.CurrentBuildDate}:{VersionControl.CurrentVersionStringWithRev}";

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using RimWorld;
 using UnityEngine;
+using UnityEngine.XR;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
@@ -45,8 +46,13 @@ namespace RocketMan
                 {
                     RocketAssembliesInfo.Assemblies.Add(assembly);
                     if (!content.assemblies.loadedAssemblies.Any(a => a.GetName().Name == assembly.GetName().Name))
-                        content.assemblies.loadedAssemblies.Add(assembly);                    
-                    RocketMan.Logger.Message($"<color=orange>ROCKETMAN</color>: Loaded <color=red>{assembly.FullName}</color>");                   
+                    {
+                        content.assemblies.loadedAssemblies.Add(assembly);
+                    }
+                    if (Prefs.LogVerbose)
+                    {
+                        Logger.Message($"<color=orange>ROCKETMAN</color>: Loaded <color=red>{assembly.FullName}</color>");
+                    }
                 }
             }
             catch (Exception er)
@@ -58,14 +64,12 @@ namespace RocketMan
             {
                 RocketAssembliesInfo.Assemblies.AddRange(RocketAssembliesInfo.RocketManAssembliesInAppDomain);
                 foreach (Assembly assembly in RocketAssembliesInfo.Assemblies)
+                {
                     Logger.Debug($"Found in AppDomain after loading assembly {assembly.FullName}", file: "Assemblies.log");
+                }
                 Main.ReloadActions();
                 foreach (var action in Main.onInitialization)
                     action.Invoke();
-            }
-            if (Prefs.DevMode)
-            {
-                Log.Message($"ROCKETMAN:No more RocketMan <color=gray>\"Log spam\"</color>...\nI hope you're fucking satisfied.");
             }
         }
 
