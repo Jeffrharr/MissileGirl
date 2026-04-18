@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml;
-using RocketMan;
+using MissileGirl;
 using Verse;
 
 namespace Gagarin
@@ -37,7 +37,7 @@ namespace Gagarin
 
         public static void ParseCreateReports(XmlDocument document, Dictionary<XmlNode, LoadableXmlAsset> assetlookup)
         {
-            RocketMan.Logger.Message("GAGARIN:[DUPLICATE]: Started!");
+            MissileGirl.Logger.Message("GAGARIN:[DUPLICATE]: Started!");
             if (Context.IsRecovering)
             {
                 return;
@@ -64,7 +64,7 @@ namespace Gagarin
                 PrepareReportFolder();
             }
             stopwatch.Stop();
-            RocketMan.Logger.Message($"GAGARIN:[DUPLICATE] Creating duplication reports took {stopwatch.ElapsedMilliseconds} MS");
+            MissileGirl.Logger.Message($"GAGARIN:[DUPLICATE] Creating duplication reports took {stopwatch.ElapsedMilliseconds} MS");
             if (failed)
             {
                 return;
@@ -118,9 +118,9 @@ namespace Gagarin
                 {
                     builder.AppendInNewLine($"\t{j++}. PackageId={record.mod?.PackageId}\t| ModName={record.mod?.Name}\t| XmlFilePath={record.xmlFilePath}");
                 }
-                RocketMan.Logger.Message(builder.ToString());
+                MissileGirl.Logger.Message(builder.ToString());
             }
-            RocketMan.Logger.Message($"GAGARIN:[DUPLICATE] Finished creating reports at <color=red>{GagarinEnvironmentInfo.ReportsFolderPath}</color>");
+            MissileGirl.Logger.Message($"GAGARIN:[DUPLICATE] Finished creating reports at <color=red>{GagarinEnvironmentInfo.ReportsFolderPath}</color>");
             nameToReport.Clear();
         }
 
@@ -140,7 +140,7 @@ namespace Gagarin
             }
             finally
             {
-                RocketMan.Logger.Message("GAGARIN: Lock removed!");
+                MissileGirl.Logger.Message("GAGARIN: Lock removed!");
             }
         }
 

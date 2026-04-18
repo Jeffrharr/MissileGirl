@@ -5,7 +5,7 @@ using System.Linq;
 using RimWorld;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class IgnoreMeDatabase
     {
@@ -17,7 +17,7 @@ namespace RocketMan
 
         private static Dictionary<Def, string> reportlookup = new Dictionary<Def, string>();
 
-        private static string report = "ROCKETMAN: <color=red>IgnoreMe report</color>";
+        private static string report = "MissileGirl: <color=red>IgnoreMe report</color>";
 
         public static bool ShouldIgnore(Def def) => defsIgnored[def.index];
 
@@ -38,7 +38,7 @@ namespace RocketMan
         {
             packageIds.Add(packageId.ToLower());
 
-            RocketMan.Logger.Message($"ROCKETRULES: IgnoreMeRule for { packageId }");
+            MissileGirl.Logger.Message($"ROCKETRULES: IgnoreMeRule for { packageId }");
         }
 
         public static string Report(Def def)
@@ -75,7 +75,7 @@ namespace RocketMan
             }
             finally
             {
-                RocketMan.Logger.Message(report);
+                MissileGirl.Logger.Message(report);
             }
         }
 

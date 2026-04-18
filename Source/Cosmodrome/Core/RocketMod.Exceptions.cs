@@ -1,7 +1,7 @@
 ﻿using RimWorld;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public partial class RocketMod
     {

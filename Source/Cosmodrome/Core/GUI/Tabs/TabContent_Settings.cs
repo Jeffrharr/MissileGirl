@@ -1,15 +1,15 @@
 using UnityEngine;
 using Verse;
 
-namespace RocketMan.Tabs
+namespace MissileGirl.Tabs
 {
     public class TabContent_Settings : ITabContent
     {
         public override Texture2D Icon => TexTab.Settings;
-        public override string Label => KeyedResources.RocketMan_Tab;
+        public override string Label => KeyedResources.MissileGirl_Tab;
         public override bool ShouldShow => true;
 
-        private Texture2D graphic = ContentFinder<Texture2D>.Get("RocketMan/UI/rocketman_main_nobackground", true);
+        private Texture2D graphic = ContentFinder<Texture2D>.Get("MissileGirl/UI/MissileGirl_main_nobackground", true);
 
         public override void DoContent(Rect rect)
         {
@@ -22,9 +22,9 @@ namespace RocketMan.Tabs
                         GUIFont.Font = GUIFontSize.Medium;
                         GUIFont.Anchor = TextAnchor.MiddleCenter;
                         if (Find.TickManager.Paused)
-                            Widgets.Label(rect, KeyedResources.RocketMan_Settings_PleaseWait);
+                            Widgets.Label(rect, KeyedResources.MissileGirl_Settings_PleaseWait);
                         else
-                            Widgets.Label(rect, KeyedResources.RocketMan_Settings_PleaseUnpause);
+                            Widgets.Label(rect, KeyedResources.MissileGirl_Settings_PleaseUnpause);
                     });
                 }
                 else

@@ -6,7 +6,7 @@ using UnityEngine;
 using Verse;
 using Verse.AI.Group;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class WarmUpMapComponent : MapComponent
     {
@@ -98,7 +98,7 @@ namespace RocketMan
             base.MapComponentTick();
             if (finished && GenTicks.TicksGame == integrityGameTick)
             {
-                RocketMan.Logger.Message("ROCKETMAN: Position verfication started!");
+                MissileGirl.Logger.Message("MissileGirl: Position verfication started!");
                 PopPawnsPosition();
                 if (RocketPrefs.PauseAfterWarmup && !Find.TickManager.Paused)
                     Find.TickManager.Pause();
@@ -121,7 +121,7 @@ namespace RocketMan
             finished = true;
             current = null;
             PopSettings();
-            RocketMan.Logger.Message("ROCKETMAN: <color=red>Warm up</color> Finished for new map!");
+            MissileGirl.Logger.Message("MissileGirl: <color=red>Warm up</color> Finished for new map!");
         }
 
         public override void MapRemoved()
@@ -146,7 +146,7 @@ namespace RocketMan
                 current = null;
                 finished = true;
                 PopSettings();
-                RocketMan.Logger.Message("ROCKETMAN: <color=red>Warm up ABORTED!</color> for new map!");
+                MissileGirl.Logger.Message("MissileGirl: <color=red>Warm up ABORTED!</color> for new map!");
             }
         }
 
@@ -162,7 +162,7 @@ namespace RocketMan
                 current = this;
                 started = true;
                 startingTicksGame = tick;
-                RocketMan.Logger.Message("ROCKETMAN: <color=red>Warm up</color> started for new map!");
+                MissileGirl.Logger.Message("MissileGirl: <color=red>Warm up</color> started for new map!");
             }
         }
 
@@ -178,14 +178,14 @@ namespace RocketMan
                 GUIFont.Font = GUIFontSize.Small;
                 GUIFont.Anchor = TextAnchor.MiddleCenter;
                 Widgets.Label(textRect.TopPart(0.6f), (Find.TickManager?.Paused ?? false) ?
-                    KeyedResources.RocketMan_Unpause : "<color=orange>" + KeyedResources.RocketMan_RocketMan + "</color> " + KeyedResources.RocketMan_Warming);
+                    KeyedResources.MissileGirl_Unpause : "<color=orange>" + KeyedResources.MissileGirl_MissileGirl + "</color> " + KeyedResources.MissileGirl_Warming);
                 GUIFont.Font = GUIFontSize.Tiny;
-                Widgets.Label(textRect.BottomPart(0.4f), KeyedResources.RocketMan_HideProgressBar);
+                Widgets.Label(textRect.BottomPart(0.4f), KeyedResources.MissileGirl_HideProgressBar);
                 DoProgressBar(progressRect);
             }
             catch (Exception er)
             {
-                Log.Warning($"ROCKETMAN: Warmup Popup error! {er}");
+                Log.Warning($"MissileGirl: Warmup Popup error! {er}");
             }
             finally
             {
@@ -213,7 +213,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Log.Error($"ROCKETMAN: Stashing settings failed! {er}");
+                Log.Error($"MissileGirl: Stashing settings failed! {er}");
                 SettingsStashed = false;
                 settingsBeingStashed = false;
                 current = null;
@@ -231,7 +231,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Log.Error($"ROCKETMAN: Popping settings failed! {er}");
+                Log.Error($"MissileGirl: Popping settings failed! {er}");
                 SettingsStashed = false;
                 settingsBeingStashed = false;
                 current = null;

@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-	<RocketMan.Settings.PleaseUnpause>Per favore togli il gioco dalla Pausa... RocketMan si sta Avviando!</RocketMan.Settings.PleaseUnpause>
-	<RocketMan.Settings.PleaseWait>Attendere... RocketMan si sta Avviando!</RocketMan.Settings.PleaseWait>
-	<RocketMan.IncompatibilityWindow.Description>Stai eseguendo delle Mod Incompatibili con RocketMan. Questo tipo di incompatibilità distruggerà il tuo salvataggio! Puoi disabilitare RocketMan oppure puoi continuare. Queste Mod sono:\n</RocketMan.IncompatibilityWindow.Description>
-	<RocketMan.IUnderstand>Si, Acconsento! Continua!</RocketMan.IUnderstand>
-	<RocketMan.ChangeBack>Puoi sempre cambiare la tua lista delle mod e rimuovere RocketMan!</RocketMan.ChangeBack>
-	<RocketMan.OpenModList>Si, Acconsento! Apri il gestore delle Mod!</RocketMan.OpenModList>
-	<RocketMan.Disclaimer>Il team di RocketMan non fornirà alcun supporto se scegli di ignorare questo messaggio!</RocketMan.Disclaimer>
-	<RocketMan.Unpause>Per favore togli il gioco dalla Pausa!</RocketMan.Unpause>
-	<RocketMan.Warming>si sta Avviando! Attendere...</RocketMan.Warming>
-	<RocketMan.HideProgressBar>Puoi nascondere/disabilitare nelle impostazioni di RocketMan</RocketMan.HideProgressBar>
+	<MissileGirl.Settings.PleaseUnpause>Per favore togli il gioco dalla Pausa... MissileGirl si sta Avviando!</MissileGirl.Settings.PleaseUnpause>
+	<MissileGirl.Settings.PleaseWait>Attendere... MissileGirl si sta Avviando!</MissileGirl.Settings.PleaseWait>
+	<MissileGirl.IncompatibilityWindow.Description>Stai eseguendo delle Mod Incompatibili con MissileGirl. Questo tipo di incompatibilità distruggerà il tuo salvataggio! Puoi disabilitare MissileGirl oppure puoi continuare. Queste Mod sono:\n</MissileGirl.IncompatibilityWindow.Description>
+	<MissileGirl.IUnderstand>Si, Acconsento! Continua!</MissileGirl.IUnderstand>
+	<MissileGirl.ChangeBack>Puoi sempre cambiare la tua lista delle mod e rimuovere MissileGirl!</MissileGirl.ChangeBack>
+	<MissileGirl.OpenModList>Si, Acconsento! Apri il gestore delle Mod!</MissileGirl.OpenModList>
+	<MissileGirl.Disclaimer>Il team di MissileGirl non fornirà alcun supporto se scegli di ignorare questo messaggio!</MissileGirl.Disclaimer>
+	<MissileGirl.Unpause>Per favore togli il gioco dalla Pausa!</MissileGirl.Unpause>
+	<MissileGirl.Warming>si sta Avviando! Attendere...</MissileGirl.Warming>
+	<MissileGirl.HideProgressBar>Puoi nascondere/disabilitare nelle impostazioni di MissileGirl</MissileGirl.HideProgressBar>
 
 
-	<!-- RocketMan RocketMan.TabContent_Settings -->
+	<!-- MissileGirl MissileGirl.TabContent_Settings -->
 
 
-	<RocketMan.RocketMan>RocketMan</RocketMan.RocketMan>
-	<RocketMan.Tab>Menu</RocketMan.Tab>
-	<RocketMan.Enable>Menu</RocketMan.Enable>
-	<RocketMan.ShowIcon>Mostra l'Icona di RocketMan</RocketMan.ShowIcon>
-	<RocketMan.ShowIcon.Description>A causa delle limitazioni del gioco, alcune opzioni non sono disponibili nelle impostazioni del menu di gioco.</RocketMan.ShowIcon.Description>
-	<RocketMan.ProgressBar>Mostra la barra di caricamento iniziale</RocketMan.ProgressBar>
-	<RocketMan.ProgressBar.Description>Questo mostrera la barra di caricamento durante il caricamento della nuova Mappa.</RocketMan.ProgressBar.Description>
-	<RocketMan.Junk>Spazzatura</RocketMan.Junk>
-	<RocketMan.CorpseRemoval>Rimuovi automaticamente i Corpi. (Non quelli Vicino alla tua Base)</RocketMan.CorpseRemoval>
-	<RocketMan.CorpseRemoval.Description>Questo rimuove i cadaveri che non sono in vista.</RocketMan.CorpseRemoval.Description>
-	<RocketMan.StatCacheSettings>Impostazioni della cache delle Statistiche</RocketMan.StatCacheSettings>
-	<RocketMan.Adaptive>Modalita Adattiva</RocketMan.Adaptive>
-	<RocketMan.Adaptive.Description>Abilitare per 30 Minuti dopo aver creato un nuovo Salvataggio oppure dopo aver cambiato la lista delle Mod.</RocketMan.Adaptive.Description>
-	<RocketMan.EnableGearStatCaching>Abilitare la cache delle statistiche dell'Attrezzatura</RocketMan.EnableGearStatCaching>
-	<RocketMan.Debugging>Abilita la Modalita di Debug</RocketMan.Debugging>
-	<RocketMan.Debugging.Description>Solamente per Utenti Avanzati e Sviluppatori delle Mod.</RocketMan.Debugging.Description>
+	<MissileGirl.MissileGirl>MissileGirl</MissileGirl.MissileGirl>
+	<MissileGirl.Tab>Menu</MissileGirl.Tab>
+	<MissileGirl.Enable>Menu</MissileGirl.Enable>
+	<MissileGirl.ShowIcon>Mostra l'Icona di MissileGirl</MissileGirl.ShowIcon>
+	<MissileGirl.ShowIcon.Description>A causa delle limitazioni del gioco, alcune opzioni non sono disponibili nelle impostazioni del menu di gioco.</MissileGirl.ShowIcon.Description>
+	<MissileGirl.ProgressBar>Mostra la barra di caricamento iniziale</MissileGirl.ProgressBar>
+	<MissileGirl.ProgressBar.Description>Questo mostrera la barra di caricamento durante il caricamento della nuova Mappa.</MissileGirl.ProgressBar.Description>
+	<MissileGirl.Junk>Spazzatura</MissileGirl.Junk>
+	<MissileGirl.CorpseRemoval>Rimuovi automaticamente i Corpi. (Non quelli Vicino alla tua Base)</MissileGirl.CorpseRemoval>
+	<MissileGirl.CorpseRemoval.Description>Questo rimuove i cadaveri che non sono in vista.</MissileGirl.CorpseRemoval.Description>
+	<MissileGirl.StatCacheSettings>Impostazioni della cache delle Statistiche</MissileGirl.StatCacheSettings>
+	<MissileGirl.Adaptive>Modalita Adattiva</MissileGirl.Adaptive>
+	<MissileGirl.Adaptive.Description>Abilitare per 30 Minuti dopo aver creato un nuovo Salvataggio oppure dopo aver cambiato la lista delle Mod.</MissileGirl.Adaptive.Description>
+	<MissileGirl.EnableGearStatCaching>Abilitare la cache delle statistiche dell'Attrezzatura</MissileGirl.EnableGearStatCaching>
+	<MissileGirl.Debugging>Abilita la Modalita di Debug</MissileGirl.Debugging>
+	<MissileGirl.Debugging.Description>Solamente per Utenti Avanzati e Sviluppatori delle Mod.</MissileGirl.Debugging.Description>
 
 
 	<!-- Soyuz Soyuz.TabContent_DilationSettings -->

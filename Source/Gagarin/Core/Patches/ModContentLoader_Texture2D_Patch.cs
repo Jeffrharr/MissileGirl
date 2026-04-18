@@ -57,7 +57,7 @@ namespace Gagarin
                         Array.Copy(buffer, 0, cachedHashed, 0, 16);
                         if (HashChanged(originalHash, cachedHashed))
                         {
-                            RocketMan.Logger.Message($"GAGARIN: Hash changed for file {file.FullPath}");
+                            MissileGirl.Logger.Message($"GAGARIN: Hash changed for file {file.FullPath}");
                             try
                             {
                                 if (File.Exists(binPath))
@@ -69,7 +69,7 @@ namespace Gagarin
                             }
                             catch (Exception er)
                             {
-                                RocketMan.Logger.Debug($"GAGARIN: Error creating texture cache! skipping this one!", exception: er);
+                                MissileGirl.Logger.Debug($"GAGARIN: Error creating texture cache! skipping this one!", exception: er);
                                 return true;
                             }
                         }
@@ -92,7 +92,7 @@ namespace Gagarin
                         {
                             File.Delete(binPath);
                         }
-                        RocketMan.Logger.Debug($"GAGARIN: Error loading texture! using fallback mode!", exception: er);
+                        MissileGirl.Logger.Debug($"GAGARIN: Error loading texture! using fallback mode!", exception: er);
                         return true;
                     }
                 }
@@ -108,7 +108,7 @@ namespace Gagarin
                         {
                             File.Delete(binPath);
                         }
-                        RocketMan.Logger.Debug($"GAGARIN: Error creating texture cache! skipping this one!", exception: er);
+                        MissileGirl.Logger.Debug($"GAGARIN: Error creating texture cache! skipping this one!", exception: er);
                         return true;
                     }
                 }
@@ -191,7 +191,7 @@ namespace Gagarin
                 }
                 catch (Exception er)
                 {
-                    RocketMan.Logger.Debug($"GAGARIN: Error loading dds! trying to load png now!", exception: er);
+                    MissileGirl.Logger.Debug($"GAGARIN: Error loading dds! trying to load png now!", exception: er);
                     return false;
                 }
                 return true;

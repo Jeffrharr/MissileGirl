@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public abstract class ISelector_GenericSelection<T> : ISelector
     {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Verse;
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(GenTemperature), nameof(GenTemperature.ComfortableTemperatureRange), parameters = [typeof(Pawn)])]
     internal class GenTemperature_Patch

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<RootNamespace>RocketMan</RootNamespace>
+		<RootNamespace>MissileGirl</RootNamespace>
 		<AssemblyName>Cosmodrome</AssemblyName>
 		<TargetFramework>net481</TargetFramework>
 		<LangVersion>latest</LangVersion>

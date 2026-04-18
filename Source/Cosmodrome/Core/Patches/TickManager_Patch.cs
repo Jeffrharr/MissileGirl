@@ -7,7 +7,7 @@
 // using HarmonyLib;
 // using Verse;
 //
-// namespace RocketMan.Patches
+// namespace MissileGirl.Patches
 // {
 //     [RocketStartupPatch(typeof(TickManager), nameof(TickManager.DoSingleTick))]
 //     public static class TickManager_DoSingleTick_Patch

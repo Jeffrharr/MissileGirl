@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class SignatureUtility
     {

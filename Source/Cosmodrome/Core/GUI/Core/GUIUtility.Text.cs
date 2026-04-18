@@ -5,9 +5,9 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
-using GUITextState = System.Tuple<string, RocketMan.GUIFontSize, System.Tuple<float, float>, System.Tuple<int, int, int, int>, System.Tuple<UnityEngine.FontStyle, UnityEngine.FontStyle, UnityEngine.FontStyle, UnityEngine.FontStyle>>;
+using GUITextState = System.Tuple<string, MissileGirl.GUIFontSize, System.Tuple<float, float>, System.Tuple<int, int, int, int>, System.Tuple<UnityEngine.FontStyle, UnityEngine.FontStyle, UnityEngine.FontStyle, UnityEngine.FontStyle>>;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static partial class GUIUtility
     {

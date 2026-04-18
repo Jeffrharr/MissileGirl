@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using RimWorld;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class StatSettings : IExposable
     {

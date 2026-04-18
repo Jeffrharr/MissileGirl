@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using RimWorld;
-using RocketMan;
-using RocketMan.Tabs;
+using MissileGirl;
+using MissileGirl.Tabs;
 using UnityEngine;
 using Verse;
 
@@ -66,9 +66,9 @@ namespace Gagarin
 
         public override void DoContent(Rect rect)
         {
-            collapsible.Begin(rect, KeyedResources.RocketMan_Settings);
-            collapsible.Label(KeyedResources.RocketMan_EnableGagarin_Tip);
-            if (collapsible.CheckboxLabeled(KeyedResources.RocketMan_EnableGagarin, ref GagarinPrefs.Enabled) && !GagarinPrefs.Enabled)
+            collapsible.Begin(rect, KeyedResources.MissileGirl_Settings);
+            collapsible.Label(KeyedResources.MissileGirl_EnableGagarin_Tip);
+            if (collapsible.CheckboxLabeled(KeyedResources.MissileGirl_EnableGagarin, ref GagarinPrefs.Enabled) && !GagarinPrefs.Enabled)
             {
                 if (File.Exists(GagarinEnvironmentInfo.UnifiedXmlFilePath))
                     File.Delete(GagarinEnvironmentInfo.UnifiedXmlFilePath);

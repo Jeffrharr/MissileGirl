@@ -1,7 +1,7 @@
 ﻿using System;
 using HarmonyLib;
 
-namespace RocketMan
+namespace MissileGirl
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public abstract class IPatch : Attribute

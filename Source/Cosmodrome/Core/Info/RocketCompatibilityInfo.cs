@@ -3,7 +3,7 @@ using System.Linq;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class RocketCompatibilityInfo
     {

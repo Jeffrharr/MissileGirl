@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class TranspilerUtility
     {

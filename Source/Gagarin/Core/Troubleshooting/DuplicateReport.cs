@@ -6,9 +6,9 @@ using System.Xml;
 using System.Xml.Linq;
 using Microsoft.Build.Utilities;
 using Microsoft.XmlDiffPatch;
-using RocketMan;
+using MissileGirl;
 using Verse;
-using Logger = RocketMan.Logger;
+using Logger = MissileGirl.Logger;
 using RecordPair = Verse.Pair<Gagarin.DuplicateReport.DuplicationRecord, Gagarin.DuplicateReport.DuplicationRecord>;
 
 namespace Gagarin

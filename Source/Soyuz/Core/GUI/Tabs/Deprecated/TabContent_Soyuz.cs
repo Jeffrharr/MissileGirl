@@ -2,8 +2,8 @@
 // using System.Linq;
 // using System.Runtime.InteropServices;
 // using RimWorld;
-// using RocketMan;
-// using RocketMan.Tabs;
+// using MissileGirl;
+// using MissileGirl.Tabs;
 // using UnityEngine;
 // using Verse;
 //
@@ -114,7 +114,7 @@
 //                 var height = 128;
 //                 var selectionRect = rect.TopPartPixels(height);
 //                 var model = pawn.GetPerformanceModel();
-//                 if (RocketDebugPrefs.Debug) RocketMan.Logger.Message($"SOYUZ: UI stage is {stage}:{1}");
+//                 if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"SOYUZ: UI stage is {stage}:{1}");
 //                 if (model != null)
 //                 {
 //                     model.DrawGraph(selectionRect, 2000);

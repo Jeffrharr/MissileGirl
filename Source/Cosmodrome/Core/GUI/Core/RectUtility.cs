@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class RectUtility
     {

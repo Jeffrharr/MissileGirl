@@ -4,7 +4,7 @@ using System.Linq;
 using RimWorld;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class StatSettingsUtility
     {

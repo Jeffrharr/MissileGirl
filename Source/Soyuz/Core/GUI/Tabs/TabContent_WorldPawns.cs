@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using RimWorld.Planet;
 //using Mono.Security.X509.Extensions;
-using RocketMan;
-using RocketMan.Tabs;
+using MissileGirl;
+using MissileGirl.Tabs;
 using UnityEngine;
 using Verse;
 
@@ -68,7 +68,7 @@ namespace Soyuz.Tabs
                 var model = ContextualExtensions.GetPerformanceModel(currentPawn);
                 model.DrawGraph(ref inRect);
             }
-            RocketMan.GUIUtility.ScrollView(inRect, ref scrollPosition, records,
+            MissileGirl.GUIUtility.ScrollView(inRect, ref scrollPosition, records,
                 heightLambda: (record) =>
                 {
                     return (record.pawn == null || record.pawn.Destroyed || record.pawn.Spawned) ? 0f : 25f;
@@ -95,7 +95,7 @@ namespace Soyuz.Tabs
                     // return RocketPrefs.TimeDilationWorldPawns && !pawn.IsCaravanMember() && pawn.Faction != Faction.OfPlayer && pawn.HostFaction != Faction.OfPlayer && !HasHediffPreventingThrottling(pawn);
                     Widgets.DrawBoxSolid(elementRect.LeftPartPixels(3), sidebarColor);
                     elementRect.xMin += 5;
-                    RocketMan.GUIUtility.Row(elementRect, new List<Action<Rect>>()
+                    MissileGirl.GUIUtility.Row(elementRect, new List<Action<Rect>>()
                     {
                         (rect) =>
                         {

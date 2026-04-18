@@ -4,7 +4,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     // TODO update to 1.3
     // public class Selector_PawnSelection : ISelector_GenericSelection<Pawn>

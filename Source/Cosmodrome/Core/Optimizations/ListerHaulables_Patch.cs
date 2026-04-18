@@ -8,7 +8,7 @@ using System.Reflection;
 using Verse;
 using Mono.Cecil.Cil;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     //public class ListerHaulables_Patch
     //{

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct CachedUnit<T>

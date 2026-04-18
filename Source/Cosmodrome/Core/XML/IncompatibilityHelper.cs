@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class IncompatibilityHelper
     {
@@ -34,13 +34,13 @@ namespace RocketMan
                     .Any(m => (m.Name.ToLower() == info.name || m.PackageIdPlayerFacing.ToLower() == info.packageId || m.PackageIdNonUnique.ToLower() == info.packageId)))
                 {
                     incompatibleMods.Add(info.name);
-                    Log.Warning($"ROCKETMAN: Detected {info.name} ({info.packageId}) which is an incompatible mod!");
+                    Log.Warning($"MissileGirl: Detected {info.name} ({info.packageId}) which is an incompatible mod!");
                 }
             }
             if (incompatibleMods.Count > 0)
             {
                 RocketEnvironmentInfo.IncompatibilityUnresolved = true;
-                Log.Warning("ROCKETMAN: Incompatiblity found!");
+                Log.Warning("MissileGirl: Incompatiblity found!");
             }
         }
     }

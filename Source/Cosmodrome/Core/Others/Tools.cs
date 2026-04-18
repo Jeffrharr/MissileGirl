@@ -5,10 +5,10 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using RimWorld;
-//using RocketMan.Optimizations;
+//using MissileGirl.Optimizations;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class Tools
     {
@@ -48,7 +48,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Log.Warning(string.Format("ROCKETMAN: Notify_Dirty error of {0} at {1}", er.Message, er.StackTrace));
+                Log.Warning(string.Format("MissileGirl: Notify_Dirty error of {0} at {1}", er.Message, er.StackTrace));
             }
         }
 

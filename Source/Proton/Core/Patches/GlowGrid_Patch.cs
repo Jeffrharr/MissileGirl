@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using RocketMan;
+using MissileGirl;
 using UnityEngine;
 using Verse;
 using Verse.Noise;
@@ -134,7 +134,7 @@ namespace Proton
                 {
                     stopwatch.Stop();
                     t2 = stopwatch.ElapsedTicks / (float)Stopwatch.Frequency * 1000f;
-                    RocketMan.Logger.Message($"PROTON: GlowGrid vanilla took <color=orange>{Math.Round(t2,2)} MS</color> vs <color=orange>{Math.Round(t1, 2)} MS</color>. " +
+                    MissileGirl.Logger.Message($"PROTON: GlowGrid vanilla took <color=orange>{Math.Round(t2,2)} MS</color> vs <color=orange>{Math.Round(t1, 2)} MS</color>. " +
                         $"Total improvement <color=orange>{Math.Round(t2 - t1, 2)} MS</color> or <color=orange>+{Math.Round(t2 / Mathf.Max(t1, 1e-4f), 2) * 100 - 100} %</color>");
                 }
             }

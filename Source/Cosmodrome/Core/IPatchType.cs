@@ -1,5 +1,5 @@
 ﻿using System;
-namespace RocketMan
+namespace MissileGirl
 {
     public enum PatchType
     {

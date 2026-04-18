@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
-using RocketMan;
+using MissileGirl;
 
-namespace RocketMan.Tabs
+namespace MissileGirl.Tabs
 {
     public class TabHolder
     {
@@ -77,10 +77,10 @@ namespace RocketMan.Tabs
                         GUIFont.Font = GUIFontSize.Small;
                         GUIFont.CurFontStyle.fontStyle = FontStyle.Bold;
                         GUIFont.Anchor = TextAnchor.MiddleLeft;
-                        float headerHeight = "RocketMan".GetTextHeight(inRect.width) + 3;
+                        float headerHeight = "MissileGirl".GetTextHeight(inRect.width) + 3;
                         Rect rect = contentRect.TopPartPixels(headerHeight);
-                        // Create the RocketMan stamp                        
-                        Widgets.Label(rect, "RocketMan");
+                        // Create the MissileGirl stamp                        
+                        Widgets.Label(rect, "MissileGirl");
                         // Create the version string
                         rect.xMin += 90;
                         rect.xMax -= 45;
@@ -117,7 +117,7 @@ namespace RocketMan.Tabs
                     // TabDrawer.DrawTabs(tabRect, tabsRecord);
                     // curTab.DoContent(inRect);
                     // -----------------------
-                    throw new InvalidOperationException("ROCKETMAN: this is an outdated API!");
+                    throw new InvalidOperationException("MissileGirl: this is an outdated API!");
                 }
             }, fallbackAction: null, catchExceptions: false);
         }

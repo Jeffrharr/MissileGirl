@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using RimWorld;
-using RocketMan;
+using MissileGirl;
 using Verse;
 using Verse.AI;
 
@@ -119,7 +119,7 @@ namespace Soyuz
                     //    settings.throttleFilter = JobThrottleFilter.Animals;
                     //    settings.throttleMode = JobThrottleMode.Full;
 
-                    //    RocketMan.Logger.Message($"SOYUZ: Blacklisted job {settings.def.defName}");
+                    //    MissileGirl.Logger.Message($"SOYUZ: Blacklisted job {settings.def.defName}");
                     //}
                 }
                 else
@@ -158,7 +158,7 @@ namespace Soyuz
                 settings.throttleFilter = JobThrottleFilter.Animals;
                 settings.throttleMode = JobThrottleMode.Full;
             }
-            RocketMan.Logger.Message("SOYUZ: Preset loaded!");
+            MissileGirl.Logger.Message("SOYUZ: Preset loaded!");
         }
 
         // private static string harmonyId = Finder.HarmonyID + ".Soyuz";

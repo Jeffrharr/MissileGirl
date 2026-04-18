@@ -1,11 +1,11 @@
 ﻿// using System;
 // using System.Linq;
 // using System.Runtime.InteropServices;
-// using RocketMan;
-// using RocketMan.Tabs;
+// using MissileGirl;
+// using MissileGirl.Tabs;
 // using UnityEngine;
 // using Verse;
-// using static RocketMan.Listing_Collapsible;
+// using static MissileGirl.Listing_Collapsible;
 //
 // namespace Soyuz.Tabs
 // {

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class PatchingUtility
     {
@@ -36,7 +36,7 @@ namespace RocketMan
                 T patchInfo = (T)Activator.CreateInstance(typeof(T), type);
                 if (!patchInfo.IsValid)
                 {
-                    RocketMan.Logger.Message($"{type} is not a valid patch!");
+                    MissileGirl.Logger.Message($"{type} is not a valid patch!");
                     continue;
                 }
                 yield return patchInfo;

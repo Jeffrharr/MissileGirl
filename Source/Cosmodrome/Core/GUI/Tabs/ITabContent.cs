@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using Verse;
 
-namespace RocketMan.Tabs
+namespace MissileGirl.Tabs
 {
     public abstract class ITabContent
     {

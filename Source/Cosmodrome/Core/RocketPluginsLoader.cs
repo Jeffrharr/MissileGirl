@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using UnityEngine.Assertions;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public sealed class RocketPluginsLoader
     {
@@ -29,7 +29,7 @@ namespace RocketMan
 
             if (RocketEnvironmentInfo.IsDevEnv)
             {
-                RocketMan.Logger.Message($"ROCKETMAN: Dev enviroment detected! Loading experimental plugins!");
+                MissileGirl.Logger.Message($"MissileGirl: Dev enviroment detected! Loading experimental plugins!");
 
                 assemblies.AddRange(
                     LoadDirectory(RocketEnvironmentInfo.ExperimentalPluginsFolderPath).ToList()
@@ -51,7 +51,7 @@ namespace RocketMan
                 //{
                 //    continue;
                 //}
-                Logger.Debug($"ROCKETMAN: Found assembly with name of " +
+                Logger.Debug($"MissileGirl: Found assembly with name of " +
                     $"<color=red>{assemblyName}</color> and file name of " +
                     $"<color=red>{fileName}</color>");
 
@@ -77,14 +77,14 @@ namespace RocketMan
                 assembly = rawSymbolStore != null && RocketEnvironmentInfo.IsDevEnv ?
                                  AppDomain.CurrentDomain.Load(rawAssembly, rawSymbolStore) :
                                  AppDomain.CurrentDomain.Load(rawAssembly);
-                Logger.Debug($"ROCKETMAN: Loaded assembly {assembly?.GetName().FullName} and symbols state is {rawSymbolStore != null && RocketEnvironmentInfo.IsDevEnv}");
+                Logger.Debug($"MissileGirl: Loaded assembly {assembly?.GetName().FullName} and symbols state is {rawSymbolStore != null && RocketEnvironmentInfo.IsDevEnv}");
                 assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == assemblyName);
-                Logger.Debug($"ROCKETMAN: Assembly is currently [valid={assembly != null }] and Named {assembly.FullName}");
+                Logger.Debug($"MissileGirl: Assembly is currently [valid={assembly != null }] and Named {assembly.FullName}");
                 if (assembly == null)
                 {
-                    Logger.Debug($"ROCKETMAN: Preparing to throw new Exception!");
+                    Logger.Debug($"MissileGirl: Preparing to throw new Exception!");
                     LogAssembliesInDomain();
-                    throw new Exception($"ROCKETMAN: Loaded assembly {assemblyName} not in the " +
+                    throw new Exception($"MissileGirl: Loaded assembly {assemblyName} not in the " +
                         $"<color=red>current app domain</color> and path fo {assemblyPath}");
                 }
                 return assembly;
@@ -92,7 +92,7 @@ namespace RocketMan
             catch (Exception er)
             {
                 LogAssembliesInDomain();
-                Logger.Debug($"ROCKETMAN: ERROR loading assemlby {assemblyName}", exception: er);
+                Logger.Debug($"MissileGirl: ERROR loading assemlby {assemblyName}", exception: er);
                 return null;
             }
         }
@@ -100,7 +100,7 @@ namespace RocketMan
         private void LogAssembliesInDomain()
         {
             int index = 0;
-            string report = "ROCKETMAN: Assemblies report\n";
+            string report = "MissileGirl: Assemblies report\n";
             foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
             {
                 if (a.FullName.Contains("UnityEngine") || a.FullName.Contains("System"))

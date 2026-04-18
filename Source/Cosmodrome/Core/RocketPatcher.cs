@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
-using RocketMan;
+using MissileGirl;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class RocketPatch : IPatch
@@ -23,7 +23,7 @@ namespace RocketMan
 
     public class RocketPatchInfo : IPatchInfo<RocketPatch>
     {
-        public override string PluginName => "ROCKETMAN";
+        public override string PluginName => "MissileGirl";
         public override string PatchTypeUniqueIdentifier => nameof(RocketPatch);
 
         public RocketPatchInfo(Type type) : base(type)
@@ -40,7 +40,7 @@ namespace RocketMan
         {
             foreach (var patch in patches)
                 patch.Patch(Finder.Harmony);
-            if (RocketDebugPrefs.Debug) RocketMan.Logger.Message($"ROCKETMAN: Patching finished");
+            if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"MissileGirl: Patching finished");
         }
 
         static RocketPatcher()
@@ -52,7 +52,7 @@ namespace RocketMan
             {
                 RocketPatchInfo patch = new RocketPatchInfo(type);
                 patchList.Add(patch);
-                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message($"ROCKETMAN: Found patch in {type} and is {(patch.IsValid ? "valid" : "invalid") }");
+                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"MissileGirl: Found patch in {type} and is {(patch.IsValid ? "valid" : "invalid") }");
             }
             patches = patchList.Where(p => p.IsValid).ToArray();
         }

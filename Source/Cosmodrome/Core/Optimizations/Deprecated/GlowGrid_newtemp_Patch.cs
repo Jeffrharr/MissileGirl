@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using RimWorld;
 using UnityEngine;
 using Verse;
-using MapGlowerProp = System.Collections.Generic.Dictionary<Verse.CompGlower, RocketMan.Optimizations.GlowGrid_Patch.GlowerProperties>;
-using MapGlowerPropHashSet = System.Collections.Generic.HashSet<RocketMan.Optimizations.GlowGrid_Patch.GlowerProperties>;
+using MapGlowerProp = System.Collections.Generic.Dictionary<Verse.CompGlower, MissileGirl.Optimizations.GlowGrid_Patch.GlowerProperties>;
+using MapGlowerPropHashSet = System.Collections.Generic.HashSet<MissileGirl.Optimizations.GlowGrid_Patch.GlowerProperties>;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     public static class GlowGrid_Patch
     {

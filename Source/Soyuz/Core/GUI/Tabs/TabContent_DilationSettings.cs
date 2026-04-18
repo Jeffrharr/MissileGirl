@@ -3,8 +3,8 @@
 // using System.IO;
 // using System.Linq;
 // using RimWorld;
-// using RocketMan;
-// using RocketMan.Tabs;
+// using MissileGirl;
+// using MissileGirl.Tabs;
 // using UnityEngine;
 // using Verse;
 //
@@ -79,8 +79,8 @@
 //
 //         public override void DoContent(Rect inRect)
 //         {
-//             RocketMan.GUIUtility.StashGUIState();
-//             collapsible.Begin(inRect, KeyedResources.RocketMan_Settings);
+//             MissileGirl.GUIUtility.StashGUIState();
+//             collapsible.Begin(inRect, KeyedResources.MissileGirl_Settings);
 //             collapsible.Label(KeyedResources.Soyuz_GeneralTip, invert: true);
 //             collapsible.CheckboxLabeled(KeyedResources.Soyuz_Enable, ref RocketPrefs.TimeDilation);
 //             collapsible.Line(1);
@@ -89,7 +89,7 @@
 //             collapsible.Label(KeyedResources.Soyuz_DilationFactor);
 //             collapsible.Lambda(50, (rect) =>
 //             {
-//                 RocketMan.GUIUtility.Row(rect.TopHalf(), new List<Action<Rect>>()
+//                 MissileGirl.GUIUtility.Row(rect.TopHalf(), new List<Action<Rect>>()
 //                 {
 //                     (tempRect) =>
 //                     {
@@ -104,7 +104,7 @@
 //                         Widgets.Label(tempRect, KeyedResources.Soyuz_DilationFactor_OnScreen);
 //                     },
 //                 }, drawDivider: false);
-//                 RocketMan.GUIUtility.Row(rect.BottomHalf(), new List<Action<Rect>>()
+//                 MissileGirl.GUIUtility.Row(rect.BottomHalf(), new List<Action<Rect>>()
 //                 {
 //                      (tempRect) =>
 //                     {
@@ -142,7 +142,7 @@
 //             //if (RocketEnvironmentInfo.IsDevEnv)
 //             //{
 //             //    collapsible.Line(1);
-//             //    collapsible.Label(KeyedResources.RocketMan_Experimental);
+//             //    collapsible.Label(KeyedResources.MissileGirl_Experimental);
 //             //    collapsible.Gap(3);
 //             //    collapsible.Label(KeyedResources.Soyuz_EnableTimeColonists_Warning);
 //             //    collapsible.CheckboxLabeled(KeyedResources.Soyuz_EnableTimeColonists, ref RocketPrefs.TimeDilationColonists, disabled: !RocketPrefs.TimeDilation);
@@ -151,7 +151,7 @@
 //             if (RocketDebugPrefs.Debug)
 //             {
 //                 inRect.yMin -= 1;
-//                 collapsible_debug.Begin(inRect, KeyedResources.RocketMan_Settings_Debugging);
+//                 collapsible_debug.Begin(inRect, KeyedResources.MissileGirl_Settings_Debugging);
 //                 collapsible_debug.CheckboxLabeled(KeyedResources.Soyuz_EnableDataLogging, ref RocketDebugPrefs.LogData, disabled: !RocketPrefs.TimeDilation);
 //                 //collapsible_debug.CheckboxLabeled(KeyedResources.Soyuz_Debug150MTPS, ref RocketDebugPrefs.Debug150MTPS, disabled: !RocketPrefs.TimeDilation);
 //                 collapsible_debug.CheckboxLabeled(KeyedResources.Soyuz_FlashPawns, ref RocketDebugPrefs.FlashDilatedPawns, disabled: !RocketPrefs.TimeDilation);
@@ -163,14 +163,14 @@
 //             {
 //                 DoExtras(inRect);
 //             }
-//             else RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+//             else MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
 //             {
 //                 GUIFont.Anchor = TextAnchor.MiddleCenter;
 //                 GUIFont.Font = GUIFontSize.Medium;
 //                 Widgets.DrawMenuSection(inRect);
 //                 Widgets.Label(inRect, "Soyuz.DilationDisabled".Translate());
 //             });
-//             RocketMan.GUIUtility.RestoreGUIState();
+//             MissileGirl.GUIUtility.RestoreGUIState();
 //         }
 //
 //         private void DoExtras(Rect inRect)
@@ -245,7 +245,7 @@
 //                         });
 //                 }
 //                 collapsible_jobs.End(ref inRect);
-//                 RocketMan.GUIUtility.ScrollView(inRect, ref jobsScrollPosition, this.jobs,
+//                 MissileGirl.GUIUtility.ScrollView(inRect, ref jobsScrollPosition, this.jobs,
 //                     (def) =>
 //                     {
 //                         if (def == null)
@@ -285,26 +285,26 @@
 //                     // ------------------
 //                     // inRect.yMin += 100;
 //                 }
-//                 RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+//                 MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
 //                 {
 //                     Rect curRect = inRect.TopPartPixels(60);
 //                     Widgets.DrawMenuSection(curRect);
 //                     GUIFont.Font = GUIFontSize.Tiny;
-//                     RocketMan.GUIUtility.GridView<Pair<Color, string>>(curRect, 2, descriptionBoxes, (rect, pair) =>
+//                     MissileGirl.GUIUtility.GridView<Pair<Color, string>>(curRect, 2, descriptionBoxes, (rect, pair) =>
 //                     {
-//                         RocketMan.GUIUtility.ColorBoxDescription(rect, pair.first, pair.second);
+//                         MissileGirl.GUIUtility.ColorBoxDescription(rect, pair.first, pair.second);
 //                     }, drawBackground: false);
 //                 });
 //                 inRect.yMin += 60;
 //                 GUIFont.Font = GUIFontSize.Tiny;
 //                 GUIFont.CurFontStyle.fontStyle = FontStyle.Normal;
-//                 RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+//                 MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
 //                 {
 //                     Rect tempRect = inRect.TopPartPixels(25);
 //                     Widgets.DrawMenuSection(tempRect);
 //                     tempRect.xMin += 10 + 50;
 //                     tempRect.xMax -= 25;
-//                     RocketMan.GUIUtility.GridView<Action<Rect>>(tempRect.TopPartPixels(25), 2,
+//                     MissileGirl.GUIUtility.GridView<Action<Rect>>(tempRect.TopPartPixels(25), 2,
 //                             new List<Action<Rect>>()
 //                             {
 //                         (curRect) =>
@@ -318,7 +318,7 @@
 //                             }, (rect, action) => { action.Invoke(rect); }, drawBackground: false);
 //                 });
 //                 inRect.yMin += 25;
-//                 RocketMan.GUIUtility.ScrollView<RaceSettings>(inRect, ref scrollPosition, Context.Settings.AllRaceSettings,
+//                 MissileGirl.GUIUtility.ScrollView<RaceSettings>(inRect, ref scrollPosition, Context.Settings.AllRaceSettings,
 //                     heightLambda: (raceSettings) =>
 //                     {
 //                         if (searchString?.Trim().NullOrEmpty() ?? true)
@@ -338,7 +338,7 @@
 //                         iconRect = iconRect.CenteredOnYIn(rect);
 //                         rect.xMin += rect.height + 5;
 //                         Widgets.DefIcon(iconRect, raceSettings.def, null, 0.90f);
-//                         RocketMan.GUIUtility.GridView(rect, 2,
+//                         MissileGirl.GUIUtility.GridView(rect, 2,
 //                             elements: new List<Action<Rect>>()
 //                             {
 //                             (r) =>
@@ -364,7 +364,7 @@
 //             if (curSettings != null)
 //             {
 //                 collapsible_selection.Expanded = true;
-//                 collapsible_selection.Begin(inRect, KeyedResources.RocketMan_Selection.Formatted(curSettings.def.label?.CapitalizeFirst() ?? curSettings.def.defName), drawIcon: false, drawInfo: false);
+//                 collapsible_selection.Begin(inRect, KeyedResources.MissileGirl_Selection.Formatted(curSettings.def.label?.CapitalizeFirst() ?? curSettings.def.defName), drawIcon: false, drawInfo: false);
 //                 if (!IgnoreMeDatabase.ShouldIgnore(curSettings.def))
 //                 {
 //                     bool checkOn = Context.DilationEnabled[curSettings.def.index];

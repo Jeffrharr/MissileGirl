@@ -23,7 +23,7 @@ using System.Runtime.InteropServices;
 using System.Resources;
 
 // General Information
-[assembly: AssemblyTitle("RocketMan")]
+[assembly: AssemblyTitle("MissileGirl")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("STEAM_BUILD")]
 [assembly: AssemblyCompany("")]

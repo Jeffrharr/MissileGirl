@@ -3,7 +3,7 @@
 // using UnityEngine;
 // using Verse;
 //
-// namespace RocketMan
+// namespace MissileGirl
 // {
 //     public static class Text_Patch
 //     {

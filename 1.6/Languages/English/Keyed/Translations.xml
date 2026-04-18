@@ -1,63 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
 	<!-- General -->
-	<RocketMan.Settings>Settings</RocketMan.Settings>
-	<RocketMan.Settings.Debugging>Debug Settings</RocketMan.Settings.Debugging>
-	<RocketMan.Collapsible.Expand>[Expand]</RocketMan.Collapsible.Expand>
-	<RocketMan.Collapsible.Hide>[Hide]</RocketMan.Collapsible.Hide>
-	<RocketMan.Selection>Selection: {0}</RocketMan.Selection>
-	<!-- RocketMan -->
-	<RocketMan.Settings.PleaseUnpause>Please unpause the game... MissileGirl is warming up!</RocketMan.Settings.PleaseUnpause>
-	<RocketMan.Settings.PleaseWait>Please wait... MissileGirl is warming up!</RocketMan.Settings.PleaseWait>
-	<RocketMan.IncompatibilityWindow.Title>You are running incompatible mods</RocketMan.IncompatibilityWindow.Title>
-	<RocketMan.IncompatibilityWindow.Description>You are running incompatibile mods with MissileGirl. This type of incompatilibity will nuke/destroy your save! You can Disable MissileGirl or You continue on your own responsibility.\nCurrent incompatible mods are:\n</RocketMan.IncompatibilityWindow.Description>
-	<RocketMan.IncompatibilityWindow.Continue>Yes, I understand! Continue!</RocketMan.IncompatibilityWindow.Continue>
-	<RocketMan.IncompatibilityWindow.OpenModManager>Open the mod manager</RocketMan.IncompatibilityWindow.OpenModManager>
-	<RocketMan.IncompatibilityWindow.Disclaimer>The MissileGirl team will provide no support if you choose to ignore this message or continue!</RocketMan.IncompatibilityWindow.Disclaimer>
-	<RocketMan.Alert_StatsLearning.Label>Adaptive mode is active</RocketMan.Alert_StatsLearning.Label>
-	<RocketMan.Alert_StatsLearning.Explanation>Adaptive mode has been active for {0} minutes! It is recomended to have it running for {1} minutes per new save or when you change your mods.</RocketMan.Alert_StatsLearning.Explanation>
-	<RocketMan.AdaptiveAlert.Label>Enable adaptive mode alert</RocketMan.AdaptiveAlert.Label>
-	<RocketMan.AdaptiveAlert.Description>Disable this if you don't want the adaptive mode alert in your alert list.</RocketMan.AdaptiveAlert.Description>
-	<RocketMan.Unpause>Please unpause the game!</RocketMan.Unpause>
-	<RocketMan.Warming>is warming up! Please wait...</RocketMan.Warming>
-	<RocketMan.HideProgressBar>You can hide/disable in MissileGirl's settings</RocketMan.HideProgressBar>
-	<!-- RocketMan RocketMan.TabContent_Settings -->
-	<RocketMan.RocketMan>RocketMan</RocketMan.RocketMan>
-	<RocketMan.Tab>Home</RocketMan.Tab>
-	<RocketMan.FixBeauty>Dynamic beauty scan radius</RocketMan.FixBeauty>
-	<RocketMan.FixBeauty.Tip>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</RocketMan.FixBeauty.Tip>
-	<RocketMan.GenMapSize>THIGH-O-TORN 5000</RocketMan.GenMapSize>
-	<RocketMan.GenMapSize.Text>Set the map size/shape for the next generated map. (after generating said map this option will reset back to default)</RocketMan.GenMapSize.Text>
-	<RocketMan.GenMapSize.Note>Please note that the new map will have a width/height that is dividable by region height (this rounding process is automatic).</RocketMan.GenMapSize.Note>
-	<RocketMan.GenMapSize.Mode.Custom>Custom</RocketMan.GenMapSize.Mode.Custom>
-	<RocketMan.GenMapSize.Mode.Vanilla>Vanilla</RocketMan.GenMapSize.Mode.Vanilla>
-	<RocketMan.GenMapSize.Width>Width</RocketMan.GenMapSize.Width>
-	<RocketMan.GenMapSize.Height>Height</RocketMan.GenMapSize.Height>
-	<RocketMan.Close>Close</RocketMan.Close>
-	<RocketMan.Enable>Enable</RocketMan.Enable>
-	<RocketMan.TranslationCaching>Enable text size caching</RocketMan.TranslationCaching>
-	<RocketMan.Experimental>Experimental features</RocketMan.Experimental>
-	<RocketMan.Experimental.Description>Here you can opt in MissileGirl Beta features.\nWarning: do not do this if you don't know what you're doing.</RocketMan.Experimental.Description>
-	<RocketMan.Experimental.OptInBeta>Opt in MissileGirl beta features</RocketMan.Experimental.OptInBeta>
-	<RocketMan.EnableGagarin>Enable load time reduction (Faster loading times)</RocketMan.EnableGagarin>
-	<RocketMan.EnableGagarin.Tip>MissileGirl will attempt to reduce your loading time by caching Xml patch operations. After you active this settings restart your game twice in order for MissileGirl to create the cache. Depending on how many mods you use and what mods you could see several minutes shaved off loading time. This is recommended to be used with Xml patch heavy mods such as Combat Extended.</RocketMan.EnableGagarin.Tip>
-	<RocketMan.ShowIcon>Show MissileGirl button/icon</RocketMan.ShowIcon>
-	<RocketMan.ShowIcon.Description>Due to game limitations some options aren't available from the game menu settings.</RocketMan.ShowIcon.Description>
-	<RocketMan.ProgressBar>Show warmup progress bar on startup</RocketMan.ProgressBar>
-	<RocketMan.ProgressBar.Pause>Pause after warmup</RocketMan.ProgressBar.Pause>
-	<RocketMan.ProgressBar.Description>This will show a warmup progress bar when you load a new map.</RocketMan.ProgressBar.Description>
-	<RocketMan.Junk>Junk</RocketMan.Junk>
-	<RocketMan.CorpseRemoval>Enable automatic corpses removal.</RocketMan.CorpseRemoval>
-	<RocketMan.CorpseRemoval.Description>This removes corpses that aren't in view for a while and that aren't near your base to avoid breaking the game balance.</RocketMan.CorpseRemoval.Description>
-	<RocketMan.GameSpeed>Game speed settings</RocketMan.GameSpeed>
-	<RocketMan.DisableForcedSlowdowns>Disable forced slowdowns</RocketMan.DisableForcedSlowdowns>
-	<RocketMan.DisableForcedSlowdowns.Description>Disable forced slowdowns by game events. Disable this if you are using SmartSpeed.</RocketMan.DisableForcedSlowdowns.Description>
-	<RocketMan.StatCacheSettings>Stats cache settings</RocketMan.StatCacheSettings>
-	<RocketMan.Adaptive>Adaptive mode</RocketMan.Adaptive>
-	<RocketMan.Adaptive.Description>Enable for 30 minutes after creating a new save or changing your mod list.</RocketMan.Adaptive.Description>
-	<RocketMan.EnableGearStatCaching>Enable gear stat caching</RocketMan.EnableGearStatCaching>
-	<RocketMan.Debugging>Enable debugging</RocketMan.Debugging>
-	<RocketMan.Debugging.Description>Only for advanced users and modders</RocketMan.Debugging.Description>
+	<MissileGirl.Settings>Settings</MissileGirl.Settings>
+	<MissileGirl.Settings.Debugging>Debug Settings</MissileGirl.Settings.Debugging>
+	<MissileGirl.Collapsible.Expand>[Expand]</MissileGirl.Collapsible.Expand>
+	<MissileGirl.Collapsible.Hide>[Hide]</MissileGirl.Collapsible.Hide>
+	<MissileGirl.Selection>Selection: {0}</MissileGirl.Selection>
+	<!-- MissileGirl -->
+	<MissileGirl.Settings.PleaseUnpause>Please unpause the game... MissileGirl is warming up!</MissileGirl.Settings.PleaseUnpause>
+	<MissileGirl.Settings.PleaseWait>Please wait... MissileGirl is warming up!</MissileGirl.Settings.PleaseWait>
+	<MissileGirl.IncompatibilityWindow.Title>You are running incompatible mods</MissileGirl.IncompatibilityWindow.Title>
+	<MissileGirl.IncompatibilityWindow.Description>You are running incompatibile mods with MissileGirl. This type of incompatilibity will nuke/destroy your save! You can Disable MissileGirl or You continue on your own responsibility.\nCurrent incompatible mods are:\n</MissileGirl.IncompatibilityWindow.Description>
+	<MissileGirl.IncompatibilityWindow.Continue>Yes, I understand! Continue!</MissileGirl.IncompatibilityWindow.Continue>
+	<MissileGirl.IncompatibilityWindow.OpenModManager>Open the mod manager</MissileGirl.IncompatibilityWindow.OpenModManager>
+	<MissileGirl.IncompatibilityWindow.Disclaimer>The MissileGirl team will provide no support if you choose to ignore this message or continue!</MissileGirl.IncompatibilityWindow.Disclaimer>
+	<MissileGirl.Alert_StatsLearning.Label>Adaptive mode is active</MissileGirl.Alert_StatsLearning.Label>
+	<MissileGirl.Alert_StatsLearning.Explanation>Adaptive mode has been active for {0} minutes! It is recomended to have it running for {1} minutes per new save or when you change your mods.</MissileGirl.Alert_StatsLearning.Explanation>
+	<MissileGirl.AdaptiveAlert.Label>Enable adaptive mode alert</MissileGirl.AdaptiveAlert.Label>
+	<MissileGirl.AdaptiveAlert.Description>Disable this if you don't want the adaptive mode alert in your alert list.</MissileGirl.AdaptiveAlert.Description>
+	<MissileGirl.Unpause>Please unpause the game!</MissileGirl.Unpause>
+	<MissileGirl.Warming>is warming up! Please wait...</MissileGirl.Warming>
+	<MissileGirl.HideProgressBar>You can hide/disable in MissileGirl's settings</MissileGirl.HideProgressBar>
+	<!-- MissileGirl MissileGirl.TabContent_Settings -->
+	<MissileGirl.MissileGirl>MissileGirl</MissileGirl.MissileGirl>
+	<MissileGirl.Tab>Home</MissileGirl.Tab>
+	<MissileGirl.FixBeauty>Dynamic beauty scan radius</MissileGirl.FixBeauty>
+	<MissileGirl.FixBeauty.Tip>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</MissileGirl.FixBeauty.Tip>
+	<MissileGirl.GenMapSize>THIGH-O-TORN 5000</MissileGirl.GenMapSize>
+	<MissileGirl.GenMapSize.Text>Set the map size/shape for the next generated map. (after generating said map this option will reset back to default)</MissileGirl.GenMapSize.Text>
+	<MissileGirl.GenMapSize.Note>Please note that the new map will have a width/height that is dividable by region height (this rounding process is automatic).</MissileGirl.GenMapSize.Note>
+	<MissileGirl.GenMapSize.Mode.Custom>Custom</MissileGirl.GenMapSize.Mode.Custom>
+	<MissileGirl.GenMapSize.Mode.Vanilla>Vanilla</MissileGirl.GenMapSize.Mode.Vanilla>
+	<MissileGirl.GenMapSize.Width>Width</MissileGirl.GenMapSize.Width>
+	<MissileGirl.GenMapSize.Height>Height</MissileGirl.GenMapSize.Height>
+	<MissileGirl.Close>Close</MissileGirl.Close>
+	<MissileGirl.Enable>Enable</MissileGirl.Enable>
+	<MissileGirl.TranslationCaching>Enable text size caching</MissileGirl.TranslationCaching>
+	<MissileGirl.Experimental>Experimental features</MissileGirl.Experimental>
+	<MissileGirl.Experimental.Description>Here you can opt in MissileGirl Beta features.\nWarning: do not do this if you don't know what you're doing.</MissileGirl.Experimental.Description>
+	<MissileGirl.Experimental.OptInBeta>Opt in MissileGirl beta features</MissileGirl.Experimental.OptInBeta>
+	<MissileGirl.EnableGagarin>Enable load time reduction (Faster loading times)</MissileGirl.EnableGagarin>
+	<MissileGirl.EnableGagarin.Tip>MissileGirl will attempt to reduce your loading time by caching Xml patch operations. After you active this settings restart your game twice in order for MissileGirl to create the cache. Depending on how many mods you use and what mods you could see several minutes shaved off loading time. This is recommended to be used with Xml patch heavy mods such as Combat Extended.</MissileGirl.EnableGagarin.Tip>
+	<MissileGirl.ShowIcon>Show MissileGirl button/icon</MissileGirl.ShowIcon>
+	<MissileGirl.ShowIcon.Description>Due to game limitations some options aren't available from the game menu settings.</MissileGirl.ShowIcon.Description>
+	<MissileGirl.ProgressBar>Show warmup progress bar on startup</MissileGirl.ProgressBar>
+	<MissileGirl.ProgressBar.Pause>Pause after warmup</MissileGirl.ProgressBar.Pause>
+	<MissileGirl.ProgressBar.Description>This will show a warmup progress bar when you load a new map.</MissileGirl.ProgressBar.Description>
+	<MissileGirl.Junk>Junk</MissileGirl.Junk>
+	<MissileGirl.CorpseRemoval>Enable automatic corpses removal.</MissileGirl.CorpseRemoval>
+	<MissileGirl.CorpseRemoval.Description>This removes corpses that aren't in view for a while and that aren't near your base to avoid breaking the game balance.</MissileGirl.CorpseRemoval.Description>
+	<MissileGirl.GameSpeed>Game speed settings</MissileGirl.GameSpeed>
+	<MissileGirl.DisableForcedSlowdowns>Disable forced slowdowns</MissileGirl.DisableForcedSlowdowns>
+	<MissileGirl.DisableForcedSlowdowns.Description>Disable forced slowdowns by game events. Disable this if you are using SmartSpeed.</MissileGirl.DisableForcedSlowdowns.Description>
+	<MissileGirl.StatCacheSettings>Stats cache settings</MissileGirl.StatCacheSettings>
+	<MissileGirl.Adaptive>Adaptive mode</MissileGirl.Adaptive>
+	<MissileGirl.Adaptive.Description>Enable for 30 minutes after creating a new save or changing your mod list.</MissileGirl.Adaptive.Description>
+	<MissileGirl.EnableGearStatCaching>Enable gear stat caching</MissileGirl.EnableGearStatCaching>
+	<MissileGirl.Debugging>Enable debugging</MissileGirl.Debugging>
+	<MissileGirl.Debugging.Description>Only for advanced users and modders</MissileGirl.Debugging.Description>
 	<!-- Soyuz Soyuz.TabContent_DilationSettings -->
 	<Soyuz.Tab>Time dilation control</Soyuz.Tab>
 	<Soyuz.Colored.Disabled>Disabled</Soyuz.Colored.Disabled>

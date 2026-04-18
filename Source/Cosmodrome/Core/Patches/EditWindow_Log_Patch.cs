@@ -7,7 +7,7 @@ using HarmonyLib;
 using LudeonTK;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class EditWindow_Log_DoMessagesListing_Patch
     {
@@ -20,7 +20,7 @@ namespace RocketMan
                 Finder.Harmony.Patch(AccessTools.Method(typeof(EditWindow_Log), nameof(EditWindow_Log.DoMessagesListing)),
                     transpiler: new HarmonyMethod(typeof(EditWindow_Log_DoMessagesListing_Patch), nameof(EditWindow_Log_DoMessagesListing_Patch.Transpiler)));
             }
-            catch (Exception er) { Log.Warning($"<color=orange>ROCKETMAN:</color>[<color=red>NOTANERROR</color>] Unable to stylize logs: {er}"); }
+            catch (Exception er) { Log.Warning($"<color=orange>MissileGirl:</color>[<color=red>NOTANERROR</color>] Unable to stylize logs: {er}"); }
         }
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class ResizableArray<T> : IEnumerable<T>
     {

@@ -6,7 +6,7 @@ using HarmonyLib;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
 
     [RocketPatch(typeof(DebugWindowsOpener), methodType: MethodType.Constructor)]
@@ -30,12 +30,7 @@ namespace RocketMan
             {
                 __instance.DrawButtons();
 
-                if (__instance.widgetRow.ButtonIcon(ContentFinder<Texture2D>.Get("RocketMan/UI/rocketman_time_dilation_debug_button", true), "Simulate offscreen behavior and flash dilated/throttled pawns."))
-                {
-                    RocketDebugPrefs.AlwaysDilating = !RocketDebugPrefs.AlwaysDilating;
-                    RocketDebugPrefs.FlashDilatedPawns = !RocketDebugPrefs.FlashDilatedPawns;
-                }
-                if (__instance.widgetRow.ButtonIcon(ContentFinder<Texture2D>.Get("RocketMan/UI/rocketman_debug_options_button", true), "Open " + "<color=orange>RocketMans</color> hidden debug options."))
+                if (__instance.widgetRow.ButtonIcon(ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_debug_options_button", true), "Open " + "<color=orange>MissileGirls</color> hidden debug options."))
                 {
                     if (Find.WindowStack.WindowOfType<Window_HiddenDebugMenu>() != null)
                     {

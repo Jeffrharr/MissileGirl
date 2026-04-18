@@ -4,7 +4,7 @@ using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class MapGenerator_Patch
     {
@@ -27,13 +27,13 @@ namespace RocketMan
                             mapSize.z = (int)vector.z;
 
                             comp.useCustomMapSizes = false;
-                            RocketMan.Logger.Message($"ROCKETMAN: Applied custom map size for new settelment/map");
+                            MissileGirl.Logger.Message($"MissileGirl: Applied custom map size for new settelment/map");
                         }
                     }
                 }
                 catch (Exception er)
                 {
-                    Logger.Debug("ROCKETMAN: Caught error while generating map", er);
+                    Logger.Debug("MissileGirl: Caught error while generating map", er);
                     if (RocketEnvironmentInfo.IsDevEnv && Prefs.DevMode)
                         throw er;
                 }

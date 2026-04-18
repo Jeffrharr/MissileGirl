@@ -8,7 +8,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     //public static class GlowGrid_Patch
     //{
@@ -123,10 +123,10 @@ namespace RocketMan.Optimizations
     //                GlowerPorperties prop = GlowerPorperties.GetGlowerPorperties(newGlow);
     //                if (props.ContainsKey(newGlow))
     //                {
-    //                    if (RocketDebugPrefs.Debug) Log.Warning(string.Format("ROCKETMAN: Double registering an registered glower {0}:{1}", newGlow, newGlow.parent));
+    //                    if (RocketDebugPrefs.Debug) Log.Warning(string.Format("MissileGirl: Double registering an registered glower {0}:{1}", newGlow, newGlow.parent));
     //                    return;
     //                }
-    //                if (RocketDebugPrefs.Debug) Log.Warning(string.Format("ROCKETMAN: Registering an registered glower {0}:{1}", newGlow, newGlow.parent));
+    //                if (RocketDebugPrefs.Debug) Log.Warning(string.Format("MissileGirl: Registering an registered glower {0}:{1}", newGlow, newGlow.parent));
     //            }
 
     //            internal static void Postfix()
@@ -145,15 +145,15 @@ namespace RocketMan.Optimizations
     //                TryRegisterMap(map);
 
     //                GlowerPorperties prop;
-    //                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: Removed {0}", oldGlow));
+    //                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: Removed {0}", oldGlow));
     //                if (!props.ContainsKey(oldGlow))
     //                {
-    //                    if (RocketDebugPrefs.Debug && !removedProps[map.Index].Any(p => p.glower == oldGlow)) Log.Warning(string.Format("ROCKETMAN: Found an unregisterd {0}:{1}", oldGlow, oldGlow.parent));
+    //                    if (RocketDebugPrefs.Debug && !removedProps[map.Index].Any(p => p.glower == oldGlow)) Log.Warning(string.Format("MissileGirl: Found an unregisterd {0}:{1}", oldGlow, oldGlow.parent));
     //                    return;
     //                }
     //                prop = props[oldGlow];
 
-    //                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: Queued {0} for removal", oldGlow.parent));
+    //                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: Queued {0} for removal", oldGlow.parent));
     //                removedProps[map.Index].Add(prop);
     //            }
 
@@ -194,7 +194,7 @@ namespace RocketMan.Optimizations
     //                var map = __instance.map;
     //                var mapIndex = map.Index;
 
-    //                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: Recalculationg for removed with {0} queued for removal", removedProps[mapIndex].Count));
+    //                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: Recalculationg for removed with {0} queued for removal", removedProps[mapIndex].Count));
     //                foreach (var prop in removedProps[mapIndex])
     //                {
     //                    tEmptyGrid.CopyTo(tBufferedGrid, 0);
@@ -202,7 +202,7 @@ namespace RocketMan.Optimizations
     //                    props.Remove(prop.glower);
     //                }
 
-    //                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: Recalculationg for changes with {0} queued for changes", changedProps[mapIndex].Count));
+    //                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: Recalculationg for changes with {0} queued for changes", changedProps[mapIndex].Count));
     //                if (changedProps[mapIndex].Count != 0)
     //                {
     //                    tEmptyGrid.CopyTo(tBufferedGrid, 0);
@@ -404,7 +404,7 @@ namespace RocketMan.Optimizations
     //                            return;
     //                        }
     //#if DEBUG
-    //                        if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: Map glow grid dirty at {0}", loc));
+    //                        if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: Map glow grid dirty at {0}", loc));
     //#endif
     //                        var changedPos = loc.ToVector3();
     //                        foreach (var glower in __instance.litGlowers)
@@ -414,7 +414,7 @@ namespace RocketMan.Optimizations
     //                            {
     //                                changedProps[mapIndex].Add(prop);
     //#if DEBUG
-    //                                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: Changed and glow grid dirty at {0} for {1}", loc, glower.parent));
+    //                                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: Changed and glow grid dirty at {0} for {1}", loc, glower.parent));
     //#endif
     //                            }
     //                        }
@@ -436,14 +436,14 @@ namespace RocketMan.Optimizations
     //            {
     //                if (currentProp == null && theGlower == null)
     //                {
-    //                    Log.Warning("ROCKETMAN: AddFloodGlow_Patch with null currentProp");
+    //                    Log.Warning("MissileGirl: AddFloodGlow_Patch with null currentProp");
     //                    return;
     //                }
     //                if (currentProp == null)
     //                {
     //                    currentProp = GlowerPorperties.GetGlowerPorperties(theGlower);
     //                    if (currentProp == null)
-    //                        throw new InvalidDataException("ROCKETMAN: AddFloodGlow_Patch with null currentProp");
+    //                        throw new InvalidDataException("MissileGirl: AddFloodGlow_Patch with null currentProp");
     //                }
     //                currentProp.FinishUpdate();
     //                currentProp.drawen = true;
@@ -583,7 +583,7 @@ namespace RocketMan.Optimizations
     //                TryRegisterMap(map);
     //                _ = GlowerPorperties.GetGlowerPorperties(newGlow);
     //                if (RocketDebugPrefs.Debug)
-    //                    Log.Warning(string.Format("ROCKETMAN: Registering an registered glower {0}:{1}", newGlow,
+    //                    Log.Warning(string.Format("MissileGirl: Registering an registered glower {0}:{1}", newGlow,
     //                        newGlow.parent));
     //            }
 
@@ -604,18 +604,18 @@ namespace RocketMan.Optimizations
 
     //                GlowerPorperties prop;
     //                if (RocketDebugPrefs.Debug && RocketDebugPrefs.DrawGlowerUpdates)
-    //                    RocketMan.Logger.Message(string.Format("ROCKETMAN: Removed {0}", oldGlow));
+    //                    MissileGirl.Logger.Message(string.Format("MissileGirl: Removed {0}", oldGlow));
     //                if (!props.ContainsKey(oldGlow))
     //                {
     //                    if (RocketDebugPrefs.Debug && !removedProps[map.Index].Any(p => p.glower == oldGlow))
-    //                        Log.Warning(string.Format("ROCKETMAN: Found an unregisterd {0}:{1}", oldGlow, oldGlow.parent));
+    //                        Log.Warning(string.Format("MissileGirl: Found an unregisterd {0}:{1}", oldGlow, oldGlow.parent));
     //                    return;
     //                }
 
     //                prop = props[oldGlow];
 
     //                if (RocketDebugPrefs.Debug)
-    //                    RocketMan.Logger.Message(string.Format("ROCKETMAN: Queued {0} for removal", oldGlow.parent));
+    //                    MissileGirl.Logger.Message(string.Format("MissileGirl: Queued {0} for removal", oldGlow.parent));
     //                removedProps[map.Index].Add(prop);
     //            }
 
@@ -655,17 +655,17 @@ namespace RocketMan.Optimizations
     //                var mapIndex = map.Index;
 
     //                if (RocketDebugPrefs.Debug && RocketDebugPrefs.DrawGlowerUpdates)
-    //                    RocketMan.Logger.Message(string.Format("ROCKETMAN: Recalculationg for removed with {0} queued for removal", removedProps[mapIndex].Count));
+    //                    MissileGirl.Logger.Message(string.Format("MissileGirl: Recalculationg for removed with {0} queued for removal", removedProps[mapIndex].Count));
     //                removedProps[mapIndex] = removedProps[mapIndex].Where(p => !p.glower.ShouldBeLitNow).ToHashSet();
     //                foreach (var prop in removedProps[mapIndex])
     //                {
     //                    EmptyGrid.CopyTo(BufferedGrid, 0);
     //                    RemoveGlower(__instance, prop);
-    //                    RocketMan.Logger.Message($"removed {prop.glower.parent}");
+    //                    MissileGirl.Logger.Message($"removed {prop.glower.parent}");
     //                    props.Remove(prop.glower);
     //                }
     //                if (RocketDebugPrefs.Debug)
-    //                    RocketMan.Logger.Message(string.Format("ROCKETMAN: Recalculationg for changes with {0} queued for changes", changedProps[mapIndex].Count));
+    //                    MissileGirl.Logger.Message(string.Format("MissileGirl: Recalculationg for changes with {0} queued for changes", changedProps[mapIndex].Count));
     //                if (changedProps[mapIndex].Count != 0)
     //                {
     //                    EmptyGrid.CopyTo(BufferedGrid, 0);
@@ -683,7 +683,7 @@ namespace RocketMan.Optimizations
     //                flooder.AddFloodGlowFor(prop.glower, grid);
     //                if (RocketDebugPrefs.Debug)
     //                {
-    //                    RocketMan.Logger.Message("ROCKETMAN: FloodGlow called");
+    //                    MissileGirl.Logger.Message("MissileGirl: FloodGlow called");
     //                }
     //            }
 
@@ -692,7 +692,7 @@ namespace RocketMan.Optimizations
     //                GlowerPorperties.GetGlowerPorperties(glower);
     //                if (RocketDebugPrefs.Debug)
     //                {
-    //                    RocketMan.Logger.Message("ROCKETMAN: AddFloodGlowFor called");
+    //                    MissileGirl.Logger.Message("MissileGirl: AddFloodGlowFor called");
     //                }
     //                if (RocketPrefs.RefreshGrid)
     //                {
@@ -812,7 +812,7 @@ namespace RocketMan.Optimizations
     //                    }
     //                    if (RocketDebugPrefs.Debug)
     //                    {
-    //                        RocketMan.Logger.Message($"ROCKETMAN: finalized new glower {glower?.parent}:{prop?.drawen}");
+    //                        MissileGirl.Logger.Message($"MissileGirl: finalized new glower {glower?.parent}:{prop?.drawen}");
     //                    }
     //                }
     //            }
@@ -886,7 +886,7 @@ namespace RocketMan.Optimizations
     //                    if (Registering || Calculating || Deregistering) return;
 
     //                    if (RocketDebugPrefs.Debug && RocketDebugPrefs.DrawGlowerUpdates)
-    //                        RocketMan.Logger.Message(string.Format("ROCKETMAN: Map glow grid dirty at {0}", loc));
+    //                        MissileGirl.Logger.Message(string.Format("MissileGirl: Map glow grid dirty at {0}", loc));
 
     //                    var changedPos = loc.ToVector3();
     //                    foreach (var glower in __instance.litGlowers)
@@ -896,7 +896,7 @@ namespace RocketMan.Optimizations
     //                        {
     //                            changedProps[mapIndex].Add(prop);
     //                            if (RocketDebugPrefs.Debug && RocketDebugPrefs.DrawGlowerUpdates)
-    //                                RocketMan.Logger.Message(string.Format("ROCKETMAN: Changed glow grid dirty at {0} for {1}", loc, glower.parent));
+    //                                MissileGirl.Logger.Message(string.Format("MissileGirl: Changed glow grid dirty at {0} for {1}", loc, glower.parent));
     //                        }
     //                    }
 
@@ -917,7 +917,7 @@ namespace RocketMan.Optimizations
     //            {
     //                if (currentProp == null || theGlower == null)
     //                {
-    //                    Log.Warning("ROCKETMAN: AddFloodGlow_Patch called with null currentProp");
+    //                    Log.Warning("MissileGirl: AddFloodGlow_Patch called with null currentProp");
     //                    return;
     //                }
     //                currentProp = null;

@@ -11,7 +11,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(StatWorker), "GetValueUnfinalized", parameters: new[] { typeof(StatRequest), typeof(bool) })]
     internal static class StatWorker_GetValueUnfinalized_Interrupt_Patch
@@ -40,7 +40,7 @@ namespace RocketMan.Optimizations
                 StackFrame frame = trace.GetFrame(2);
                 MethodBase method = frame.GetMethod();
                 string handler = method.GetMethodPath();
-                if (RocketDebugPrefs.Debug) Log.Message(string.Format("ROCKETMAN: called stats.GetUnfinalizedValue from {0}", handler));
+                if (RocketDebugPrefs.Debug) Log.Message(string.Format("MissileGirl: called stats.GetUnfinalizedValue from {0}", handler));
                 callingMethods.Add(method);
             }
         }
@@ -83,7 +83,7 @@ namespace RocketMan.Optimizations
         {
             int signature = pawn.GetSignature(true);
             if (RocketDebugPrefs.Debug && RocketDebugPrefs.StatLogging)
-                Log.Message(string.Format("ROCKETMAN: changed signature for pawn {0} to {1}", pawn, signature));
+                Log.Message(string.Format("MissileGirl: changed signature for pawn {0} to {1}", pawn, signature));
         }
 
         internal static IEnumerable<MethodBase> TargetMethodsUnfinalized()
@@ -115,7 +115,7 @@ namespace RocketMan.Optimizations
             foreach (MethodBase method in TargetMethods())
             {
                 Patch(method);
-                Log.Message($"ROCKETMAN: Replaced {method.DeclaringType.FullName}:{method.Name}");
+                Log.Message($"MissileGirl: Replaced {method.DeclaringType.FullName}:{method.Name}");
             }
         }
 

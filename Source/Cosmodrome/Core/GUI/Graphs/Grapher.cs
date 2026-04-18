@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class Grapher
     {

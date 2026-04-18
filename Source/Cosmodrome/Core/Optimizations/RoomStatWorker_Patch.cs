@@ -7,7 +7,7 @@ using HarmonyLib;
 using Verse;
 using CachedKey = Verse.Pair<Verse.Room, Verse.RoomStatDef>;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     //[RocketPatch]
     //public static class RoomStatWorker_Patch

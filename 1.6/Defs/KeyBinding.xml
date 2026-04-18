@@ -2,14 +2,14 @@
 <Defs>
 	<KeyBindingCategoryDef>
 		<defName>RocketKeyBindingCategory</defName>
-		<label>RocketMan - Performance Mod</label>
-		<description>Disable/Enable RocketMan features from anywhere using KeyBinds.</description>				
+		<label>MissileGirl - Performance Mod</label>
+		<description>Disable/Enable MissileGirl features from anywhere using KeyBinds.</description>
 		<isGameUniversal>true</isGameUniversal>
   	</KeyBindingCategoryDef>
 	<KeyBindingDef>
 		<category>RocketKeyBindingCategory</category>
 		<defName>RocketKeyBindingDisable</defName>		
-		<label>Toggle RocketMan</label>
+		<label>Toggle MissileGirl</label>
 		<defaultKeyCodeA></defaultKeyCodeA>
   	</KeyBindingDef>
 	<KeyBindingDef>
@@ -21,7 +21,7 @@
 	<KeyBindingDef>
 		<category>RocketKeyBindingCategory</category>
 		<defName>RocketKeyToggleDebugging</defName>		
-		<label>Toggle RocketMan debugging mode</label>
+		<label>Toggle MissileGirl debugging mode</label>
 		<defaultKeyCodeA></defaultKeyCodeA>
   	</KeyBindingDef>
 	<KeyBindingDef>

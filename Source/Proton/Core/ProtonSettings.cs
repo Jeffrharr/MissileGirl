@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using RimWorld;
-using RocketMan;
-using RocketMan.Tabs;
+using MissileGirl;
+using MissileGirl.Tabs;
 using Verse;
 
 namespace Proton

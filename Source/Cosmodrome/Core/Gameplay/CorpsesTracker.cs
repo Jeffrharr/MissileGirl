@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using RimWorld;
 using Verse;
 
-namespace RocketMan.Gameplay
+namespace MissileGirl.Gameplay
 {
     public class CorpsesTracker : MapComponent
     {
@@ -50,7 +50,7 @@ namespace RocketMan.Gameplay
                 }
                 catch (Exception er)
                 {
-                    Log.Error($"ROCKETMAN: Error in GC {er}");
+                    Log.Error($"MissileGirl: Error in GC {er}");
                 }
                 finally
                 {
@@ -71,12 +71,12 @@ namespace RocketMan.Gameplay
                 try
                 {
                     var record = destroyList.Pop();
-                    if (RocketDebugPrefs.Debug) RocketMan.Logger.Message($"ROCKETMAN: removed thing {record.thing} with total removed {removedThingsCount + 1}");
+                    if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"MissileGirl: removed thing {record.thing} with total removed {removedThingsCount + 1}");
                     if (!(record.thing?.Destroyed ?? true)) record.thing?.Destroy();
                 }
                 catch (Exception er)
                 {
-                    if (RocketDebugPrefs.Debug) Log.Error($"ROCKETMAN: Error in GC while destroying thing {er}");
+                    if (RocketDebugPrefs.Debug) Log.Error($"MissileGirl: Error in GC while destroying thing {er}");
                 }
                 finally
                 {

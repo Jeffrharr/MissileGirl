@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public partial class RocketMod : Mod
     {
@@ -26,7 +26,7 @@ namespace RocketMan
                     }
                     catch (Exception er)
                     {
-                        Log.Error($"ROCKETMAN: Error while scribing settings {er}");
+                        Log.Error($"MissileGirl: Error while scribing settings {er}");
                         Logger.Debug("Error while scribing settings", exception: er);
                     }
                     finally
@@ -37,7 +37,7 @@ namespace RocketMan
             }
             catch (Exception ex)
             {
-                Log.Error($"ROCKETMAN: Caught exception while loading mod settings data for {Content.FolderName}. Generating fresh settings. The exception was: {ex.ToString()}");
+                Log.Error($"MissileGirl: Caught exception while loading mod settings data for {Content.FolderName}. Generating fresh settings. The exception was: {ex.ToString()}");
                 RocketMod.Settings = null;
             }
             if (RocketMod.Settings == null)
@@ -56,7 +56,7 @@ namespace RocketMan
                 }
                 catch (Exception er)
                 {
-                    Log.Error($"ROCKETMAN: Error in post srcibe {action} with error {er}");
+                    Log.Error($"MissileGirl: Error in post srcibe {action} with error {er}");
                     Logger.Debug("Error in post srcibe", exception: er);
                 }
             }
@@ -75,7 +75,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Log.Error($"ROCKETMAN: Error while scribing settings {er}");
+                Log.Error($"MissileGirl: Error while scribing settings {er}");
                 Logger.Debug("Error while scribing settings", exception: er);
             }
             finally
@@ -155,7 +155,7 @@ namespace RocketMan
                     }
                     catch (Exception er)
                     {
-                        Log.Error($"ROCKETMAN: Error scribing settings with mod {Scribe.mode} in action {action} with error {er}");
+                        Log.Error($"MissileGirl: Error scribing settings with mod {Scribe.mode} in action {action} with error {er}");
                         Logger.Debug($"Error scribing settings with mod {Scribe.mode}", exception: er);
                     }
                 }

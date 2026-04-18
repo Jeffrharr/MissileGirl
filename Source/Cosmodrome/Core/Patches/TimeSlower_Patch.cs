@@ -1,7 +1,7 @@
 ﻿// using HarmonyLib;
 // using Verse;
 //
-// namespace RocketMan.Patches
+// namespace MissileGirl.Patches
 // {
 //     [RocketPatch(typeof(TimeSlower), nameof(TimeSlower.SignalForceNormalSpeed))]
 //     public class TimeSlower_SignalForceNormalSpeed_Patch

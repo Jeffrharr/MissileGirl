@@ -6,7 +6,7 @@ using System.Xml;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class XMLParser
     {
@@ -14,7 +14,7 @@ namespace RocketMan
 
         public static void ParseXML()
         {
-            RocketMan.Logger.Message("ROCKETMAN: XMLParser started");
+            MissileGirl.Logger.Message("MissileGirl: XMLParser started");
             foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
             {
                 LoadableXmlAsset[] assets = DirectXmlLoader.XmlAssetsInModFolder(mod, rocketRulesFolder);

@@ -10,7 +10,7 @@ using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     public class BeautyUtility_Patch
     {

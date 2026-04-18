@@ -8,7 +8,7 @@ using UnityEngine;
 using Verse;
 using GUILambda = System.Action<UnityEngine.Rect>;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class Listing_Collapsible : IListing_Custom
     {
@@ -94,7 +94,7 @@ namespace RocketMan
                 {
                     GUIFont.Font = GUIFontSize.Tiny;
                     GUIFont.Anchor = TextAnchor.MiddleRight;
-                    Widgets.Label(titleRect, expanded ? KeyedResources.RocketMan_Collapsible_Hide : KeyedResources.RocketMan_Collapsible_Expand);
+                    Widgets.Label(titleRect, expanded ? KeyedResources.MissileGirl_Collapsible_Hide : KeyedResources.MissileGirl_Collapsible_Expand);
                 }
                 GUIFont.Font = GUIFontSize.Smaller;
                 GUIFont.CurFontStyle.fontStyle = FontStyle.Normal;

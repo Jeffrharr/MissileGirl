@@ -3,11 +3,11 @@ using HarmonyLib;
 using RimWorld.Planet;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class Finder
     {
-        public static readonly string HarmonyID = "Krkr.RocketMan";
+        public static readonly string HarmonyID = "Krkr.MissileGirl";
 
         public static RocketMod Mod;
 
@@ -17,7 +17,7 @@ namespace RocketMan
 
         public static RocketShip.SkipperPatcher Rocket = new RocketShip.SkipperPatcher(HarmonyID);
 
-        public static Window_Main RocketManWindow;
+        public static Window_Main MissileGirlWindow;
 
         public static RocketPluginsLoader PluginsLoader;
 

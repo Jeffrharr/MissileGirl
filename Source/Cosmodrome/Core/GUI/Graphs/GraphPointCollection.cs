@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using UnityEngine;
-using static RocketMan.Grapher;
+using static MissileGirl.Grapher;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class GraphPointCollection
     {

@@ -5,13 +5,13 @@ using HarmonyLib;
 using RimWorld;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class KeyBinder
     {
         private static bool success = false;
 
-        private static KeyBindingDef ToggleRocketMan;
+        private static KeyBindingDef ToggleMissileGirl;
 
         private static KeyBindingDef ToggleAlerts;
 
@@ -28,7 +28,7 @@ namespace RocketMan
         {
             try
             {
-                ToggleRocketMan = KeyBindingDef.Named("RocketKeyBindingDisable");
+                ToggleMissileGirl = KeyBindingDef.Named("RocketKeyBindingDisable");
 
                 ToggleAlerts = KeyBindingDef.Named("RocketKeyToggleAlerts");
 
@@ -38,13 +38,13 @@ namespace RocketMan
 
                 Finder.Harmony.Patch(mtarget, postfix: new HarmonyMethod(mOnGUI as MethodInfo));
 
-                RocketMan.Logger.Message("ROCKETMAN: Patched KeyBinder!");
+                MissileGirl.Logger.Message("MissileGirl: Patched KeyBinder!");
 
                 success = true;
             }
             catch (Exception er)
             {
-                Logger.Debug("ROCKETMAN: Failed to initialize the KeyBinder", exception: er);
+                Logger.Debug("MissileGirl: Failed to initialize the KeyBinder", exception: er);
             }
         }
 
@@ -56,7 +56,7 @@ namespace RocketMan
             }
             try
             {
-                if (ToggleRocketMan.KeyDownEvent)
+                if (ToggleMissileGirl.KeyDownEvent)
                 {
                     RocketPrefs.Enabled = !RocketPrefs.Enabled;
                 }
@@ -87,7 +87,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Logger.Debug("ROCKETMAN: KeyBinder failed!", exception: er);
+                Logger.Debug("MissileGirl: KeyBinder failed!", exception: er);
             }
         }
     }

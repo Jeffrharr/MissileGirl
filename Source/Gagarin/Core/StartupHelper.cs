@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
-using RocketMan;
+using MissileGirl;
 using Verse;
 
 namespace Gagarin
@@ -71,9 +71,9 @@ namespace Gagarin
 
         private static Assembly ResolveHandler(object sender, ResolveEventArgs e)
         {
-            Log.Error($"ROCKETMAN: Trying to resolve {e.Name}");
+            Log.Error($"MissileGirl: Trying to resolve {e.Name}");
 
-            Logger.Debug($"ROCKETMAN: Trying to resolve {e.Name}", file: "ResolveHandler.log");
+            Logger.Debug($"MissileGirl: Trying to resolve {e.Name}", file: "ResolveHandler.log");
 
             return null;
         }

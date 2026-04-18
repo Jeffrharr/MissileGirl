@@ -3,7 +3,7 @@ using System.IO;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class RocketEnvironmentInfo
     {
@@ -25,12 +25,12 @@ namespace RocketMan
                 //if (!isDevEnvInitialized)
                 //{
                 //    string path = Path.GetFullPath(Path.Combine(GenFilePaths.ConfigFolderPath, "rocketeer.0102.txt"));
-                //    RocketMan.Logger.Message($"ROCKETMAN: config path {path}");
+                //    MissileGirl.Logger.Message($"MissileGirl: config path {path}");
                 //    isDevEnvInitialized = true;
                 //    isDevEnv = File.Exists(path);
                 //    if (isDevEnv)
                 //    {
-                //        Log.Warning($"ROCKETMAN: dev environment detected!");
+                //        Log.Warning($"MissileGirl: dev environment detected!");
                 //    }
                 //}
                 //return isDevEnv;

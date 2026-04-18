@@ -4,7 +4,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class Alert_StatsLearning : Alert
     {
@@ -55,8 +55,8 @@ namespace RocketMan
 
         public Alert_StatsLearning() : base()
         {
-            base.defaultLabel = KeyedResources.RocketMan_Alert_StatsLearning_Label;
-            base.defaultExplanation = KeyedResources.RocketMan_Alert_StatsLearning_Explanation;
+            base.defaultLabel = KeyedResources.MissileGirl_Alert_StatsLearning_Label;
+            base.defaultExplanation = KeyedResources.MissileGirl_Alert_StatsLearning_Explanation;
         }
 
         public override void OnClick()
@@ -64,7 +64,7 @@ namespace RocketMan
             base.OnClick();
             if (Find.WindowStack.WindowOfType<Window_Main>() == null)
             {
-                Find.WindowStack.Add(Finder.RocketManWindow == null ? Finder.RocketManWindow = new Window_Main() : Finder.RocketManWindow);
+                Find.WindowStack.Add(Finder.MissileGirlWindow == null ? Finder.MissileGirlWindow = new Window_Main() : Finder.MissileGirlWindow);
             }
         }
 
@@ -115,7 +115,7 @@ namespace RocketMan
             float progress = activeSeconds / (MaxActiveMinutes * 60f);
 
             this.color = new Color(Mathf.Lerp(R0, R1, progress), Mathf.Lerp(G0, G1, progress), Mathf.Lerp(B0, B1, progress), 0.5f);
-            this.explanation = KeyedResources.RocketMan_Alert_StatsLearning_Explanation.Formatted(MinutesActive, MaxActiveMinutes);
+            this.explanation = KeyedResources.MissileGirl_Alert_StatsLearning_Explanation.Formatted(MinutesActive, MaxActiveMinutes);
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class Selector_DefSelection : ISelector_GenericSelection<Def>
     {

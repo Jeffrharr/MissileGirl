@@ -2,7 +2,7 @@
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     [RocketStartupPatch(typeof(Map), nameof(Map.FinalizeInit))]
     public static class Map_FinalizeInit_Patch

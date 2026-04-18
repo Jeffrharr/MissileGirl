@@ -1,7 +1,7 @@
 using RimWorld;
 using Verse;
 using Verse.AI.Group;
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(Lord), nameof(Lord.Notify_PawnDamaged))]
     internal class Lord_Notify_PawnDamaged_Patch

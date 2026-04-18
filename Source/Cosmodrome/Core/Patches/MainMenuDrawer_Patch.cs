@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using RimWorld;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     [RocketPatch(typeof(MainMenuDrawer), nameof(MainMenuDrawer.DoMainMenuControls))]
     public static class MainMenuDrawer_DoMainMenuControls_Patch
@@ -24,7 +24,7 @@ namespace RocketMan
                 return finished = true;
             if (!confirming && !Find.WindowStack.windows.Any(w => w.GetType() == typeof(Dialog_MessageBox)
                                              && w is Dialog_MessageBox dialog
-                                             && dialog.title == KeyedResources.RocketMan_IncompatibilityWindow_Title))
+                                             && dialog.title == KeyedResources.MissileGirl_IncompatibilityWindow_Title))
             {
                 ShowWarning();
             }
@@ -33,22 +33,22 @@ namespace RocketMan
 
         private static void ShowWarning()
         {
-            string description = KeyedResources.RocketMan_IncompatibilityWindow_Description;
+            string description = KeyedResources.MissileGirl_IncompatibilityWindow_Description;
             for (int i = 0; i < IncompatibilityHelper.incompatibleMods.Count; i++)
             {
                 description += $"\n\n<color=orange>{i + 1}.</color> { IncompatibilityHelper.incompatibleMods[i]}\n";
             }
-            description += "\n<color=red>" + KeyedResources.RocketMan_IncompatibilityWindow_Disclaimer + "</color>";
+            description += "\n<color=red>" + KeyedResources.MissileGirl_IncompatibilityWindow_Disclaimer + "</color>";
             Find.WindowStack.Add(new Dialog_MessageBox(description,
-                buttonBText: KeyedResources.RocketMan_IncompatibilityWindow_OpenModManager, buttonBAction: () =>
+                buttonBText: KeyedResources.MissileGirl_IncompatibilityWindow_OpenModManager, buttonBAction: () =>
                 {
                     finished = true;
                     Find.WindowStack.Add(new Page_ModsConfig());
                 },
-                buttonAText: KeyedResources.RocketMan_IncompatibilityWindow_Continue, buttonAAction: () =>
+                buttonAText: KeyedResources.MissileGirl_IncompatibilityWindow_Continue, buttonAAction: () =>
                 {
                     confirming = true;
-                    Dialog_MessageBox confirm = Dialog_MessageBox.CreateConfirmation(KeyedResources.RocketMan_IncompatibilityWindow_Disclaimer, delegate
+                    Dialog_MessageBox confirm = Dialog_MessageBox.CreateConfirmation(KeyedResources.MissileGirl_IncompatibilityWindow_Disclaimer, delegate
                     {
                         confirming = false;
                         finished = true;
@@ -60,7 +60,7 @@ namespace RocketMan
                     };
                     confirm.interactionDelay = 10;
                     Find.WindowStack.Add(confirm);
-                }, title: KeyedResources.RocketMan_IncompatibilityWindow_Title, buttonADestructive: true)
+                }, title: KeyedResources.MissileGirl_IncompatibilityWindow_Title, buttonADestructive: true)
             {
                 interactionDelay = 10,
             }

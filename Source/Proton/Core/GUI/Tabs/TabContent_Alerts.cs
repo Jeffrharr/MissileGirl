@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using RimWorld;
-using RocketMan;
-using RocketMan.Tabs;
+using MissileGirl;
+using MissileGirl.Tabs;
 using UnityEngine;
 using Verse;
 
@@ -62,7 +62,7 @@ namespace Proton
 
         public override void DoContent(Rect rect)
         {
-            collapsible.Begin(rect, KeyedResources.RocketMan_Settings);
+            collapsible.Begin(rect, KeyedResources.MissileGirl_Settings);
             collapsible.Label(KeyedResources.Proton_DisalbeAllInfo, invert: true);
             collapsible.CheckboxLabeled(KeyedResources.Proton_Enable, ref RocketPrefs.AlertThrottling);
             collapsible.Line(1);
@@ -87,7 +87,7 @@ namespace Proton
             }
             else
             {
-                RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+                MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
                 {
                     GUIFont.Anchor = TextAnchor.MiddleCenter;
                     GUIFont.Font = GUIFontSize.Medium;
@@ -97,14 +97,14 @@ namespace Proton
             }
             rect.yMin = max - 60;
             rect.yMax = max;
-            RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+            MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
             {
                 Rect curRect = rect;
                 Widgets.DrawMenuSection(curRect);
                 curRect.yMax -= 5;
                 curRect.xMin += 15;
                 curRect = curRect.ContractedBy(3);
-                RocketMan.GUIUtility.Row(curRect.TopHalf(), new List<Action<Rect>>()
+                MissileGirl.GUIUtility.Row(curRect.TopHalf(), new List<Action<Rect>>()
                 {
                     (tempRect) =>
                     {
@@ -119,7 +119,7 @@ namespace Proton
                         Widgets.Label(tempRect, "Proton.MinUpdate".Translate() +" <color=green>MS</color>");
                     },
                 }, drawDivider: false);
-                RocketMan.GUIUtility.Row(curRect.BottomHalf(), new List<Action<Rect>>()
+                MissileGirl.GUIUtility.Row(curRect.BottomHalf(), new List<Action<Rect>>()
                 {
                      (tempRect) =>
                     {
@@ -148,7 +148,7 @@ namespace Proton
 
         private void DoScrollView(Rect inRect)
         {
-            RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+            MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
             {
                 string tempSearchString = Widgets.TextField(inRect.TopPartPixels(25), searchString).ToLower();
                 if (tempSearchString != searchString)
@@ -159,10 +159,10 @@ namespace Proton
                 inRect.yMin += 30;
                 if (curAlert != null)
                 {
-                    RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+                    MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
                     {
                         selection_collapsible.Expanded = true;
-                        selection_collapsible.Begin(inRect, KeyedResources.RocketMan_Selection.Formatted(curAlert.GetName()), drawIcon: false, drawInfo: false);
+                        selection_collapsible.Begin(inRect, KeyedResources.MissileGirl_Selection.Formatted(curAlert.GetName()), drawIcon: false, drawInfo: false);
                         if (selection_collapsible.CheckboxLabeled("Proton.Enabled".Translate() + "</color>", ref curSettings.enabledInt))
                         {
                             curSettings.UpdateAlert(true);
@@ -178,24 +178,24 @@ namespace Proton
                     inRect.y += 5;                  
                 }
             });
-            RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+            MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
             {
                 Rect curRect = inRect.TopPartPixels(45);
                 Widgets.DrawMenuSection(curRect);
                 GUIFont.Font = GUIFontSize.Tiny;
-                RocketMan.GUIUtility.GridView<Pair<Color, string>>(curRect, 2, descriptionBoxes, (rect, pair) =>
+                MissileGirl.GUIUtility.GridView<Pair<Color, string>>(curRect, 2, descriptionBoxes, (rect, pair) =>
                 {
-                    RocketMan.GUIUtility.ColorBoxDescription(rect, pair.first, pair.second);
+                    MissileGirl.GUIUtility.ColorBoxDescription(rect, pair.first, pair.second);
                 }, drawBackground: false);
             });
             inRect.yMin += 45;
-            RocketMan.GUIUtility.ExecuteSafeGUIAction(() =>
+            MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
             {
                 Rect tempRect = inRect.TopPartPixels(25);
                 Widgets.DrawMenuSection(tempRect);
                 tempRect.xMin += 10;
                 tempRect.xMax -= 25;
-                RocketMan.GUIUtility.GridView<Action<Rect>>(tempRect.TopPartPixels(25), 3,
+                MissileGirl.GUIUtility.GridView<Action<Rect>>(tempRect.TopPartPixels(25), 3,
                         new List<Action<Rect>>()
                         {
                         (curRect) =>
@@ -213,7 +213,7 @@ namespace Proton
                         }, (rect, action) => { action.Invoke(rect); }, drawBackground: false);
             });
             inRect.yMin += 25;
-            RocketMan.GUIUtility.ScrollView(inRect, ref scrollPosition, Context.ReadoutInstance.AllAlerts,
+            MissileGirl.GUIUtility.ScrollView(inRect, ref scrollPosition, Context.ReadoutInstance.AllAlerts,
             heightLambda: (alert) =>
             {
                 if (alert == null)
@@ -238,7 +238,7 @@ namespace Proton
                     curSettings = settings;
                 }
                 Widgets.DrawBoxSolid(rect.LeftPartPixels(3), !settings.ignored ? (settings.enabledInt ? (alert.cachedActive ? Color.green : Color.grey) : Color.red) : Color.blue);
-                RocketMan.GUIUtility.GridView<Action<Rect>>(rect, 3,
+                MissileGirl.GUIUtility.GridView<Action<Rect>>(rect, 3,
                     new List<Action<Rect>>()
                     {
                         (curRect) =>

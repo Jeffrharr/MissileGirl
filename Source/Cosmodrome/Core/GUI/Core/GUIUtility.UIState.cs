@@ -8,7 +8,7 @@ using UnityEngine;
 using Verse;
 using Verse.Sound;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static partial class GUIUtility
     {
@@ -79,7 +79,7 @@ namespace RocketMan
         {
             if (stack.Count > 0)
             {
-                Log.Warning("ROCKETMAN: GUI state should be clear at exit");
+                Log.Warning("MissileGirl: GUI state should be clear at exit");
                 Restore(stack[0]);
             }
             stack.Clear();

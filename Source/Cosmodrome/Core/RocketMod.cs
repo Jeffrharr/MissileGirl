@@ -11,7 +11,7 @@ using Verse;
 using Verse.AI;
 using Verse.AI.Group;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public partial class RocketMod : Mod
     {
@@ -26,14 +26,14 @@ namespace RocketMan
             LongEventHandler.QueueLongEvent(() =>
             {
                 Main.DefsLoaded();
-            }, "RocketMan.RocketMan", doAsynchronously: false, exceptionHandler: null, showExtraUIInfo: true);
+            }, "MissileGirl.MissileGirl", doAsynchronously: false, exceptionHandler: null, showExtraUIInfo: true);
 
             Finder.Mod = Instance = this;
             Finder.ModContentPack = content;
             if (!Directory.Exists(RocketEnvironmentInfo.CustomConfigFolderPath))
             {
                 Directory.CreateDirectory(RocketEnvironmentInfo.CustomConfigFolderPath);
-                //RocketMan.Logger.Message($"ROCKETMAN: Created RocketMan config folder at <color=orange>{RocketEnvironmentInfo.CustomConfigFolderPath}</color>");
+                //MissileGirl.Logger.Message($"MissileGirl: Created MissileGirl config folder at <color=orange>{RocketEnvironmentInfo.CustomConfigFolderPath}</color>");
             }
             Logger.Initialize();
             // Patch all core functions
@@ -51,18 +51,18 @@ namespace RocketMan
                     }
                     if (Prefs.LogVerbose)
                     {
-                        Logger.Message($"<color=orange>ROCKETMAN</color>: Loaded <color=red>{assembly.FullName}</color>");
+                        Logger.Message($"<color=orange>MissileGirl</color>: Loaded <color=red>{assembly.FullName}</color>");
                     }
                 }
             }
             catch (Exception er)
             {
-                Log.Error($"ROCKETMAN: loading plugin failed {er.Message}:{er.StackTrace}");
+                Log.Error($"MissileGirl: loading plugin failed {er.Message}:{er.StackTrace}");
                 Logger.Debug("Loading plugins failed", exception: er);
             }
             finally
             {
-                RocketAssembliesInfo.Assemblies.AddRange(RocketAssembliesInfo.RocketManAssembliesInAppDomain);
+                RocketAssembliesInfo.Assemblies.AddRange(RocketAssembliesInfo.MissileGirlAssembliesInAppDomain);
                 foreach (Assembly assembly in RocketAssembliesInfo.Assemblies)
                 {
                     Logger.Debug($"Found in AppDomain after loading assembly {assembly.FullName}", file: "Assemblies.log");
@@ -75,7 +75,7 @@ namespace RocketMan
 
         public override string SettingsCategory()
         {
-            return "RocketMan";
+            return "MissileGirl";
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -130,39 +130,39 @@ namespace RocketMan
             GUIUtility.ExecuteSafeGUIAction(() =>
             {
                 collapsible_general.Expanded = true;
-                collapsible_general.Begin(inRect, KeyedResources.RocketMan_Settings, drawIcon: false, drawInfo: false);
+                collapsible_general.Begin(inRect, KeyedResources.MissileGirl_Settings, drawIcon: false, drawInfo: false);
 
-                if (collapsible_general.CheckboxLabeled(KeyedResources.RocketMan_Enable, ref RocketPrefs.Enabled))
+                if (collapsible_general.CheckboxLabeled(KeyedResources.MissileGirl_Enable, ref RocketPrefs.Enabled))
                 {
                     ResetRocketDebugPrefs();
                 }
-                if (collapsible_general.CheckboxLabeled("RocketMan.ShowIcon".Translate(), ref RocketPrefs.MainButtonToggle, "RocketMan.ShowIcon.Description".Translate()))
+                if (collapsible_general.CheckboxLabeled("MissileGirl.ShowIcon".Translate(), ref RocketPrefs.MainButtonToggle, "MissileGirl.ShowIcon.Description".Translate()))
                 {
                     MainButtonDef mainButton_WindowDef = DefDatabase<MainButtonDef>.GetNamed("RocketWindow", errorOnFail: false);
                     if (mainButton_WindowDef != null)
                     {
                         mainButton_WindowDef.buttonVisible = RocketPrefs.MainButtonToggle;
                         string state = RocketPrefs.MainButtonToggle ? "shown" : "hidden";
-                        RocketMan.Logger.Message($"ROCKETMAN: <color=red>MainButton</color> is now {state}!");
+                        MissileGirl.Logger.Message($"MissileGirl: <color=red>MainButton</color> is now {state}!");
                     }
                 }
-                collapsible_general.CheckboxLabeled("RocketMan.ProgressBar".Translate(), ref RocketPrefs.ShowWarmUpPopup, "RocketMan.ProgressBar.Description".Translate());
+                collapsible_general.CheckboxLabeled("MissileGirl.ProgressBar".Translate(), ref RocketPrefs.ShowWarmUpPopup, "MissileGirl.ProgressBar.Description".Translate());
                 collapsible_general.End(ref inRect);
                 inRect.yMin += 5;
 
                 if (Find.World != null)
                 {
                     WorldInfoComponent infoComponent = Find.World.GetComponent<WorldInfoComponent>();
-                    collapsible_genMap.Begin(inRect, KeyedResources.RocketMan_GenMapSize);
-                    collapsible_genMap.Label(KeyedResources.RocketMan_GenMapSize_Text);
+                    collapsible_genMap.Begin(inRect, KeyedResources.MissileGirl_GenMapSize);
+                    collapsible_genMap.Label(KeyedResources.MissileGirl_GenMapSize_Text);
                     collapsible_genMap.Line(1);
-                    collapsible_genMap.Label(KeyedResources.RocketMan_GenMapSize_Note);
+                    collapsible_genMap.Label(KeyedResources.MissileGirl_GenMapSize_Note);
                     collapsible_genMap.Columns(18, new Action<Rect>[]{
                         (rect)=>{
                             GUIFont.Anchor = TextAnchor.MiddleLeft;
                             float a = infoComponent.InitialMapWidth;
                             string buffer = $"{a}";
-                            Widgets.Label(rect, KeyedResources.RocketMan_GenMapSize_Width);
+                            Widgets.Label(rect, KeyedResources.MissileGirl_GenMapSize_Width);
                             Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buffer, 0, 1000);
                             if(infoComponent.InitialMapWidth != a)
                             {
@@ -174,7 +174,7 @@ namespace RocketMan
                             GUIFont.Anchor = TextAnchor.MiddleLeft;
                             float a = infoComponent.InitialMapHeight;
                             string buffer = $"{a}";
-                            Widgets.Label(rect.MoveTopLeftCorner(25f, 0), KeyedResources.RocketMan_GenMapSize_Height);
+                            Widgets.Label(rect.MoveTopLeftCorner(25f, 0), KeyedResources.MissileGirl_GenMapSize_Height);
                             Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buffer, 0, 1000);
                             if(infoComponent.InitialMapHeight != a)
                             {
@@ -189,42 +189,42 @@ namespace RocketMan
 
                 if (RocketPrefs.Enabled)
                 {
-                    //collapsible_speed.Begin(inRect, "RocketMan.GameSpeed".Translate());
-                    //collapsible_speed.CheckboxLabeled("RocketMan.DisableForcedSlowdowns".Translate(), ref RocketPrefs.DisableForcedSlowdowns, "RocketMan.DisableForcedSlowdowns.Description".Translate());
-                    //collapsible_speed.CheckboxLabeled(KeyedResources.RocketMan_ProgressBar_Pause, ref RocketPrefs.PauseAfterWarmup);
+                    //collapsible_speed.Begin(inRect, "MissileGirl.GameSpeed".Translate());
+                    //collapsible_speed.CheckboxLabeled("MissileGirl.DisableForcedSlowdowns".Translate(), ref RocketPrefs.DisableForcedSlowdowns, "MissileGirl.DisableForcedSlowdowns.Description".Translate());
+                    //collapsible_speed.CheckboxLabeled(KeyedResources.MissileGirl_ProgressBar_Pause, ref RocketPrefs.PauseAfterWarmup);
                     //collapsible_speed.End(ref inRect);
                     //inRect.yMin += 5;
 
                     if (RocketEnvironmentInfo.IsDevEnv)
                     {
-                        collapsible_junk.Begin(inRect, "RocketMan.Junk".Translate());
-                        collapsible_junk.CheckboxLabeled("RocketMan.CorpseRemoval".Translate(), ref RocketPrefs.CorpsesRemovalEnabled, "RocketMan.CorpseRemoval.Description".Translate());
+                        collapsible_junk.Begin(inRect, "MissileGirl.Junk".Translate());
+                        collapsible_junk.CheckboxLabeled("MissileGirl.CorpseRemoval".Translate(), ref RocketPrefs.CorpsesRemovalEnabled, "MissileGirl.CorpseRemoval.Description".Translate());
                         collapsible_junk.End(ref inRect);
                         inRect.yMin += 5;
                     }
 
-                    collapsible_other.Begin(inRect, "RocketMan.StatCacheSettings".Translate());
+                    collapsible_other.Begin(inRect, "MissileGirl.StatCacheSettings".Translate());
                     
 
-                    collapsible_other.CheckboxLabeled("RocketMan.Adaptive".Translate(), ref RocketPrefs.Learning, "RocketMan.Adaptive.Description".Translate());
-                    collapsible_other.CheckboxLabeled("RocketMan.AdaptiveAlert.Label".Translate(), ref RocketPrefs.LearningAlertEnabled, "RocketMan.AdaptiveAlert.Description".Translate());                    
-                    collapsible_other.CheckboxLabeled("RocketMan.EnableGearStatCaching".Translate(), ref RocketPrefs.StatGearCachingEnabled);
+                    collapsible_other.CheckboxLabeled("MissileGirl.Adaptive".Translate(), ref RocketPrefs.Learning, "MissileGirl.Adaptive.Description".Translate());
+                    collapsible_other.CheckboxLabeled("MissileGirl.AdaptiveAlert.Label".Translate(), ref RocketPrefs.LearningAlertEnabled, "MissileGirl.AdaptiveAlert.Description".Translate());                    
+                    collapsible_other.CheckboxLabeled("MissileGirl.EnableGearStatCaching".Translate(), ref RocketPrefs.StatGearCachingEnabled);
                     collapsible_other.Line(1);
-                    collapsible_other.CheckboxLabeled(KeyedResources.RocketMan_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.RocketMan_FixBeauty_Tip);
+                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.MissileGirl_FixBeauty_Tip);
                     collapsible_other.End(ref inRect);
                     inRect.yMin += 5;
 
                     if (Prefs.DevMode || RocketEnvironmentInfo.IsDevEnv)
                     {
-                        collapsible_experimental.Begin(inRect, KeyedResources.RocketMan_Experimental);                        
+                        collapsible_experimental.Begin(inRect, KeyedResources.MissileGirl_Experimental);                        
                         // if (RocketEnvironmentInfo.IsDevEnv)
                         // {
-                        //    collapsible_experimental.CheckboxLabeled(KeyedResources.RocketMan_TranslationCaching, ref RocketPrefs.TranslationCaching);
+                        //    collapsible_experimental.CheckboxLabeled(KeyedResources.MissileGirl_TranslationCaching, ref RocketPrefs.TranslationCaching);
                         //    collapsible_experimental.Line(1);
                         // }
-                        // collapsible_experimental.Label(KeyedResources.RocketMan_Experimental_Description);
+                        // collapsible_experimental.Label(KeyedResources.MissileGirl_Experimental_Description);
                         bool devKeyEnabled = File.Exists(RocketEnvironmentInfo.DevKeyFilePath);
-                        if (collapsible_experimental.CheckboxLabeled(KeyedResources.RocketMan_Experimental_OptInBeta, ref devKeyEnabled))
+                        if (collapsible_experimental.CheckboxLabeled(KeyedResources.MissileGirl_Experimental_OptInBeta, ref devKeyEnabled))
                         {
                             if (!devKeyEnabled && File.Exists(RocketEnvironmentInfo.DevKeyFilePath))
                             {
@@ -235,13 +235,13 @@ namespace RocketMan
                                 File.WriteAllText(RocketEnvironmentInfo.DevKeyFilePath, "enabled");
                         }
                         //collapsible_experimental.Line(1);
-                        //collapsible_experimental.CheckboxLabeled(KeyedResources.RocketMan_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.RocketMan_FixBeauty_Tip);
+                        //collapsible_experimental.CheckboxLabeled(KeyedResources.MissileGirl_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.MissileGirl_FixBeauty_Tip);
                         collapsible_experimental.End(ref inRect);
                         inRect.yMin += 5;
                     }
                     collapsible_debug.Begin(inRect, "Debugging options");
 
-                    if (collapsible_debug.CheckboxLabeled("RocketMan.Debugging".Translate(), ref RocketDebugPrefs.Debug, "RocketMan.Debugging.Description".Translate())
+                    if (collapsible_debug.CheckboxLabeled("MissileGirl.Debugging".Translate(), ref RocketDebugPrefs.Debug, "MissileGirl.Debugging.Description".Translate())
                     && !RocketDebugPrefs.Debug)
                     {
                         ResetRocketDebugPrefs();

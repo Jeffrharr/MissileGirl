@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(PlayLog), nameof(PlayLog.ReduceToCapacity))]
     public class PlayLog_ReduceToCapacity_Patch

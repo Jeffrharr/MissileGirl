@@ -1,6 +1,6 @@
 ﻿using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {    
 
     // Auto generated file!
@@ -23,554 +23,554 @@ namespace RocketMan
     public static class KeyedResources 
     {     
                            
-        private static TaggedString _RocketMan_Settings = null;
-        /// <summary> Keyed string with key <c>RocketMan.Settings</c> with inner text set to:
+        private static TaggedString _MissileGirl_Settings = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Settings</c> with inner text set to:
         ///
         /// <code>Settings</code>
         /// </summary>       
-        public static TaggedString RocketMan_Settings {
-            get => _RocketMan_Settings != null ? 
-                   _RocketMan_Settings : _RocketMan_Settings = "RocketMan.Settings".Translate();
+        public static TaggedString MissileGirl_Settings {
+            get => _MissileGirl_Settings != null ?
+                   _MissileGirl_Settings : _MissileGirl_Settings = "MissileGirl.Settings".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Settings_Debugging = null;
-        /// <summary> Keyed string with key <c>RocketMan.Settings.Debugging</c> with inner text set to:
+        private static TaggedString _MissileGirl_Settings_Debugging = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Settings.Debugging</c> with inner text set to:
         ///
         /// <code>Debug Settings</code>
         /// </summary>       
-        public static TaggedString RocketMan_Settings_Debugging {
-            get => _RocketMan_Settings_Debugging != null ? 
-                   _RocketMan_Settings_Debugging : _RocketMan_Settings_Debugging = "RocketMan.Settings.Debugging".Translate();
+        public static TaggedString MissileGirl_Settings_Debugging {
+            get => _MissileGirl_Settings_Debugging != null ?
+                   _MissileGirl_Settings_Debugging : _MissileGirl_Settings_Debugging = "MissileGirl.Settings.Debugging".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Collapsible_Expand = null;
-        /// <summary> Keyed string with key <c>RocketMan.Collapsible.Expand</c> with inner text set to:
+        private static TaggedString _MissileGirl_Collapsible_Expand = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Collapsible.Expand</c> with inner text set to:
         ///
         /// <code>[Expand]</code>
         /// </summary>       
-        public static TaggedString RocketMan_Collapsible_Expand {
-            get => _RocketMan_Collapsible_Expand != null ? 
-                   _RocketMan_Collapsible_Expand : _RocketMan_Collapsible_Expand = "RocketMan.Collapsible.Expand".Translate();
+        public static TaggedString MissileGirl_Collapsible_Expand {
+            get => _MissileGirl_Collapsible_Expand != null ?
+                   _MissileGirl_Collapsible_Expand : _MissileGirl_Collapsible_Expand = "MissileGirl.Collapsible.Expand".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Collapsible_Hide = null;
-        /// <summary> Keyed string with key <c>RocketMan.Collapsible.Hide</c> with inner text set to:
+        private static TaggedString _MissileGirl_Collapsible_Hide = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Collapsible.Hide</c> with inner text set to:
         ///
         /// <code>[Hide]</code>
         /// </summary>       
-        public static TaggedString RocketMan_Collapsible_Hide {
-            get => _RocketMan_Collapsible_Hide != null ? 
-                   _RocketMan_Collapsible_Hide : _RocketMan_Collapsible_Hide = "RocketMan.Collapsible.Hide".Translate();
+        public static TaggedString MissileGirl_Collapsible_Hide {
+            get => _MissileGirl_Collapsible_Hide != null ?
+                   _MissileGirl_Collapsible_Hide : _MissileGirl_Collapsible_Hide = "MissileGirl.Collapsible.Hide".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Selection = null;
-        /// <summary> Keyed string with key <c>RocketMan.Selection</c> with inner text set to:
+        private static TaggedString _MissileGirl_Selection = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Selection</c> with inner text set to:
         ///
         /// <code>Selection: {0}</code>
         /// </summary>       
-        public static TaggedString RocketMan_Selection {
-            get => _RocketMan_Selection != null ? 
-                   _RocketMan_Selection : _RocketMan_Selection = "RocketMan.Selection".Translate();
+        public static TaggedString MissileGirl_Selection {
+            get => _MissileGirl_Selection != null ?
+                   _MissileGirl_Selection : _MissileGirl_Selection = "MissileGirl.Selection".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Settings_PleaseUnpause = null;
-        /// <summary> Keyed string with key <c>RocketMan.Settings.PleaseUnpause</c> with inner text set to:
+        private static TaggedString _MissileGirl_Settings_PleaseUnpause = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Settings.PleaseUnpause</c> with inner text set to:
         ///
-        /// <code>Please unpause the game... RocketMan is warming up!</code>
+        /// <code>Please unpause the game... MissileGirl is warming up!</code>
         /// </summary>       
-        public static TaggedString RocketMan_Settings_PleaseUnpause {
-            get => _RocketMan_Settings_PleaseUnpause != null ? 
-                   _RocketMan_Settings_PleaseUnpause : _RocketMan_Settings_PleaseUnpause = "RocketMan.Settings.PleaseUnpause".Translate();
+        public static TaggedString MissileGirl_Settings_PleaseUnpause {
+            get => _MissileGirl_Settings_PleaseUnpause != null ?
+                   _MissileGirl_Settings_PleaseUnpause : _MissileGirl_Settings_PleaseUnpause = "MissileGirl.Settings.PleaseUnpause".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Settings_PleaseWait = null;
-        /// <summary> Keyed string with key <c>RocketMan.Settings.PleaseWait</c> with inner text set to:
+        private static TaggedString _MissileGirl_Settings_PleaseWait = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Settings.PleaseWait</c> with inner text set to:
         ///
-        /// <code>Please wait... RocketMan is warming up!</code>
+        /// <code>Please wait... MissileGirl is warming up!</code>
         /// </summary>       
-        public static TaggedString RocketMan_Settings_PleaseWait {
-            get => _RocketMan_Settings_PleaseWait != null ? 
-                   _RocketMan_Settings_PleaseWait : _RocketMan_Settings_PleaseWait = "RocketMan.Settings.PleaseWait".Translate();
+        public static TaggedString MissileGirl_Settings_PleaseWait {
+            get => _MissileGirl_Settings_PleaseWait != null ?
+                   _MissileGirl_Settings_PleaseWait : _MissileGirl_Settings_PleaseWait = "MissileGirl.Settings.PleaseWait".Translate();
         }             
                            
-        private static TaggedString _RocketMan_IncompatibilityWindow_Title = null;
-        /// <summary> Keyed string with key <c>RocketMan.IncompatibilityWindow.Title</c> with inner text set to:
+        private static TaggedString _MissileGirl_IncompatibilityWindow_Title = null;
+        /// <summary> Keyed string with key <c>MissileGirl.IncompatibilityWindow.Title</c> with inner text set to:
         ///
         /// <code>You are running incompatible mods</code>
         /// </summary>       
-        public static TaggedString RocketMan_IncompatibilityWindow_Title {
-            get => _RocketMan_IncompatibilityWindow_Title != null ? 
-                   _RocketMan_IncompatibilityWindow_Title : _RocketMan_IncompatibilityWindow_Title = "RocketMan.IncompatibilityWindow.Title".Translate();
+        public static TaggedString MissileGirl_IncompatibilityWindow_Title {
+            get => _MissileGirl_IncompatibilityWindow_Title != null ?
+                   _MissileGirl_IncompatibilityWindow_Title : _MissileGirl_IncompatibilityWindow_Title = "MissileGirl.IncompatibilityWindow.Title".Translate();
         }             
                            
-        private static TaggedString _RocketMan_IncompatibilityWindow_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.IncompatibilityWindow.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_IncompatibilityWindow_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.IncompatibilityWindow.Description</c> with inner text set to:
         ///
-        /// <code>You are running incompatibile mods with RocketMan. This type of incompatilibity will nuke/destroy your save! You can Disable RocketMan or You continue on your own responsibility.\nCurrent incompatible mods are:\n</code>
+        /// <code>You are running incompatibile mods with MissileGirl. This type of incompatilibity will nuke/destroy your save! You can Disable MissileGirl or You continue on your own responsibility.\nCurrent incompatible mods are:\n</code>
         /// </summary>       
-        public static TaggedString RocketMan_IncompatibilityWindow_Description {
-            get => _RocketMan_IncompatibilityWindow_Description != null ? 
-                   _RocketMan_IncompatibilityWindow_Description : _RocketMan_IncompatibilityWindow_Description = "RocketMan.IncompatibilityWindow.Description".Translate();
+        public static TaggedString MissileGirl_IncompatibilityWindow_Description {
+            get => _MissileGirl_IncompatibilityWindow_Description != null ?
+                   _MissileGirl_IncompatibilityWindow_Description : _MissileGirl_IncompatibilityWindow_Description = "MissileGirl.IncompatibilityWindow.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_IncompatibilityWindow_Continue = null;
-        /// <summary> Keyed string with key <c>RocketMan.IncompatibilityWindow.Continue</c> with inner text set to:
+        private static TaggedString _MissileGirl_IncompatibilityWindow_Continue = null;
+        /// <summary> Keyed string with key <c>MissileGirl.IncompatibilityWindow.Continue</c> with inner text set to:
         ///
         /// <code>Yes, I understand! Continue!</code>
         /// </summary>       
-        public static TaggedString RocketMan_IncompatibilityWindow_Continue {
-            get => _RocketMan_IncompatibilityWindow_Continue != null ? 
-                   _RocketMan_IncompatibilityWindow_Continue : _RocketMan_IncompatibilityWindow_Continue = "RocketMan.IncompatibilityWindow.Continue".Translate();
+        public static TaggedString MissileGirl_IncompatibilityWindow_Continue {
+            get => _MissileGirl_IncompatibilityWindow_Continue != null ?
+                   _MissileGirl_IncompatibilityWindow_Continue : _MissileGirl_IncompatibilityWindow_Continue = "MissileGirl.IncompatibilityWindow.Continue".Translate();
         }             
                            
-        private static TaggedString _RocketMan_IncompatibilityWindow_OpenModManager = null;
-        /// <summary> Keyed string with key <c>RocketMan.IncompatibilityWindow.OpenModManager</c> with inner text set to:
+        private static TaggedString _MissileGirl_IncompatibilityWindow_OpenModManager = null;
+        /// <summary> Keyed string with key <c>MissileGirl.IncompatibilityWindow.OpenModManager</c> with inner text set to:
         ///
         /// <code>Open the mod manager</code>
         /// </summary>       
-        public static TaggedString RocketMan_IncompatibilityWindow_OpenModManager {
-            get => _RocketMan_IncompatibilityWindow_OpenModManager != null ? 
-                   _RocketMan_IncompatibilityWindow_OpenModManager : _RocketMan_IncompatibilityWindow_OpenModManager = "RocketMan.IncompatibilityWindow.OpenModManager".Translate();
+        public static TaggedString MissileGirl_IncompatibilityWindow_OpenModManager {
+            get => _MissileGirl_IncompatibilityWindow_OpenModManager != null ?
+                   _MissileGirl_IncompatibilityWindow_OpenModManager : _MissileGirl_IncompatibilityWindow_OpenModManager = "MissileGirl.IncompatibilityWindow.OpenModManager".Translate();
         }             
                            
-        private static TaggedString _RocketMan_IncompatibilityWindow_Disclaimer = null;
-        /// <summary> Keyed string with key <c>RocketMan.IncompatibilityWindow.Disclaimer</c> with inner text set to:
+        private static TaggedString _MissileGirl_IncompatibilityWindow_Disclaimer = null;
+        /// <summary> Keyed string with key <c>MissileGirl.IncompatibilityWindow.Disclaimer</c> with inner text set to:
         ///
-        /// <code>The RocketMan team will provide no support if you choose to ignore this message or continue!</code>
+        /// <code>The MissileGirl team will provide no support if you choose to ignore this message or continue!</code>
         /// </summary>       
-        public static TaggedString RocketMan_IncompatibilityWindow_Disclaimer {
-            get => _RocketMan_IncompatibilityWindow_Disclaimer != null ? 
-                   _RocketMan_IncompatibilityWindow_Disclaimer : _RocketMan_IncompatibilityWindow_Disclaimer = "RocketMan.IncompatibilityWindow.Disclaimer".Translate();
+        public static TaggedString MissileGirl_IncompatibilityWindow_Disclaimer {
+            get => _MissileGirl_IncompatibilityWindow_Disclaimer != null ?
+                   _MissileGirl_IncompatibilityWindow_Disclaimer : _MissileGirl_IncompatibilityWindow_Disclaimer = "MissileGirl.IncompatibilityWindow.Disclaimer".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Alert_StatsLearning_Label = null;
-        /// <summary> Keyed string with key <c>RocketMan.Alert_StatsLearning.Label</c> with inner text set to:
+        private static TaggedString _MissileGirl_Alert_StatsLearning_Label = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Alert_StatsLearning.Label</c> with inner text set to:
         ///
         /// <code>Adaptive mode is active</code>
         /// </summary>       
-        public static TaggedString RocketMan_Alert_StatsLearning_Label {
-            get => _RocketMan_Alert_StatsLearning_Label != null ? 
-                   _RocketMan_Alert_StatsLearning_Label : _RocketMan_Alert_StatsLearning_Label = "RocketMan.Alert_StatsLearning.Label".Translate();
+        public static TaggedString MissileGirl_Alert_StatsLearning_Label {
+            get => _MissileGirl_Alert_StatsLearning_Label != null ?
+                   _MissileGirl_Alert_StatsLearning_Label : _MissileGirl_Alert_StatsLearning_Label = "MissileGirl.Alert_StatsLearning.Label".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Alert_StatsLearning_Explanation = null;
-        /// <summary> Keyed string with key <c>RocketMan.Alert_StatsLearning.Explanation</c> with inner text set to:
+        private static TaggedString _MissileGirl_Alert_StatsLearning_Explanation = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Alert_StatsLearning.Explanation</c> with inner text set to:
         ///
         /// <code>Adaptive mode has been active for {0} minutes! It is recomended to have it running for {1} minutes per new save or when you change your mods.</code>
         /// </summary>       
-        public static TaggedString RocketMan_Alert_StatsLearning_Explanation {
-            get => _RocketMan_Alert_StatsLearning_Explanation != null ? 
-                   _RocketMan_Alert_StatsLearning_Explanation : _RocketMan_Alert_StatsLearning_Explanation = "RocketMan.Alert_StatsLearning.Explanation".Translate();
+        public static TaggedString MissileGirl_Alert_StatsLearning_Explanation {
+            get => _MissileGirl_Alert_StatsLearning_Explanation != null ?
+                   _MissileGirl_Alert_StatsLearning_Explanation : _MissileGirl_Alert_StatsLearning_Explanation = "MissileGirl.Alert_StatsLearning.Explanation".Translate();
         }             
                            
-        private static TaggedString _RocketMan_AdaptiveAlert_Label = null;
-        /// <summary> Keyed string with key <c>RocketMan.AdaptiveAlert.Label</c> with inner text set to:
+        private static TaggedString _MissileGirl_AdaptiveAlert_Label = null;
+        /// <summary> Keyed string with key <c>MissileGirl.AdaptiveAlert.Label</c> with inner text set to:
         ///
         /// <code>Enable adaptive mode alert</code>
         /// </summary>       
-        public static TaggedString RocketMan_AdaptiveAlert_Label {
-            get => _RocketMan_AdaptiveAlert_Label != null ? 
-                   _RocketMan_AdaptiveAlert_Label : _RocketMan_AdaptiveAlert_Label = "RocketMan.AdaptiveAlert.Label".Translate();
+        public static TaggedString MissileGirl_AdaptiveAlert_Label {
+            get => _MissileGirl_AdaptiveAlert_Label != null ?
+                   _MissileGirl_AdaptiveAlert_Label : _MissileGirl_AdaptiveAlert_Label = "MissileGirl.AdaptiveAlert.Label".Translate();
         }             
                            
-        private static TaggedString _RocketMan_AdaptiveAlert_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.AdaptiveAlert.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_AdaptiveAlert_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.AdaptiveAlert.Description</c> with inner text set to:
         ///
         /// <code>Disable this if you don't want the adaptive mode alert in your alert list.</code>
         /// </summary>       
-        public static TaggedString RocketMan_AdaptiveAlert_Description {
-            get => _RocketMan_AdaptiveAlert_Description != null ? 
-                   _RocketMan_AdaptiveAlert_Description : _RocketMan_AdaptiveAlert_Description = "RocketMan.AdaptiveAlert.Description".Translate();
+        public static TaggedString MissileGirl_AdaptiveAlert_Description {
+            get => _MissileGirl_AdaptiveAlert_Description != null ?
+                   _MissileGirl_AdaptiveAlert_Description : _MissileGirl_AdaptiveAlert_Description = "MissileGirl.AdaptiveAlert.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Unpause = null;
-        /// <summary> Keyed string with key <c>RocketMan.Unpause</c> with inner text set to:
+        private static TaggedString _MissileGirl_Unpause = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Unpause</c> with inner text set to:
         ///
         /// <code>Please unpause the game!</code>
         /// </summary>       
-        public static TaggedString RocketMan_Unpause {
-            get => _RocketMan_Unpause != null ? 
-                   _RocketMan_Unpause : _RocketMan_Unpause = "RocketMan.Unpause".Translate();
+        public static TaggedString MissileGirl_Unpause {
+            get => _MissileGirl_Unpause != null ?
+                   _MissileGirl_Unpause : _MissileGirl_Unpause = "MissileGirl.Unpause".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Warming = null;
-        /// <summary> Keyed string with key <c>RocketMan.Warming</c> with inner text set to:
+        private static TaggedString _MissileGirl_Warming = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Warming</c> with inner text set to:
         ///
         /// <code>is warming up! Please wait...</code>
         /// </summary>       
-        public static TaggedString RocketMan_Warming {
-            get => _RocketMan_Warming != null ? 
-                   _RocketMan_Warming : _RocketMan_Warming = "RocketMan.Warming".Translate();
+        public static TaggedString MissileGirl_Warming {
+            get => _MissileGirl_Warming != null ?
+                   _MissileGirl_Warming : _MissileGirl_Warming = "MissileGirl.Warming".Translate();
         }             
                            
-        private static TaggedString _RocketMan_HideProgressBar = null;
-        /// <summary> Keyed string with key <c>RocketMan.HideProgressBar</c> with inner text set to:
+        private static TaggedString _MissileGirl_HideProgressBar = null;
+        /// <summary> Keyed string with key <c>MissileGirl.HideProgressBar</c> with inner text set to:
         ///
-        /// <code>You can hide/disable in RocketMan's settings</code>
+        /// <code>You can hide/disable in MissileGirl's settings</code>
         /// </summary>       
-        public static TaggedString RocketMan_HideProgressBar {
-            get => _RocketMan_HideProgressBar != null ? 
-                   _RocketMan_HideProgressBar : _RocketMan_HideProgressBar = "RocketMan.HideProgressBar".Translate();
+        public static TaggedString MissileGirl_HideProgressBar {
+            get => _MissileGirl_HideProgressBar != null ?
+                   _MissileGirl_HideProgressBar : _MissileGirl_HideProgressBar = "MissileGirl.HideProgressBar".Translate();
         }             
                            
-        private static TaggedString _RocketMan_RocketMan = null;
-        /// <summary> Keyed string with key <c>RocketMan.RocketMan</c> with inner text set to:
+        private static TaggedString _MissileGirl_MissileGirl = null;
+        /// <summary> Keyed string with key <c>MissileGirl.MissileGirl</c> with inner text set to:
         ///
-        /// <code>RocketMan</code>
+        /// <code>MissileGirl</code>
         /// </summary>       
-        public static TaggedString RocketMan_RocketMan {
-            get => _RocketMan_RocketMan != null ? 
-                   _RocketMan_RocketMan : _RocketMan_RocketMan = "RocketMan.RocketMan".Translate();
+        public static TaggedString MissileGirl_MissileGirl {
+            get => _MissileGirl_MissileGirl != null ?
+                   _MissileGirl_MissileGirl : _MissileGirl_MissileGirl = "MissileGirl.MissileGirl".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Tab = null;
-        /// <summary> Keyed string with key <c>RocketMan.Tab</c> with inner text set to:
+        private static TaggedString _MissileGirl_Tab = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Tab</c> with inner text set to:
         ///
         /// <code>Home</code>
         /// </summary>       
-        public static TaggedString RocketMan_Tab {
-            get => _RocketMan_Tab != null ? 
-                   _RocketMan_Tab : _RocketMan_Tab = "RocketMan.Tab".Translate();
+        public static TaggedString MissileGirl_Tab {
+            get => _MissileGirl_Tab != null ?
+                   _MissileGirl_Tab : _MissileGirl_Tab = "MissileGirl.Tab".Translate();
         }             
                            
-        private static TaggedString _RocketMan_FixBeauty = null;
-        /// <summary> Keyed string with key <c>RocketMan.FixBeauty</c> with inner text set to:
+        private static TaggedString _MissileGirl_FixBeauty = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty</c> with inner text set to:
         ///
         /// <code>Dynamic beauty scan radius</code>
         /// </summary>       
-        public static TaggedString RocketMan_FixBeauty {
-            get => _RocketMan_FixBeauty != null ? 
-                   _RocketMan_FixBeauty : _RocketMan_FixBeauty = "RocketMan.FixBeauty".Translate();
+        public static TaggedString MissileGirl_FixBeauty {
+            get => _MissileGirl_FixBeauty != null ?
+                   _MissileGirl_FixBeauty : _MissileGirl_FixBeauty = "MissileGirl.FixBeauty".Translate();
         }             
                            
-        private static TaggedString _RocketMan_FixBeauty_Tip = null;
-        /// <summary> Keyed string with key <c>RocketMan.FixBeauty.Tip</c> with inner text set to:
+        private static TaggedString _MissileGirl_FixBeauty_Tip = null;
+        /// <summary> Keyed string with key <c>MissileGirl.FixBeauty.Tip</c> with inner text set to:
         ///
         /// <code>Beauty scan radius will change depending on what the pawn is doing. Use at your own risk.</code>
         /// </summary>       
-        public static TaggedString RocketMan_FixBeauty_Tip {
-            get => _RocketMan_FixBeauty_Tip != null ? 
-                   _RocketMan_FixBeauty_Tip : _RocketMan_FixBeauty_Tip = "RocketMan.FixBeauty.Tip".Translate();
+        public static TaggedString MissileGirl_FixBeauty_Tip {
+            get => _MissileGirl_FixBeauty_Tip != null ?
+                   _MissileGirl_FixBeauty_Tip : _MissileGirl_FixBeauty_Tip = "MissileGirl.FixBeauty.Tip".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize</c> with inner text set to:
         ///
         /// <code>THIGH-O-TORN 5000</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize {
-            get => _RocketMan_GenMapSize != null ? 
-                   _RocketMan_GenMapSize : _RocketMan_GenMapSize = "RocketMan.GenMapSize".Translate();
+        public static TaggedString MissileGirl_GenMapSize {
+            get => _MissileGirl_GenMapSize != null ?
+                   _MissileGirl_GenMapSize : _MissileGirl_GenMapSize = "MissileGirl.GenMapSize".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize_Text = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize.Text</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize_Text = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize.Text</c> with inner text set to:
         ///
         /// <code>Set the map size/shape for the next generated map. (after generating said map this option will reset back to default)</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize_Text {
-            get => _RocketMan_GenMapSize_Text != null ? 
-                   _RocketMan_GenMapSize_Text : _RocketMan_GenMapSize_Text = "RocketMan.GenMapSize.Text".Translate();
+        public static TaggedString MissileGirl_GenMapSize_Text {
+            get => _MissileGirl_GenMapSize_Text != null ?
+                   _MissileGirl_GenMapSize_Text : _MissileGirl_GenMapSize_Text = "MissileGirl.GenMapSize.Text".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize_Note = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize.Note</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize_Note = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize.Note</c> with inner text set to:
         ///
         /// <code>Please note that the new map will have a width/height that is dividable by region height (this rounding process is automatic).</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize_Note {
-            get => _RocketMan_GenMapSize_Note != null ? 
-                   _RocketMan_GenMapSize_Note : _RocketMan_GenMapSize_Note = "RocketMan.GenMapSize.Note".Translate();
+        public static TaggedString MissileGirl_GenMapSize_Note {
+            get => _MissileGirl_GenMapSize_Note != null ?
+                   _MissileGirl_GenMapSize_Note : _MissileGirl_GenMapSize_Note = "MissileGirl.GenMapSize.Note".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize_Mode_Custom = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize.Mode.Custom</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize_Mode_Custom = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize.Mode.Custom</c> with inner text set to:
         ///
         /// <code>Custom</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize_Mode_Custom {
-            get => _RocketMan_GenMapSize_Mode_Custom != null ? 
-                   _RocketMan_GenMapSize_Mode_Custom : _RocketMan_GenMapSize_Mode_Custom = "RocketMan.GenMapSize.Mode.Custom".Translate();
+        public static TaggedString MissileGirl_GenMapSize_Mode_Custom {
+            get => _MissileGirl_GenMapSize_Mode_Custom != null ?
+                   _MissileGirl_GenMapSize_Mode_Custom : _MissileGirl_GenMapSize_Mode_Custom = "MissileGirl.GenMapSize.Mode.Custom".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize_Mode_Vanilla = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize.Mode.Vanilla</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize_Mode_Vanilla = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize.Mode.Vanilla</c> with inner text set to:
         ///
         /// <code>Vanilla</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize_Mode_Vanilla {
-            get => _RocketMan_GenMapSize_Mode_Vanilla != null ? 
-                   _RocketMan_GenMapSize_Mode_Vanilla : _RocketMan_GenMapSize_Mode_Vanilla = "RocketMan.GenMapSize.Mode.Vanilla".Translate();
+        public static TaggedString MissileGirl_GenMapSize_Mode_Vanilla {
+            get => _MissileGirl_GenMapSize_Mode_Vanilla != null ?
+                   _MissileGirl_GenMapSize_Mode_Vanilla : _MissileGirl_GenMapSize_Mode_Vanilla = "MissileGirl.GenMapSize.Mode.Vanilla".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize_Width = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize.Width</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize_Width = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize.Width</c> with inner text set to:
         ///
         /// <code>Width</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize_Width {
-            get => _RocketMan_GenMapSize_Width != null ? 
-                   _RocketMan_GenMapSize_Width : _RocketMan_GenMapSize_Width = "RocketMan.GenMapSize.Width".Translate();
+        public static TaggedString MissileGirl_GenMapSize_Width {
+            get => _MissileGirl_GenMapSize_Width != null ?
+                   _MissileGirl_GenMapSize_Width : _MissileGirl_GenMapSize_Width = "MissileGirl.GenMapSize.Width".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GenMapSize_Height = null;
-        /// <summary> Keyed string with key <c>RocketMan.GenMapSize.Height</c> with inner text set to:
+        private static TaggedString _MissileGirl_GenMapSize_Height = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GenMapSize.Height</c> with inner text set to:
         ///
         /// <code>Height</code>
         /// </summary>       
-        public static TaggedString RocketMan_GenMapSize_Height {
-            get => _RocketMan_GenMapSize_Height != null ? 
-                   _RocketMan_GenMapSize_Height : _RocketMan_GenMapSize_Height = "RocketMan.GenMapSize.Height".Translate();
+        public static TaggedString MissileGirl_GenMapSize_Height {
+            get => _MissileGirl_GenMapSize_Height != null ?
+                   _MissileGirl_GenMapSize_Height : _MissileGirl_GenMapSize_Height = "MissileGirl.GenMapSize.Height".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Close = null;
-        /// <summary> Keyed string with key <c>RocketMan.Close</c> with inner text set to:
+        private static TaggedString _MissileGirl_Close = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Close</c> with inner text set to:
         ///
         /// <code>Close</code>
         /// </summary>       
-        public static TaggedString RocketMan_Close {
-            get => _RocketMan_Close != null ? 
-                   _RocketMan_Close : _RocketMan_Close = "RocketMan.Close".Translate();
+        public static TaggedString MissileGirl_Close {
+            get => _MissileGirl_Close != null ?
+                   _MissileGirl_Close : _MissileGirl_Close = "MissileGirl.Close".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Enable = null;
-        /// <summary> Keyed string with key <c>RocketMan.Enable</c> with inner text set to:
+        private static TaggedString _MissileGirl_Enable = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Enable</c> with inner text set to:
         ///
         /// <code>Enable</code>
         /// </summary>       
-        public static TaggedString RocketMan_Enable {
-            get => _RocketMan_Enable != null ? 
-                   _RocketMan_Enable : _RocketMan_Enable = "RocketMan.Enable".Translate();
+        public static TaggedString MissileGirl_Enable {
+            get => _MissileGirl_Enable != null ?
+                   _MissileGirl_Enable : _MissileGirl_Enable = "MissileGirl.Enable".Translate();
         }             
                            
-        private static TaggedString _RocketMan_TranslationCaching = null;
-        /// <summary> Keyed string with key <c>RocketMan.TranslationCaching</c> with inner text set to:
+        private static TaggedString _MissileGirl_TranslationCaching = null;
+        /// <summary> Keyed string with key <c>MissileGirl.TranslationCaching</c> with inner text set to:
         ///
         /// <code>Enable text size caching</code>
         /// </summary>       
-        public static TaggedString RocketMan_TranslationCaching {
-            get => _RocketMan_TranslationCaching != null ? 
-                   _RocketMan_TranslationCaching : _RocketMan_TranslationCaching = "RocketMan.TranslationCaching".Translate();
+        public static TaggedString MissileGirl_TranslationCaching {
+            get => _MissileGirl_TranslationCaching != null ?
+                   _MissileGirl_TranslationCaching : _MissileGirl_TranslationCaching = "MissileGirl.TranslationCaching".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Experimental = null;
-        /// <summary> Keyed string with key <c>RocketMan.Experimental</c> with inner text set to:
+        private static TaggedString _MissileGirl_Experimental = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Experimental</c> with inner text set to:
         ///
         /// <code>Experimental features</code>
         /// </summary>       
-        public static TaggedString RocketMan_Experimental {
-            get => _RocketMan_Experimental != null ? 
-                   _RocketMan_Experimental : _RocketMan_Experimental = "RocketMan.Experimental".Translate();
+        public static TaggedString MissileGirl_Experimental {
+            get => _MissileGirl_Experimental != null ?
+                   _MissileGirl_Experimental : _MissileGirl_Experimental = "MissileGirl.Experimental".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Experimental_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.Experimental.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_Experimental_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Experimental.Description</c> with inner text set to:
         ///
-        /// <code>Here you can opt in RocketMan Beta features.\nWarning: do not do this if you don't know what you're doing.</code>
+        /// <code>Here you can opt in MissileGirl Beta features.\nWarning: do not do this if you don't know what you're doing.</code>
         /// </summary>       
-        public static TaggedString RocketMan_Experimental_Description {
-            get => _RocketMan_Experimental_Description != null ? 
-                   _RocketMan_Experimental_Description : _RocketMan_Experimental_Description = "RocketMan.Experimental.Description".Translate();
+        public static TaggedString MissileGirl_Experimental_Description {
+            get => _MissileGirl_Experimental_Description != null ?
+                   _MissileGirl_Experimental_Description : _MissileGirl_Experimental_Description = "MissileGirl.Experimental.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Experimental_OptInBeta = null;
-        /// <summary> Keyed string with key <c>RocketMan.Experimental.OptInBeta</c> with inner text set to:
+        private static TaggedString _MissileGirl_Experimental_OptInBeta = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Experimental.OptInBeta</c> with inner text set to:
         ///
-        /// <code>Opt in RocketMan beta features</code>
+        /// <code>Opt in MissileGirl beta features</code>
         /// </summary>       
-        public static TaggedString RocketMan_Experimental_OptInBeta {
-            get => _RocketMan_Experimental_OptInBeta != null ? 
-                   _RocketMan_Experimental_OptInBeta : _RocketMan_Experimental_OptInBeta = "RocketMan.Experimental.OptInBeta".Translate();
+        public static TaggedString MissileGirl_Experimental_OptInBeta {
+            get => _MissileGirl_Experimental_OptInBeta != null ?
+                   _MissileGirl_Experimental_OptInBeta : _MissileGirl_Experimental_OptInBeta = "MissileGirl.Experimental.OptInBeta".Translate();
         }             
                            
-        private static TaggedString _RocketMan_EnableGagarin = null;
-        /// <summary> Keyed string with key <c>RocketMan.EnableGagarin</c> with inner text set to:
+        private static TaggedString _MissileGirl_EnableGagarin = null;
+        /// <summary> Keyed string with key <c>MissileGirl.EnableGagarin</c> with inner text set to:
         ///
         /// <code>Enable load time reduction (Faster loading times)</code>
         /// </summary>       
-        public static TaggedString RocketMan_EnableGagarin {
-            get => _RocketMan_EnableGagarin != null ? 
-                   _RocketMan_EnableGagarin : _RocketMan_EnableGagarin = "RocketMan.EnableGagarin".Translate();
+        public static TaggedString MissileGirl_EnableGagarin {
+            get => _MissileGirl_EnableGagarin != null ?
+                   _MissileGirl_EnableGagarin : _MissileGirl_EnableGagarin = "MissileGirl.EnableGagarin".Translate();
         }             
                            
-        private static TaggedString _RocketMan_EnableGagarin_Tip = null;
-        /// <summary> Keyed string with key <c>RocketMan.EnableGagarin.Tip</c> with inner text set to:
+        private static TaggedString _MissileGirl_EnableGagarin_Tip = null;
+        /// <summary> Keyed string with key <c>MissileGirl.EnableGagarin.Tip</c> with inner text set to:
         ///
-        /// <code>RocketMan will attempt to reduce your loading time by caching Xml patch operations. After you active this settings restart your game twice inorder to RocketMan to create the cache. Depending on how many mods you use and what mods you could see upto 2x faster loading time. This is recommended to be used with Xml patch heavy mods such as Combat Extended or Doc universal.</code>
+        /// <code>MissileGirl will attempt to reduce your loading time by caching Xml patch operations. After you active this settings restart your game twice inorder to MissileGirl to create the cache. Depending on how many mods you use and what mods you could see upto 2x faster loading time. This is recommended to be used with Xml patch heavy mods such as Combat Extended or Doc universal.</code>
         /// </summary>       
-        public static TaggedString RocketMan_EnableGagarin_Tip {
-            get => _RocketMan_EnableGagarin_Tip != null ? 
-                   _RocketMan_EnableGagarin_Tip : _RocketMan_EnableGagarin_Tip = "RocketMan.EnableGagarin.Tip".Translate();
+        public static TaggedString MissileGirl_EnableGagarin_Tip {
+            get => _MissileGirl_EnableGagarin_Tip != null ?
+                   _MissileGirl_EnableGagarin_Tip : _MissileGirl_EnableGagarin_Tip = "MissileGirl.EnableGagarin.Tip".Translate();
         }             
                            
-        private static TaggedString _RocketMan_ShowIcon = null;
-        /// <summary> Keyed string with key <c>RocketMan.ShowIcon</c> with inner text set to:
+        private static TaggedString _MissileGirl_ShowIcon = null;
+        /// <summary> Keyed string with key <c>MissileGirl.ShowIcon</c> with inner text set to:
         ///
-        /// <code>Show RocketMan button/icon</code>
+        /// <code>Show MissileGirl button/icon</code>
         /// </summary>       
-        public static TaggedString RocketMan_ShowIcon {
-            get => _RocketMan_ShowIcon != null ? 
-                   _RocketMan_ShowIcon : _RocketMan_ShowIcon = "RocketMan.ShowIcon".Translate();
+        public static TaggedString MissileGirl_ShowIcon {
+            get => _MissileGirl_ShowIcon != null ?
+                   _MissileGirl_ShowIcon : _MissileGirl_ShowIcon = "MissileGirl.ShowIcon".Translate();
         }             
                            
-        private static TaggedString _RocketMan_ShowIcon_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.ShowIcon.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_ShowIcon_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.ShowIcon.Description</c> with inner text set to:
         ///
         /// <code>Due to game limiations some options aren't available from the game menu settings.</code>
         /// </summary>       
-        public static TaggedString RocketMan_ShowIcon_Description {
-            get => _RocketMan_ShowIcon_Description != null ? 
-                   _RocketMan_ShowIcon_Description : _RocketMan_ShowIcon_Description = "RocketMan.ShowIcon.Description".Translate();
+        public static TaggedString MissileGirl_ShowIcon_Description {
+            get => _MissileGirl_ShowIcon_Description != null ?
+                   _MissileGirl_ShowIcon_Description : _MissileGirl_ShowIcon_Description = "MissileGirl.ShowIcon.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_ProgressBar = null;
-        /// <summary> Keyed string with key <c>RocketMan.ProgressBar</c> with inner text set to:
+        private static TaggedString _MissileGirl_ProgressBar = null;
+        /// <summary> Keyed string with key <c>MissileGirl.ProgressBar</c> with inner text set to:
         ///
         /// <code>Show warmup progress bar on startup</code>
         /// </summary>       
-        public static TaggedString RocketMan_ProgressBar {
-            get => _RocketMan_ProgressBar != null ? 
-                   _RocketMan_ProgressBar : _RocketMan_ProgressBar = "RocketMan.ProgressBar".Translate();
+        public static TaggedString MissileGirl_ProgressBar {
+            get => _MissileGirl_ProgressBar != null ?
+                   _MissileGirl_ProgressBar : _MissileGirl_ProgressBar = "MissileGirl.ProgressBar".Translate();
         }             
                            
-        private static TaggedString _RocketMan_ProgressBar_Pause = null;
-        /// <summary> Keyed string with key <c>RocketMan.ProgressBar.Pause</c> with inner text set to:
+        private static TaggedString _MissileGirl_ProgressBar_Pause = null;
+        /// <summary> Keyed string with key <c>MissileGirl.ProgressBar.Pause</c> with inner text set to:
         ///
         /// <code>Pause after warmup</code>
         /// </summary>       
-        public static TaggedString RocketMan_ProgressBar_Pause {
-            get => _RocketMan_ProgressBar_Pause != null ? 
-                   _RocketMan_ProgressBar_Pause : _RocketMan_ProgressBar_Pause = "RocketMan.ProgressBar.Pause".Translate();
+        public static TaggedString MissileGirl_ProgressBar_Pause {
+            get => _MissileGirl_ProgressBar_Pause != null ?
+                   _MissileGirl_ProgressBar_Pause : _MissileGirl_ProgressBar_Pause = "MissileGirl.ProgressBar.Pause".Translate();
         }             
                            
-        private static TaggedString _RocketMan_ProgressBar_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.ProgressBar.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_ProgressBar_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.ProgressBar.Description</c> with inner text set to:
         ///
         /// <code>This will show a warmup progress bar when you load a new map.</code>
         /// </summary>       
-        public static TaggedString RocketMan_ProgressBar_Description {
-            get => _RocketMan_ProgressBar_Description != null ? 
-                   _RocketMan_ProgressBar_Description : _RocketMan_ProgressBar_Description = "RocketMan.ProgressBar.Description".Translate();
+        public static TaggedString MissileGirl_ProgressBar_Description {
+            get => _MissileGirl_ProgressBar_Description != null ?
+                   _MissileGirl_ProgressBar_Description : _MissileGirl_ProgressBar_Description = "MissileGirl.ProgressBar.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Junk = null;
-        /// <summary> Keyed string with key <c>RocketMan.Junk</c> with inner text set to:
+        private static TaggedString _MissileGirl_Junk = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Junk</c> with inner text set to:
         ///
         /// <code>Junk</code>
         /// </summary>       
-        public static TaggedString RocketMan_Junk {
-            get => _RocketMan_Junk != null ? 
-                   _RocketMan_Junk : _RocketMan_Junk = "RocketMan.Junk".Translate();
+        public static TaggedString MissileGirl_Junk {
+            get => _MissileGirl_Junk != null ?
+                   _MissileGirl_Junk : _MissileGirl_Junk = "MissileGirl.Junk".Translate();
         }             
                            
-        private static TaggedString _RocketMan_CorpseRemoval = null;
-        /// <summary> Keyed string with key <c>RocketMan.CorpseRemoval</c> with inner text set to:
+        private static TaggedString _MissileGirl_CorpseRemoval = null;
+        /// <summary> Keyed string with key <c>MissileGirl.CorpseRemoval</c> with inner text set to:
         ///
         /// <code>Enable automatic corpses removal.</code>
         /// </summary>       
-        public static TaggedString RocketMan_CorpseRemoval {
-            get => _RocketMan_CorpseRemoval != null ? 
-                   _RocketMan_CorpseRemoval : _RocketMan_CorpseRemoval = "RocketMan.CorpseRemoval".Translate();
+        public static TaggedString MissileGirl_CorpseRemoval {
+            get => _MissileGirl_CorpseRemoval != null ?
+                   _MissileGirl_CorpseRemoval : _MissileGirl_CorpseRemoval = "MissileGirl.CorpseRemoval".Translate();
         }             
                            
-        private static TaggedString _RocketMan_CorpseRemoval_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.CorpseRemoval.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_CorpseRemoval_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.CorpseRemoval.Description</c> with inner text set to:
         ///
         /// <code>This removes corpses that aren't in view for a while and that aren't near your base to avoid breaking the game balance.</code>
         /// </summary>       
-        public static TaggedString RocketMan_CorpseRemoval_Description {
-            get => _RocketMan_CorpseRemoval_Description != null ? 
-                   _RocketMan_CorpseRemoval_Description : _RocketMan_CorpseRemoval_Description = "RocketMan.CorpseRemoval.Description".Translate();
+        public static TaggedString MissileGirl_CorpseRemoval_Description {
+            get => _MissileGirl_CorpseRemoval_Description != null ?
+                   _MissileGirl_CorpseRemoval_Description : _MissileGirl_CorpseRemoval_Description = "MissileGirl.CorpseRemoval.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_GameSpeed = null;
-        /// <summary> Keyed string with key <c>RocketMan.GameSpeed</c> with inner text set to:
+        private static TaggedString _MissileGirl_GameSpeed = null;
+        /// <summary> Keyed string with key <c>MissileGirl.GameSpeed</c> with inner text set to:
         ///
         /// <code>Game speed settings</code>
         /// </summary>       
-        public static TaggedString RocketMan_GameSpeed {
-            get => _RocketMan_GameSpeed != null ? 
-                   _RocketMan_GameSpeed : _RocketMan_GameSpeed = "RocketMan.GameSpeed".Translate();
+        public static TaggedString MissileGirl_GameSpeed {
+            get => _MissileGirl_GameSpeed != null ?
+                   _MissileGirl_GameSpeed : _MissileGirl_GameSpeed = "MissileGirl.GameSpeed".Translate();
         }             
                            
-        private static TaggedString _RocketMan_DisableForcedSlowdowns = null;
-        /// <summary> Keyed string with key <c>RocketMan.DisableForcedSlowdowns</c> with inner text set to:
+        private static TaggedString _MissileGirl_DisableForcedSlowdowns = null;
+        /// <summary> Keyed string with key <c>MissileGirl.DisableForcedSlowdowns</c> with inner text set to:
         ///
         /// <code>Disable forced slowdowns</code>
         /// </summary>       
-        public static TaggedString RocketMan_DisableForcedSlowdowns {
-            get => _RocketMan_DisableForcedSlowdowns != null ? 
-                   _RocketMan_DisableForcedSlowdowns : _RocketMan_DisableForcedSlowdowns = "RocketMan.DisableForcedSlowdowns".Translate();
+        public static TaggedString MissileGirl_DisableForcedSlowdowns {
+            get => _MissileGirl_DisableForcedSlowdowns != null ?
+                   _MissileGirl_DisableForcedSlowdowns : _MissileGirl_DisableForcedSlowdowns = "MissileGirl.DisableForcedSlowdowns".Translate();
         }             
                            
-        private static TaggedString _RocketMan_DisableForcedSlowdowns_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.DisableForcedSlowdowns.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_DisableForcedSlowdowns_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.DisableForcedSlowdowns.Description</c> with inner text set to:
         ///
         /// <code>Disable forced slowdowns by game events. Disable this if you are using SmartSpeed.</code>
         /// </summary>       
-        public static TaggedString RocketMan_DisableForcedSlowdowns_Description {
-            get => _RocketMan_DisableForcedSlowdowns_Description != null ? 
-                   _RocketMan_DisableForcedSlowdowns_Description : _RocketMan_DisableForcedSlowdowns_Description = "RocketMan.DisableForcedSlowdowns.Description".Translate();
+        public static TaggedString MissileGirl_DisableForcedSlowdowns_Description {
+            get => _MissileGirl_DisableForcedSlowdowns_Description != null ?
+                   _MissileGirl_DisableForcedSlowdowns_Description : _MissileGirl_DisableForcedSlowdowns_Description = "MissileGirl.DisableForcedSlowdowns.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_StatCacheSettings = null;
-        /// <summary> Keyed string with key <c>RocketMan.StatCacheSettings</c> with inner text set to:
+        private static TaggedString _MissileGirl_StatCacheSettings = null;
+        /// <summary> Keyed string with key <c>MissileGirl.StatCacheSettings</c> with inner text set to:
         ///
         /// <code>Stats cache settings</code>
         /// </summary>       
-        public static TaggedString RocketMan_StatCacheSettings {
-            get => _RocketMan_StatCacheSettings != null ? 
-                   _RocketMan_StatCacheSettings : _RocketMan_StatCacheSettings = "RocketMan.StatCacheSettings".Translate();
+        public static TaggedString MissileGirl_StatCacheSettings {
+            get => _MissileGirl_StatCacheSettings != null ?
+                   _MissileGirl_StatCacheSettings : _MissileGirl_StatCacheSettings = "MissileGirl.StatCacheSettings".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Adaptive = null;
-        /// <summary> Keyed string with key <c>RocketMan.Adaptive</c> with inner text set to:
+        private static TaggedString _MissileGirl_Adaptive = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Adaptive</c> with inner text set to:
         ///
         /// <code>Adaptive mode</code>
         /// </summary>       
-        public static TaggedString RocketMan_Adaptive {
-            get => _RocketMan_Adaptive != null ? 
-                   _RocketMan_Adaptive : _RocketMan_Adaptive = "RocketMan.Adaptive".Translate();
+        public static TaggedString MissileGirl_Adaptive {
+            get => _MissileGirl_Adaptive != null ?
+                   _MissileGirl_Adaptive : _MissileGirl_Adaptive = "MissileGirl.Adaptive".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Adaptive_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.Adaptive.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_Adaptive_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Adaptive.Description</c> with inner text set to:
         ///
         /// <code>Enable for 30 minutes after creating a new save or changing your mod list.</code>
         /// </summary>       
-        public static TaggedString RocketMan_Adaptive_Description {
-            get => _RocketMan_Adaptive_Description != null ? 
-                   _RocketMan_Adaptive_Description : _RocketMan_Adaptive_Description = "RocketMan.Adaptive.Description".Translate();
+        public static TaggedString MissileGirl_Adaptive_Description {
+            get => _MissileGirl_Adaptive_Description != null ?
+                   _MissileGirl_Adaptive_Description : _MissileGirl_Adaptive_Description = "MissileGirl.Adaptive.Description".Translate();
         }             
                            
-        private static TaggedString _RocketMan_EnableGearStatCaching = null;
-        /// <summary> Keyed string with key <c>RocketMan.EnableGearStatCaching</c> with inner text set to:
+        private static TaggedString _MissileGirl_EnableGearStatCaching = null;
+        /// <summary> Keyed string with key <c>MissileGirl.EnableGearStatCaching</c> with inner text set to:
         ///
         /// <code>Enable gear stat caching</code>
         /// </summary>       
-        public static TaggedString RocketMan_EnableGearStatCaching {
-            get => _RocketMan_EnableGearStatCaching != null ? 
-                   _RocketMan_EnableGearStatCaching : _RocketMan_EnableGearStatCaching = "RocketMan.EnableGearStatCaching".Translate();
+        public static TaggedString MissileGirl_EnableGearStatCaching {
+            get => _MissileGirl_EnableGearStatCaching != null ?
+                   _MissileGirl_EnableGearStatCaching : _MissileGirl_EnableGearStatCaching = "MissileGirl.EnableGearStatCaching".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Debugging = null;
-        /// <summary> Keyed string with key <c>RocketMan.Debugging</c> with inner text set to:
+        private static TaggedString _MissileGirl_Debugging = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Debugging</c> with inner text set to:
         ///
         /// <code>Enable debugging</code>
         /// </summary>       
-        public static TaggedString RocketMan_Debugging {
-            get => _RocketMan_Debugging != null ? 
-                   _RocketMan_Debugging : _RocketMan_Debugging = "RocketMan.Debugging".Translate();
+        public static TaggedString MissileGirl_Debugging {
+            get => _MissileGirl_Debugging != null ?
+                   _MissileGirl_Debugging : _MissileGirl_Debugging = "MissileGirl.Debugging".Translate();
         }             
                            
-        private static TaggedString _RocketMan_Debugging_Description = null;
-        /// <summary> Keyed string with key <c>RocketMan.Debugging.Description</c> with inner text set to:
+        private static TaggedString _MissileGirl_Debugging_Description = null;
+        /// <summary> Keyed string with key <c>MissileGirl.Debugging.Description</c> with inner text set to:
         ///
         /// <code>Only for advanced users and modders</code>
         /// </summary>       
-        public static TaggedString RocketMan_Debugging_Description {
-            get => _RocketMan_Debugging_Description != null ? 
-                   _RocketMan_Debugging_Description : _RocketMan_Debugging_Description = "RocketMan.Debugging.Description".Translate();
+        public static TaggedString MissileGirl_Debugging_Description {
+            get => _MissileGirl_Debugging_Description != null ?
+                   _MissileGirl_Debugging_Description : _MissileGirl_Debugging_Description = "MissileGirl.Debugging.Description".Translate();
         }             
                            
         private static TaggedString _Soyuz_Tab = null;
@@ -966,7 +966,7 @@ namespace RocketMan
         private static TaggedString _Proton_DisalbeAllInfo = null;
         /// <summary> Keyed string with key <c>Proton.DisalbeAllInfo</c> with inner text set to:
         ///
-        /// <code>If you have Dub's performance analyzer installed RocketMan will override its alert control system. Use this one instead.</code>
+        /// <code>If you have Dub's performance analyzer installed MissileGirl will override its alert control system. Use this one instead.</code>
         /// </summary>       
         public static TaggedString Proton_DisalbeAllInfo {
             get => _Proton_DisalbeAllInfo != null ? 
@@ -1131,12 +1131,12 @@ namespace RocketMan
         public static TaggedString Proton_GlowGrid_Limiter_Tip {
             get => _Proton_GlowGrid_Limiter_Tip != null ? 
                    _Proton_GlowGrid_Limiter_Tip : _Proton_GlowGrid_Limiter_Tip = "Proton.GlowGrid.Limiter.Tip".Translate();
-        }             
+        }
                            
         private static TaggedString _Gagarin_ParsingReports = null;
         /// <summary> Keyed string with key <c>Gagarin.ParsingReports</c> with inner text set to:
         ///
-        /// <code>RocketMan is checking for any duplicated Bases or Defs</code>
+        /// <code>MissileGirl is checking for any duplicated Bases or Defs</code>
         /// </summary>       
         public static TaggedString Gagarin_ParsingReports {
             get => _Gagarin_ParsingReports != null ? 
@@ -1166,7 +1166,7 @@ namespace RocketMan
         private static TaggedString _Gagarin_Tip = null;
         /// <summary> Keyed string with key <c>Gagarin.Tip</c> with inner text set to:
         ///
-        /// <code>As long as load time optimization is active it will cache every XML Def. This allows you to skip XML patching. You can disable it from the main menu in RocketMan</code>
+        /// <code>As long as load time optimization is active it will cache every XML Def. This allows you to skip XML patching. You can disable it from the main menu in MissileGirl</code>
         /// </summary>       
         public static TaggedString Gagarin_Tip {
             get => _Gagarin_Tip != null ? 

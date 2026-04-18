@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using RimWorld;
 using RimWorld.Planet;
-using RocketMan;
+using MissileGirl;
 using Verse;
 
 namespace Soyuz.Patches

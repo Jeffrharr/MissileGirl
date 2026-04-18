@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class StringUtility
     {

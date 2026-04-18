@@ -5,7 +5,7 @@
 // using RimWorld.Planet;
 // using Verse;
 //
-// namespace RocketMan.Optimizations
+// namespace MissileGirl.Optimizations
 // {
 //     public class WorldReachability_Patch
 //     {
@@ -44,7 +44,7 @@
 //                     {
 //                         if (RocketDebugPrefs.Debug)
 //                         {
-//                             messages.Add(string.Format("ROCKETMAN: Error in island generation with message {0} at {1}",
+//                             messages.Add(string.Format("MissileGirl: Error in island generation with message {0} at {1}",
 //                                 er.Message, er.StackTrace));
 //                         }
 //                     }
@@ -135,9 +135,9 @@
 //                 if (Prefs.DevMode)
 //                 {
 //                     if (RocketDebugPrefs.Debug)
-//                         messages.Add(string.Format("ROCKETMAN: Island counter {0}, visited {1}", currentIslandCounter,
+//                         messages.Add(string.Format("MissileGirl: Island counter {0}, visited {1}", currentIslandCounter,
 //                             visitedTilesCount));
-//                     messages.Add(string.Format("ROCKETMAN: FINISHED BUILDING ISLANDS!, {0}, {1}, {2}, {3}",
+//                     messages.Add(string.Format("MissileGirl: FINISHED BUILDING ISLANDS!, {0}, {1}, {2}, {3}",
 //                         islandCounter, visitedTilesCount, passableTiles.Count, currentIslandCounter));
 //                 }
 // #endif
@@ -153,7 +153,7 @@
 //                     if (message.ToLower().Contains("error"))
 //                         Log.Error(message);
 //                     else
-//                         if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(message);
+//                         if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(message);
 //                 }
 //             }
 //
@@ -191,27 +191,27 @@
 //                     if (world != Find.World)
 //                     {
 //                         if (RocketDebugPrefs.Debug)
-//                             RocketMan.Logger.Message("ROCKETMAN: Creating world map cache");
+//                             MissileGirl.Logger.Message("MissileGirl: Creating world map cache");
 //                         Initialize();
 //                     }
 //
 //                     if (!finished)
 //                     {
 //                         if (RocketDebugPrefs.Debug)
-//                             Log.Warning("ROCKETMAN: Tried to call WorldReachability while still processing");
+//                             Log.Warning("MissileGirl: Tried to call WorldReachability while still processing");
 //                         return true;
 //                     }
 //
 //                     if (tilesToIsland[startTile] == 0 || tilesToIsland[destTile] == 0 ||
 //                         tilesToIsland[startTile] != tilesToIsland[destTile])
 //                     {
-//                         if (RocketDebugPrefs.Debug) RocketMan.Logger.Message("ROCKETMAN: Not Allowed");
+//                         if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message("MissileGirl: Not Allowed");
 //                         __result = false;
 //                     }
 //
 //                     if (tilesToIsland[startTile] == tilesToIsland[destTile])
 //                     {
-//                         if (RocketDebugPrefs.Debug) RocketMan.Logger.Message("ROCKETMAN: Allowed");
+//                         if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message("MissileGirl: Allowed");
 //                         __result = true;
 //                     }
 //

@@ -33,7 +33,7 @@ namespace Gagarin
                         builder.AppendInNewLine($"{frame.GetMethod().DeclaringType?.FullName}:{frame.GetMethod().Name}():{frame.GetFileLineNumber()}");
                     }
                     Log.Warning(builder.ToString());
-                    RocketMan.Logger.Debug(builder.ToString());
+                    MissileGirl.Logger.Debug(builder.ToString());
                 }
                 _isUsingCache = value;
             }

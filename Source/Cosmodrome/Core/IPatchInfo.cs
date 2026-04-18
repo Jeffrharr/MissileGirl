@@ -5,7 +5,7 @@ using System.Reflection;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public abstract class IPatchInfo<T> where T : IPatch
     {
@@ -195,7 +195,7 @@ namespace RocketMan
 
         public virtual void OnPatchingFailed(Exception er)
         {
-            Log.Warning($"ROCKETMAN: Patching failed <color=red>{er}</color>");
+            Log.Warning($"MissileGirl: Patching failed <color=red>{er}</color>");
         }
 
         public virtual void OnPatchingSuccessful(MethodBase replacement)

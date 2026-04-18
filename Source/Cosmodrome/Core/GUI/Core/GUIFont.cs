@@ -6,7 +6,7 @@ using UnityEngine;
 using Verse;
 using Verse.Sound;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public enum GUIFontSize
     {

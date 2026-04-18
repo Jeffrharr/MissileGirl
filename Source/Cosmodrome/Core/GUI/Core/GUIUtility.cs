@@ -6,7 +6,7 @@ using UnityEngine;
 using Verse;
 using Verse.Sound;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static partial class GUIUtility
     {
@@ -20,7 +20,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Log.Error($"ROCKETMAN:UI error in ExecuteSafeGUIAction {er}");
+                Log.Error($"MissileGirl:UI error in ExecuteSafeGUIAction {er}");
                 exception = er;
             }
             finally
@@ -102,7 +102,7 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                Log.Error($"ROCKETMAN:UI error in ScrollView {er}");
+                Log.Error($"MissileGirl:UI error in ScrollView {er}");
                 exception = er;
             }
             finally

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class RocketAssembliesInfo
     {
@@ -45,7 +45,7 @@ namespace RocketMan
             }
         }
 
-        public static IEnumerable<Assembly> RocketManAssembliesInAppDomain
+        public static IEnumerable<Assembly> MissileGirlAssembliesInAppDomain
         {
             get => AppDomain.CurrentDomain
                     .GetAssemblies()

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class HashUtility
     {

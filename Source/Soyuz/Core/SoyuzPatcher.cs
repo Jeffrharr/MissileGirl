@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
-using RocketMan;
+using MissileGirl;
 using Verse;
 
 namespace Soyuz
@@ -54,7 +54,7 @@ namespace Soyuz
             {
                 SoyuzPatchInfo patch = new SoyuzPatchInfo(type);
                 patchList.Add(patch);
-                if (RocketDebugPrefs.Debug) RocketMan.Logger.Message($"SOYUZ: found patch in {type} and is {(patch.IsValid ? "valid" : "invalid") }");
+                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"SOYUZ: found patch in {type} and is {(patch.IsValid ? "valid" : "invalid") }");
             }
             patches = patchList.Where(p => p.IsValid).ToArray();
         }

@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-	<RocketMan.Settings.PleaseUnpause>Снимите игру с паузы... RocketMan готовится к старту!</RocketMan.Settings.PleaseUnpause>
-	<RocketMan.Settings.PleaseWait>Пожалуйста подождите... RocketMan готовится к старту!</RocketMan.Settings.PleaseWait>
-	<RocketMan.IncompatibilityWindow.Description>Найдены моды несовместимые с RocketMan. Эта проблема может повредить вашу сохраненку. Отключите RocketMan или продолжайте на свой страх и риск. К упомянутым модам относятся:\n</RocketMan.IncompatibilityWindow.Description>
-	<RocketMan.IUnderstand>Я понял! Продолжаем!</RocketMan.IUnderstand>
-	<RocketMan.ChangeBack>Вы всегда можете изменить свой модлист и выключить RocketMan!</RocketMan.ChangeBack>
-	<RocketMan.OpenModList>Я понял! Открой мод менеджер!</RocketMan.OpenModList>
-	<RocketMan.Disclaimer>Разработчики RocketMan не смогут Вам помочь если Вы проигнорируете данное предупреждение!</RocketMan.Disclaimer>
-	<RocketMan.Unpause>Пожалуйста снимите игру с паузы!</RocketMan.Unpause>
-	<RocketMan.Warming>готовится к старту! Пожалуйста подождите...</RocketMan.Warming>
-	<RocketMan.HideProgressBar>Вы можете спрятать\выключить в настройках RocketMan</RocketMan.HideProgressBar>
-	<!-- RocketMan RocketMan.TabContent_Settings -->
-	<RocketMan.RocketMan>RocketMan</RocketMan.RocketMan>
-	<RocketMan.Tab>Главная</RocketMan.Tab>
-	<RocketMan.Enable>Главная</RocketMan.Enable>
-	<RocketMan.ShowIcon>Показать кнопку RocketMan</RocketMan.ShowIcon>
-	<RocketMan.ShowIcon.Description>В связи с техническими ограничениями игры некоторые опции недоступны из настроек меню.</RocketMan.ShowIcon.Description>
-	<RocketMan.ProgressBar>Показать процесс подготовки к запуску при старте</RocketMan.ProgressBar>
-	<RocketMan.ProgressBar.Description>Показывает шкалу подготовки к запуску мода при загрузке новой карты\игры.</RocketMan.ProgressBar.Description>
-	<RocketMan.Junk>Мусор</RocketMan.Junk>
-	<RocketMan.CorpseRemoval>Включить автоматическое удаление трупов.</RocketMan.CorpseRemoval>
-	<RocketMan.CorpseRemoval.Description>Постепенно удаляет трупы длительное время находящиеся за пределами экрана и вдали от вашей базы (чтобы не нарушать игровой баланс).</RocketMan.CorpseRemoval.Description>
-	<RocketMan.StatCacheSettings>Настройки кэширования статистик</RocketMan.StatCacheSettings>
-	<RocketMan.Adaptive>Адаптивный режим</RocketMan.Adaptive>
-	<RocketMan.Adaptive.Description>Необходимо включить на 30 минут если: вы только добавили мод, изменили модлист или начали новую игру.</RocketMan.Adaptive.Description>
-	<RocketMan.EnableGearStatCaching>Включить кэширование статов снаряжения</RocketMan.EnableGearStatCaching>
-	<RocketMan.Debugging>Включить дебаг режим</RocketMan.Debugging>
-	<RocketMan.Debugging.Description>Только для продвинутых пользователей и моддеров</RocketMan.Debugging.Description>
+	<MissileGirl.Settings.PleaseUnpause>Снимите игру с паузы... MissileGirl готовится к старту!</MissileGirl.Settings.PleaseUnpause>
+	<MissileGirl.Settings.PleaseWait>Пожалуйста подождите... MissileGirl готовится к старту!</MissileGirl.Settings.PleaseWait>
+	<MissileGirl.IncompatibilityWindow.Description>Найдены моды несовместимые с MissileGirl. Эта проблема может повредить вашу сохраненку. Отключите MissileGirl или продолжайте на свой страх и риск. К упомянутым модам относятся:\n</MissileGirl.IncompatibilityWindow.Description>
+	<MissileGirl.IUnderstand>Я понял! Продолжаем!</MissileGirl.IUnderstand>
+	<MissileGirl.ChangeBack>Вы всегда можете изменить свой модлист и выключить MissileGirl!</MissileGirl.ChangeBack>
+	<MissileGirl.OpenModList>Я понял! Открой мод менеджер!</MissileGirl.OpenModList>
+	<MissileGirl.Disclaimer>Разработчики MissileGirl не смогут Вам помочь если Вы проигнорируете данное предупреждение!</MissileGirl.Disclaimer>
+	<MissileGirl.Unpause>Пожалуйста снимите игру с паузы!</MissileGirl.Unpause>
+	<MissileGirl.Warming>готовится к старту! Пожалуйста подождите...</MissileGirl.Warming>
+	<MissileGirl.HideProgressBar>Вы можете спрятать\выключить в настройках MissileGirl</MissileGirl.HideProgressBar>
+	<!-- MissileGirl MissileGirl.TabContent_Settings -->
+	<MissileGirl.MissileGirl>MissileGirl</MissileGirl.MissileGirl>
+	<MissileGirl.Tab>Главная</MissileGirl.Tab>
+	<MissileGirl.Enable>Главная</MissileGirl.Enable>
+	<MissileGirl.ShowIcon>Показать кнопку MissileGirl</MissileGirl.ShowIcon>
+	<MissileGirl.ShowIcon.Description>В связи с техническими ограничениями игры некоторые опции недоступны из настроек меню.</MissileGirl.ShowIcon.Description>
+	<MissileGirl.ProgressBar>Показать процесс подготовки к запуску при старте</MissileGirl.ProgressBar>
+	<MissileGirl.ProgressBar.Description>Показывает шкалу подготовки к запуску мода при загрузке новой карты\игры.</MissileGirl.ProgressBar.Description>
+	<MissileGirl.Junk>Мусор</MissileGirl.Junk>
+	<MissileGirl.CorpseRemoval>Включить автоматическое удаление трупов.</MissileGirl.CorpseRemoval>
+	<MissileGirl.CorpseRemoval.Description>Постепенно удаляет трупы длительное время находящиеся за пределами экрана и вдали от вашей базы (чтобы не нарушать игровой баланс).</MissileGirl.CorpseRemoval.Description>
+	<MissileGirl.StatCacheSettings>Настройки кэширования статистик</MissileGirl.StatCacheSettings>
+	<MissileGirl.Adaptive>Адаптивный режим</MissileGirl.Adaptive>
+	<MissileGirl.Adaptive.Description>Необходимо включить на 30 минут если: вы только добавили мод, изменили модлист или начали новую игру.</MissileGirl.Adaptive.Description>
+	<MissileGirl.EnableGearStatCaching>Включить кэширование статов снаряжения</MissileGirl.EnableGearStatCaching>
+	<MissileGirl.Debugging>Включить дебаг режим</MissileGirl.Debugging>
+	<MissileGirl.Debugging.Description>Только для продвинутых пользователей и моддеров</MissileGirl.Debugging.Description>
 	<!-- Soyuz Soyuz.TabContent_DilationSettings -->
 	<Soyuz.Tab>Настройки замедления времени</Soyuz.Tab>
 	<Soyuz.Colored.Disabled>Отключено</Soyuz.Colored.Disabled>

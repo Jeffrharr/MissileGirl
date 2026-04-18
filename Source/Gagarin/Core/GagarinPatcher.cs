@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
-using RocketMan;
+using MissileGirl;
 using Verse;
 
 namespace Gagarin
@@ -32,7 +32,7 @@ namespace Gagarin
         public override void OnPatchingSuccessful(MethodBase replacement)
         {
             base.OnPatchingSuccessful(replacement);
-            if (RocketDebugPrefs.Debug) RocketMan.Logger.Message($"GAGARIN: Patched {replacement}");
+            if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"GAGARIN: Patched {replacement}");
         }
 
         public override void OnPatchingFailed(Exception er)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
-using RocketMan;
+using MissileGirl;
 using UnityEngine;
 using Verse;
 
@@ -141,7 +141,7 @@ namespace Proton
             }
             catch (Exception er)
             {
-                RocketMan.Logger.Debug($"PROTON: Error while flooding {glowerInfo.glower.parent}", exception: er);
+                MissileGirl.Logger.Debug($"PROTON: Error while flooding {glowerInfo.glower.parent}", exception: er);
             }
             finally
             {

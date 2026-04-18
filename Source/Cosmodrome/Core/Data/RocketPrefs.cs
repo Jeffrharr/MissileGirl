@@ -4,7 +4,7 @@ using System.Reflection;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     [StaticConstructorOnStartup]
     public static class RocketPrefs

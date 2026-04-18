@@ -2,7 +2,7 @@
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     //[RocketStartupPatch(typeof(PlayDataLoader), nameof(PlayDataLoader.DoPlayLoad))]
     //public static class PlayDataLoader_DoPlayLoad_Patch

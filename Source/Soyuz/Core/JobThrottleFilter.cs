@@ -4,8 +4,8 @@ using System.Linq;
 using System.Net.Mime;
 using HarmonyLib;
 using RimWorld;
-using RocketMan;
-using RocketMan.Tabs;
+using MissileGirl;
+using MissileGirl.Tabs;
 using UnityEngine;
 
 namespace Soyuz

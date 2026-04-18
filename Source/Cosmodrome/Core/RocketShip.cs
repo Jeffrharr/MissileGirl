@@ -7,7 +7,7 @@ using HarmonyLib;
 using JetBrains.Annotations;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class RocketShip
     {
@@ -93,7 +93,7 @@ namespace RocketMan
                     SkipperPatch patchInfo = t.TryGetAttribute<SkipperPatch>();
                     MethodBase method = patchInfo.GetMethodInfo();
                     if (method.IsValidTarget()) Patch(method as MethodInfo, t);
-                    else Log.Warning($"ROCKETMAN: skipper patch target is not valid {method.GetMethodPath()}!");
+                    else Log.Warning($"MissileGirl: skipper patch target is not valid {method.GetMethodPath()}!");
                 }
             }
 
@@ -107,11 +107,11 @@ namespace RocketMan
                         harmony.Patch(target, transpiler: new HarmonyMethod(mTranspiler));
                         patchedMethods.Add(target);
                         patches.Add(target, patchType);
-                        if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: patched target {0}", target));
+                        if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: patched target {0}", target));
                     }
                     catch (Exception er)
                     {
-                        Log.Error(string.Format("ROCKETMAN: error in patching {2} with {3} with error {0} at {1}",
+                        Log.Error(string.Format("MissileGirl: error in patching {2} with {3} with error {0} at {1}",
                             er.Message, er.StackTrace, target, patchType));
                     }
                 }
@@ -123,7 +123,7 @@ namespace RocketMan
                 foreach (var type in types)
                     if (type.HasAttribute<SkipperPatch>())
                     {
-                        if (RocketDebugPrefs.Debug) RocketMan.Logger.Message(string.Format("ROCKETMAN: found type {0} with skipper patch attributes", type));
+                        if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: found type {0} with skipper patch attributes", type));
                         yield return type;
                     }
             }
@@ -220,7 +220,7 @@ namespace RocketMan
             {
                 if (!method.IsStatic)
                     throw new InvalidOperationException(
-                        string.Format("ROCKETMAN: can't use non static method {0} in a patch:CallInside", parent.Name));
+                        string.Format("MissileGirl: can't use non static method {0} in a patch:CallInside", parent.Name));
                 var mParameters = method.GetParameters();
                 var pParameters = parent.GetParameters();
 
@@ -251,7 +251,7 @@ namespace RocketMan
                                 !methodParam.ParameterType.IsByRef)
                                 throw new InvalidOperationException(
                                     string.Format(
-                                        "ROCKETMAN: error in patching:CallInside with method {0} with type mismatch {1}",
+                                        "MissileGirl: error in patching:CallInside with method {0} with type mismatch {1}",
                                         parent.Name, methodParam.Name));
                             if (methodParam.ParameterType.IsByRef)
                                 yield return new CodeInstruction(OpCodes.Ldarga_S, paramCounter);

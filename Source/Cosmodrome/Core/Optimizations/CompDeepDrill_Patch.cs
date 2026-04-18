@@ -1,6 +1,6 @@
 using RimWorld;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(CompDeepDrill), nameof(CompDeepDrill.CanDrillNow))]
     internal class CompDeepDrill_Patch

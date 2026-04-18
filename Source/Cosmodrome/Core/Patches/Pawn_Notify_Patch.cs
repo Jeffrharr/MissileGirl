@@ -4,7 +4,7 @@ using HarmonyLib;
 using RimWorld;
 using Verse;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     public static class Pawn_Notify_Dirty
     {

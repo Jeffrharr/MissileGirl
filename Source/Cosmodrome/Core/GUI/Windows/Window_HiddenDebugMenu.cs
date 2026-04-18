@@ -2,7 +2,7 @@
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class Window_HiddenDebugMenu : Window
     {

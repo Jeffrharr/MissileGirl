@@ -63,7 +63,7 @@ Global
 		$7.LastFilePostfix = "@:\n  "
 		$7.IncludeDirectoryPaths = True
 		$7.LineAlign = 0
-		description = RocketMan is a RimWorld mod that is designed to improve RimWorld performance.
+		description = MissileGirl is a RimWorld mod that is designed to improve RimWorld performance.
 		version = 0.6.3
 	EndGlobalSection
 EndGlobal

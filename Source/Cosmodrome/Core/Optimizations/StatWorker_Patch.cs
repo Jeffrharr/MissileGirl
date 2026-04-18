@@ -12,7 +12,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(StatWorker), nameof(StatWorker.GetValue), parameters = new[] { typeof(StatRequest), typeof(bool) })]
     public static class StatWorker_Patch
@@ -133,7 +133,7 @@ namespace RocketMan.Optimizations
         //    [MethodImpl(MethodImplOptions.NoInlining)]
         //    public static void Postfix()
         //    {
-        //        RocketMan.Logger.Message($"{i}");
+        //        MissileGirl.Logger.Message($"{i}");
         //    }
 
         //    [Main.OnTickLong]
@@ -161,7 +161,7 @@ namespace RocketMan.Optimizations
                 var code = codes[i];
                 if (code.OperandIs(mGetValueUnfinalized))
                 {
-                    RocketMan.Logger.Message($"ROCKETMAN: Hijacking {original.GetMethodSummary()}");
+                    MissileGirl.Logger.Message($"MissileGirl: Hijacking {original.GetMethodSummary()}");
                     break;
                 }
             }
@@ -216,8 +216,8 @@ namespace RocketMan.Optimizations
                 hijackedCaller = false;
                 if (error != null)
                 {
-                    Logger.Debug($"ROCKETMAN:[NOTROCKETMAN] RocketMan caught an error in StatWorker.GetValueUnfinalized. " +
-                                 $"RocketMan doesn't modify the inners of this method. {statWorker.stat} {statWorker.stat?.defName ?? "null stat for worker"}", exception: error);
+                    Logger.Debug($"MissileGirl:[NOTMissileGirl] MissileGirl caught an error in StatWorker.GetValueUnfinalized. " +
+                                 $"MissileGirl doesn't modify the inners of this method. {statWorker.stat} {statWorker.stat?.defName ?? "null stat for worker"}", exception: error);
                     throw error;
                 }
             }

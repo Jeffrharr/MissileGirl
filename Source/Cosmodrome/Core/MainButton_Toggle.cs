@@ -2,7 +2,7 @@
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     internal class MainButton_Toggle : MainButtonWorker
     {
@@ -28,18 +28,18 @@ namespace RocketMan
                 if (Find.WindowStack.WindowOfType<Window_Main>() != null)
                 {
                     Find.WindowStack.RemoveWindowsOfType(typeof(Window_Main));
-                    Finder.RocketManWindow = null;
+                    Finder.MissileGirlWindow = null;
                 }
                 else
                 {
                     Find.WindowStack.Add(
-                        Finder.RocketManWindow == null ? Finder.RocketManWindow = new Window_Main() : Finder.RocketManWindow);
+                        Finder.MissileGirlWindow == null ? Finder.MissileGirlWindow = new Window_Main() : Finder.MissileGirlWindow);
                 }
             }
             else
             {
                 if (Find.WindowStack.WindowOfType<Window_Main>() == null) Find.WindowStack.Add(
-                    Finder.RocketManWindow == null ? Finder.RocketManWindow = new Window_Main() : Finder.RocketManWindow);
+                    Finder.MissileGirlWindow == null ? Finder.MissileGirlWindow = new Window_Main() : Finder.MissileGirlWindow);
             }
         }
     }

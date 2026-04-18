@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using RimWorld;
 using RimWorld.Planet;
-using RocketMan;
+using MissileGirl;
 using UnityEngine;
 using Verse;
 
@@ -232,7 +232,7 @@ namespace Soyuz
                 {
                     ResetInternalState();
                     Rebuild(Find.WorldPawns);
-                    throw new Exception("ROCKETMAN: Tried to tick a destroyed pawn!");
+                    throw new Exception("MissileGirl: Tried to tick a destroyed pawn!");
                 }
                 if (!pawn.IsCaravanMember() || pawn.Spawned || pawn.Dead)
                 {

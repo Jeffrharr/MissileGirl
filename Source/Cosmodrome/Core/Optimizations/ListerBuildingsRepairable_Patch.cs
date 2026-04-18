@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using RimWorld;
 using Verse;
 
-namespace RocketMan.Optimizations
+namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(ListerBuildingsRepairable), nameof(ListerBuildingsRepairable.UpdateBuilding))]
     internal class ListerBuildingsRepairable_Patch

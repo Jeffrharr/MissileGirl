@@ -7,10 +7,10 @@ using System.Reflection;
 using HarmonyLib;
 using Microsoft.Build.Utilities;
 using RimWorld;
-using RocketMan.Tabs;
+using MissileGirl.Tabs;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static partial class Main
     {
@@ -64,11 +64,11 @@ namespace RocketMan
 
         static Main()
         {
-            RocketMan.Logger.Message($"<color=orange>ROCKETMAN:</color> Version { RocketAssembliesInfo.Version }");
-            RocketMan.Logger.Message($"R is 2.3={GenRadial.NumCellsInRadius(2.3f)}, 8.9={GenRadial.NumCellsInRadius(8.9f)} 4.5={GenRadial.NumCellsInRadius(4.5f)}");
+            MissileGirl.Logger.Message($"<color=orange>MissileGirl:</color> Version { RocketAssembliesInfo.Version }");
+            MissileGirl.Logger.Message($"R is 2.3={GenRadial.NumCellsInRadius(2.3f)}, 8.9={GenRadial.NumCellsInRadius(8.9f)} 4.5={GenRadial.NumCellsInRadius(4.5f)}");
             // ----------------------
             // TODO more stylizations.
-            // this is used to stylize the log output of rocketman.
+            // this is used to stylize the log output of MissileGirl.
             EditWindow_Log_DoMessagesListing_Patch.PatchEditWindow_Log();
             // ----------------------
             // Offical start of the code.                        
@@ -76,7 +76,7 @@ namespace RocketMan
             // TODO implement compatiblity xml support
             // foreach (var mod in ModsConfig.ActiveModsInLoadOrder)
             // {
-            //     RocketMan.Logger.Message($"{mod.PackageId}, {mod.Name}, {mod.PackageIdPlayerFacing}");
+            //     MissileGirl.Logger.Message($"{mod.PackageId}, {mod.Name}, {mod.PackageIdPlayerFacing}");
             // }
         }
 
@@ -112,10 +112,10 @@ namespace RocketMan
             // Used to tell other parts that defs are ready
             RocketStates.DefsLoaded = true;
             // Loading Settings            
-            RocketMan.Logger.Message($"ROCKETMAN: RocketMan settings are stored in <color=red>{RocketEnvironmentInfo.RocketSettingsFilePath}</color>");            
+            MissileGirl.Logger.Message($"MissileGirl: MissileGirl settings are stored in <color=red>{RocketEnvironmentInfo.RocketSettingsFilePath}</color>");
             RocketMod.Instance.LoadSettings();
             // Reload action            
-            RocketMan.Logger.Message("ROCKETMAN: Defs loaded!");
+            MissileGirl.Logger.Message("MissileGirl: Defs loaded!");
             // Execute the flaged methods
             for (var i = 0; i < onDefsLoaded.Count; i++) onDefsLoaded[i].Invoke();
             // --------------
@@ -296,7 +296,7 @@ namespace RocketMan
         }
 
         /// <summary>
-        /// The flaged function will be called when <c>RocketMan</c> is writing or loading settings.
+        /// The flaged function will be called when <c>MissileGirl</c> is writing or loading settings.
         /// </summary>
         [AttributeUsage(AttributeTargets.Method)]
         public class OnScribe : Attribute
@@ -304,7 +304,7 @@ namespace RocketMan
         }
 
         /// <summary>
-        /// The flaged function will be called after <c>RocketMan</c> settings are loaded on startup. This will run after all <c>Def</c>s are loaded. 
+        /// The flaged function will be called after <c>MissileGirl</c> settings are loaded on startup. This will run after all <c>Def</c>s are loaded.
         /// </summary>
         /// <remarks>
         /// The flaged function will get called outside the scribing function. Thus <c>Scribe.mod</c> will be <c>Inactive</c>
@@ -315,7 +315,7 @@ namespace RocketMan
         }
 
         /// <summary>
-        /// The flaged function will be called as soon as RocketMan is loaded. This is the first thing called post initialization.
+        /// The flaged function will be called as soon as MissileGirl is loaded. This is the first thing called post initialization.
         /// </summary>
         [AttributeUsage(AttributeTargets.Method)]
         public class OnInitialization : Attribute
@@ -323,7 +323,7 @@ namespace RocketMan
         }
 
         /// <summary>
-        /// The flaged function will be called when <c>RocketMan</c> is looking for UI tabs.        
+        /// The flaged function will be called when <c>MissileGirl</c> is looking for UI tabs.
         /// </summary>
         /// <remarks>
         /// Note: The flaged function must have a return type of <c>ITabContent</c>
@@ -431,16 +431,16 @@ namespace RocketMan
             private void Log_Error(Exception er)
             {
                 Log.Error($"Created ticker bucket: BaseInterval={baseInterval} BucketInterval={bucketInterval} {er}");
-                RocketMan.Logger.Debug($"", exception: er);
+                MissileGirl.Logger.Debug($"", exception: er);
             }
 
             private void Log_BucketData()
             {
                 int j = 0;
-                RocketMan.Logger.Debug($"Created ticker bucket: BaseInterval={baseInterval} BucketInterval={bucketInterval}");
+                MissileGirl.Logger.Debug($"Created ticker bucket: BaseInterval={baseInterval} BucketInterval={bucketInterval}");
                 foreach (List<Action> bucket in buckets)
                 {
-                    RocketMan.Logger.Debug($"Bucket[{j++}].Count = {bucket.Count}");
+                    MissileGirl.Logger.Debug($"Bucket[{j++}].Count = {bucket.Count}");
                 }
             }
         }

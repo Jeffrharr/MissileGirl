@@ -2,7 +2,7 @@
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
-namespace RocketMan
+namespace MissileGirl
 {
     public class WorldInfoComponent : WorldComponent
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class CompatibilityUtility
     {

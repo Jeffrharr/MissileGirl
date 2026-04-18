@@ -2,7 +2,7 @@
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public abstract class ISelector : Window
     {
@@ -23,7 +23,7 @@ namespace RocketMan
             integrated = false;
             GUIUtility.ExecuteSafeGUIAction(() =>
             {
-                if (Widgets.ButtonText(inRect.BottomPartPixels(30), KeyedResources.RocketMan_Close))
+                if (Widgets.ButtonText(inRect.BottomPartPixels(30), KeyedResources.MissileGirl_Close))
                 {
                     Close();
                 }

@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using RimWorld.BaseGen;
-using RocketMan;
+using MissileGirl;
 using Verse;
 
 namespace Proton

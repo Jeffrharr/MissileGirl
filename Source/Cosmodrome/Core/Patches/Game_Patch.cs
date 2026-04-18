@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using HarmonyLib;
 using Verse;
 
-namespace RocketMan.Patches
+namespace MissileGirl.Patches
 {
     [RocketStartupPatch(typeof(Game), nameof(Game.FinalizeInit))]
     public static class Game_FinalizeInit_Patch

@@ -4,10 +4,10 @@
 		<defName>RocketWindow</defName>
 		<label>MissileGirl</label>
 		<description>Open MissileGirl.</description>
-		<workerClass>RocketMan.MainButton_Toggle</workerClass>
+		<workerClass>MissileGirl.MainButton_Toggle</workerClass>
 		<order>79</order>
 		<minimized>True</minimized>
-		<iconPath>RocketMan/UI/rocketman_mainmenu_button</iconPath>
+		<iconPath>MissileGirl/UI/MissileGirl_mainmenu_button</iconPath>
 		<defaultHotKey>
 		</defaultHotKey>
 	</MainButtonDef>

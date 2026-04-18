@@ -6,7 +6,7 @@ using UnityEngine;
 using Verse;
 using GUILambda = System.Action<UnityEngine.Rect>;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public abstract class IListing_Custom
     {

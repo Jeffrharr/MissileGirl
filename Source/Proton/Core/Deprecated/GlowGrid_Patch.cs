@@ -1,5 +1,5 @@
 ﻿// using System;
-// using RocketMan;
+// using MissileGirl;
 // using Verse;
 //
 // namespace Proton
@@ -36,7 +36,7 @@
 //                 __instance.map?.GetGlowerCacher()?.Register(newGlow);
 //
 //                 if (RocketDebugPrefs.DrawGlowerUpdates)
-//                     RocketMan.Logger.Message($"PROTON: Registering glower {newGlow.parent}");
+//                     MissileGirl.Logger.Message($"PROTON: Registering glower {newGlow.parent}");
 //             }
 //         }
 //
@@ -48,7 +48,7 @@
 //                 __instance.map?.GetGlowerCacher()?.DeRegister(oldGlow);
 //
 //                 if (RocketDebugPrefs.DrawGlowerUpdates)
-//                     RocketMan.Logger.Message($"PROTON: DeRegistering glower {oldGlow.parent}");
+//                     MissileGirl.Logger.Message($"PROTON: DeRegistering glower {oldGlow.parent}");
 //             }
 //         }
 //

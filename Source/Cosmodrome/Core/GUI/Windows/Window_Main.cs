@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using RocketMan.Tabs;
+using MissileGirl.Tabs;
 using UnityEngine;
 using UnityEngine.Playables;
 using Verse;
-using static RocketMan.Main;
+using static MissileGirl.Main;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public class Window_Main : Window
     {
@@ -40,10 +40,10 @@ namespace RocketMan
             for (var i = 0; i < Main.yieldTabContent.Count; i++)
             {
                 ITabContent tab = Main.yieldTabContent[i].Invoke();
-                RocketMan.Logger.Message($"ROCKETMAN: Found a new tab {tab.Label}");
+                MissileGirl.Logger.Message($"MissileGirl: Found a new tab {tab.Label}");
                 tabs.AddTab(tab);
             }
-            Finder.RocketManWindow = this;
+            Finder.MissileGirlWindow = this;
         }
 
         public override void DoWindowContents(Rect inRect)
@@ -57,10 +57,10 @@ namespace RocketMan
                 RocketStates.LastFrame = Time.frameCount;
                 // Actual work                                
                 //GUI.color = Color.white;
-                //// Create the RocketMan stamp
+                //// Create the MissileGirl stamp
                 //GUIFont.Font = GameFont.Small;
                 //Text.CurFontStyle.fontStyle = FontStyle.Bold;
-                //Widgets.Label(rect, "RocketMan");
+                //Widgets.Label(rect, "MissileGirl");
                 //// Create the version string
                 //rect.xMin += 90;
                 //rect.xMax -= 45;
@@ -77,9 +77,9 @@ namespace RocketMan
             }
             catch (Exception er)
             {
-                if (_errors <= 60 && _errors % 2 == 0) Log.Warning($"ROCKETMAN: UI Minor error:{er}\n{er.StackTrace}\nError count:{_errors}");
-                else if (_errors <= 60) Log.Warning($"ROCKETMAN: UI error:{er}\n{er.StackTrace}\nError count:{_errors}");
-                else Log.Error($"ROCKETMAN: UI Major error:{er}\n{er.StackTrace}\nError count:{_errors}");
+                if (_errors <= 60 && _errors % 2 == 0) Log.Warning($"MissileGirl: UI Minor error:{er}\n{er.StackTrace}\nError count:{_errors}");
+                else if (_errors <= 60) Log.Warning($"MissileGirl: UI error:{er}\n{er.StackTrace}\nError count:{_errors}");
+                else Log.Error($"MissileGirl: UI Major error:{er}\n{er.StackTrace}\nError count:{_errors}");
                 _errors += 3;
             }
             finally
@@ -93,7 +93,7 @@ namespace RocketMan
         {
             base.Close(doCloseSound);
             RocketDebugPrefs.LogData = false;
-            Finder.RocketManWindow = null;
+            Finder.MissileGirlWindow = null;
             if (!RocketPrefs.WarmingUp)
             {
                 RocketMod.Instance.WriteSettings();

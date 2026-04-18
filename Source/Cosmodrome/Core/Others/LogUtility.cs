@@ -1,9 +1,9 @@
 ﻿using System;
-namespace RocketMan
+namespace MissileGirl
 {
     public static class LogUtility
     {
-        private static readonly int _ROCKETMAN_HEADER_LENGHT = "ROCKETMAN:".Length;
+        private static readonly int _MissileGirl_HEADER_LENGHT = "MissileGirl:".Length;
         private static readonly int _SOYUZ_HEADER_LENGHT = "SOYUZ:".Length;
         private static readonly int _ROCKETERR_HEADER_LENGHT = "ROCKETEER:".Length;
         private static readonly int _PROTON_HEADER_LENGHT = "PROTON:".Length;
@@ -16,29 +16,29 @@ namespace RocketMan
             string replacement;
             try
             {
-                if (text.StartsWith("ROCKETMAN:"))
+                if (text.StartsWith("MissileGirl:"))
                 {
-                    replacement = $"<color={rocketColor}>ROCKETMAN:</color> ";
-                    startIndex = _ROCKETMAN_HEADER_LENGHT;
+                    replacement = $"<color={rocketColor}>MissileGirl:</color> ";
+                    startIndex = _MissileGirl_HEADER_LENGHT;
                 }
                 else if (text.StartsWith("SOYUZ:"))
                 {
-                    replacement = $"<color={rocketColor}>ROCKETMAN</color>+<color=red>SOYUZ:</color> ";
+                    replacement = $"<color={rocketColor}>MissileGirl</color>+<color=red>SOYUZ:</color> ";
                     startIndex = _SOYUZ_HEADER_LENGHT;
                 }
                 else if (text.StartsWith("ROCKETEER:"))
                 {
-                    replacement = $"<color={rocketColor}>ROCKETMAN</color>+<color=yellow>ROCKETEER:</color> ";
+                    replacement = $"<color={rocketColor}>MissileGirl</color>+<color=yellow>ROCKETEER:</color> ";
                     startIndex = _ROCKETERR_HEADER_LENGHT;
                 }
                 else if (text.StartsWith("PROTON:"))
                 {
-                    replacement = $"<color={rocketColor}>ROCKETMAN</color>+<color=green>PROTON:</color> ";
+                    replacement = $"<color={rocketColor}>MissileGirl</color>+<color=green>PROTON:</color> ";
                     startIndex = _PROTON_HEADER_LENGHT;
                 }
                 else if (text.StartsWith("GAGARIN:"))
                 {
-                    replacement = $"<color={rocketColor}>ROCKETMAN</color>+<color=blue>GAGARIN:</color>[<color=red>EXPERIMENTAL</color>] ";
+                    replacement = $"<color={rocketColor}>MissileGirl</color>+<color=blue>GAGARIN:</color>[<color=red>EXPERIMENTAL</color>] ";
                     startIndex = _GAGARIN_HEADER_LENGHT;
                 }
                 else return text;

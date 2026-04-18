@@ -7,7 +7,7 @@ using System.Text;
 using UnityEngine;
 using Verse;
 
-namespace RocketMan
+namespace MissileGirl
 {
     public static class Logger
     {
