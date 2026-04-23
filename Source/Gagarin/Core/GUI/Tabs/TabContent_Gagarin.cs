@@ -70,12 +70,7 @@ namespace Gagarin
             collapsible.Label(KeyedResources.MissileGirl_EnableGagarin_Tip);
             if (collapsible.CheckboxLabeled(KeyedResources.MissileGirl_EnableGagarin, ref GagarinPrefs.Enabled) && !GagarinPrefs.Enabled)
             {
-                if (File.Exists(GagarinEnvironmentInfo.UnifiedXmlFilePath))
-                    File.Delete(GagarinEnvironmentInfo.UnifiedXmlFilePath);
-                if (File.Exists(GagarinEnvironmentInfo.ModListFilePath))
-                    File.Delete(GagarinEnvironmentInfo.ModListFilePath);
-                if (Directory.Exists(GagarinEnvironmentInfo.TexturesFolderPath))
-                    Directory.Delete(GagarinEnvironmentInfo.TexturesFolderPath, recursive: true);
+                ClearCache();
             }
             if (GagarinPrefs.Enabled)
             {
@@ -112,18 +107,26 @@ namespace Gagarin
                 }                
             }
             collapsible.End(ref rect);
+            if (GUI.changed)
+            {
+                GagarinSettings.WriteSettings();
+            }
         }
 
         private static void ClearCache()
         {
-            if (File.Exists(GagarinEnvironmentInfo.UnifiedXmlFilePath))
-                File.Delete(GagarinEnvironmentInfo.UnifiedXmlFilePath);
-            if (File.Exists(GagarinEnvironmentInfo.ModListFilePath))
-                File.Delete(GagarinEnvironmentInfo.ModListFilePath);
-            if (File.Exists(GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath))
-                File.Delete(GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath);
-            if (Directory.Exists(GagarinEnvironmentInfo.TexturesFolderPath))
-                Directory.Delete(GagarinEnvironmentInfo.TexturesFolderPath, recursive: true);
+            foreach (string file in new[]
+            {
+                GagarinEnvironmentInfo.UnifiedXmlFilePath,
+                GagarinEnvironmentInfo.ModListFilePath,
+                GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath,
+            })
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+            }
         }
 
         public override void OnSelect()
@@ -141,6 +144,7 @@ namespace Gagarin
         }
 
         [Main.YieldTabContent]
+        [Main.YieldModMenuTab]
         public static ITabContent YieldTab() => new TabContent_Gagarin();
     }
 }

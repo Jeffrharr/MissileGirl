@@ -1,38 +1,40 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using MissileGirl.Tabs;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using Verse.Sound;
 
 namespace MissileGirl
 {
     public partial class RocketMod : Mod
     {
-        public static RocketSettings Settings;
-
+        private static RocketSettings Settings;
         public static RocketMod Instance;
 
-        public static Vector2 scrollPositionStatSettings = Vector2.zero;
-
-        public static RocketModSettings rocketModSettings;
+        private const float ResetButtonWidth  = 160f;
+        private const float ResetButtonHeight = 40f;
+        private static List<TabRecord> s_tabs;
+        private static List<ITabContent> s_tabContents;
+        private static int SelectedTab;
 
         public RocketMod(ModContentPack content) : base(content)
         {
-
-            rocketModSettings = GetSettings<RocketModSettings>();
             LongEventHandler.QueueLongEvent(() =>
             {
                 Main.DefsLoaded();
             }, "MissileGirl.MissileGirl", doAsynchronously: false, exceptionHandler: null, showExtraUIInfo: true);
 
+            LongEventHandler.QueueLongEvent(InitializeTabs, "MissileGirl_LongEvent_InitTabs", true, null);
             Finder.Mod = Instance = this;
             Finder.ModContentPack = content;
 
             if (!Directory.Exists(RocketEnvironmentInfo.CustomConfigFolderPath))
             {
                 Directory.CreateDirectory(RocketEnvironmentInfo.CustomConfigFolderPath);
-                //MissileGirl.Logger.Message($"MissileGirl: Created MissileGirl config folder at <color=orange>{RocketEnvironmentInfo.CustomConfigFolderPath}</color>");
             }
             // Loading Settings
 
@@ -77,187 +79,74 @@ namespace MissileGirl
 
         public override string SettingsCategory()
         {
-            return "MissileGirl";
+            return "MissileGirl.ModNameShort".Translate();
+        }
+
+        private void InitializeTabs()
+        {
+            s_tabContents = [];
+            foreach (Func<ITabContent> yield in Main.yieldModMenuTabContent ?? [])
+            {
+                try
+                {
+                    s_tabContents.Add(yield.Invoke());
+                }
+                catch (Exception er)
+                {
+                    Logger.Debug($"InitializeTabs: skipping tab, constructor threw {er.Message}", exception: er);
+                }
+            }
+
+            s_tabs = [];
+            for (int i = 0; i < s_tabContents.Count; i++)
+            {
+                int capturedIndex = i;
+                s_tabs.Add(new TabRecord(s_tabContents[i].Label, delegate
+                {
+                    SelectedTab = capturedIndex;
+                }, () => SelectedTab == capturedIndex));
+
+            }
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
         {
             base.DoSettingsWindowContents(inRect);
-            DoSettings(inRect);
+
+            Rect windowRect = new Rect(inRect.x, inRect.y + 30f, inRect.width, inRect.height - 40f);
+            Widgets.DrawMenuSection(windowRect);
+            TabDrawer.DrawTabs(windowRect, s_tabs);
+
+            if (s_tabContents != null && SelectedTab < s_tabContents.Count)
+            {
+                s_tabContents[SelectedTab].DoContent(windowRect);
+            }
+
+            Rect resetRect = new Rect(inRect.xMin + 200f, inRect.y + inRect.height + 5f, ResetButtonWidth, ResetButtonHeight);
+            if (Widgets.ButtonText(resetRect, "FantasyOverhaul_ResetDefault".Translate()))
+            {
+                ResetToDefaults();
+                SoundDefOf.Click.PlayOneShotOnCamera();
+            }
+
             WriteSettings();
             GUIUtility.ClearGUIState();
         }
 
-        private static readonly Listing_Collapsible.Group_Collapsible group = new Listing_Collapsible.Group_Collapsible();
-
-        private static readonly Listing_Collapsible collapsible_general = new Listing_Collapsible();
-
-        private static readonly Listing_Collapsible collapsible_junk = new Listing_Collapsible(group);
-
-        private static readonly Listing_Collapsible collapsible_speed = new Listing_Collapsible(group);
-
-        private static readonly Listing_Collapsible collapsible_genMap = new Listing_Collapsible(group);
-
-        private static readonly Listing_Collapsible collapsible_other = new Listing_Collapsible(group);
-
-        private static readonly Listing_Collapsible collapsible_GlowGrid = new Listing_Collapsible(group);
-
-        private static readonly Listing_Collapsible collapsible_debug = new Listing_Collapsible(group);
-
-        private static readonly Listing_Collapsible collapsible_experimental = new Listing_Collapsible(group);
-
-        private static bool guiGroupCreated = false;
-
-        public static void DoSettings(Rect inRect, bool doStats = true, Action<Listing_Standard> extras = null)
+        private static void ResetToDefaults()
         {
-            if (!guiGroupCreated)
-            {
-                guiGroupCreated = true;
-
-                collapsible_junk.Group = group;
-                group.Register(collapsible_junk);
-
-                collapsible_other.Group = group;
-                group.Register(collapsible_other);
-
-                collapsible_debug.Group = group;
-                group.Register(collapsible_debug);
-
-                collapsible_GlowGrid.Group = group;
-                group.Register(collapsible_GlowGrid);
-
-                collapsible_experimental.Group = group;
-                group.Register(collapsible_experimental);                
-            }
-            GUIUtility.ExecuteSafeGUIAction(() =>
-            {
-                collapsible_general.Expanded = true;
-                collapsible_general.Begin(inRect, KeyedResources.MissileGirl_Settings, drawIcon: false, drawInfo: false);
-
-                if (collapsible_general.CheckboxLabeled(KeyedResources.MissileGirl_Enable, ref RocketPrefs.Enabled))
-                {
-                    ResetRocketDebugPrefs();
-                }
-                if (collapsible_general.CheckboxLabeled("MissileGirl.ShowIcon".Translate(), ref RocketPrefs.MainButtonToggle, "MissileGirl.ShowIcon.Description".Translate()))
-                {
-                    MainButtonDef mainButton_WindowDef = DefDatabase<MainButtonDef>.GetNamed("RocketWindow", errorOnFail: false);
-                    if (mainButton_WindowDef != null)
-                    {
-                        mainButton_WindowDef.buttonVisible = RocketPrefs.MainButtonToggle;
-                        string state = RocketPrefs.MainButtonToggle ? "shown" : "hidden";
-                        MissileGirl.Logger.Message($"MissileGirl: <color=red>MainButton</color> is now {state}!");
-                    }
-                }
-                collapsible_general.CheckboxLabeled("MissileGirl.ProgressBar".Translate(), ref RocketPrefs.ShowWarmUpPopup, "MissileGirl.ProgressBar.Description".Translate());
-                collapsible_general.CheckboxLabeled("MissileGirl.XMLCache".Translate(), ref rocketModSettings.xmlCaching, "MissileGirl.XMLCache.Description".Translate());
-                collapsible_general.End(ref inRect);
-                inRect.yMin += 5;
-
-                if (Find.World != null)
-                {
-                    WorldInfoComponent infoComponent = Find.World.GetComponent<WorldInfoComponent>();
-                    collapsible_genMap.Begin(inRect, KeyedResources.MissileGirl_GenMapSize);
-                    collapsible_genMap.Label(KeyedResources.MissileGirl_GenMapSize_Text);
-                    collapsible_genMap.Line(1);
-                    collapsible_genMap.Label(KeyedResources.MissileGirl_GenMapSize_Note);
-                    collapsible_genMap.Columns(18, new Action<Rect>[]{
-                        (rect)=>{
-                            GUIFont.Anchor = TextAnchor.MiddleLeft;
-                            float a = infoComponent.InitialMapWidth;
-                            string buffer = $"{a}";
-                            Widgets.Label(rect, KeyedResources.MissileGirl_GenMapSize_Width);
-                            Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buffer, 0, 1000);
-                            if(infoComponent.InitialMapWidth != a)
-                            {
-                                infoComponent.InitialMapWidth = (int)a;
-                                infoComponent.useCustomMapSizes = true;
-                            }
-                        },
-                        (rect)=>{
-                            GUIFont.Anchor = TextAnchor.MiddleLeft;
-                            float a = infoComponent.InitialMapHeight;
-                            string buffer = $"{a}";
-                            Widgets.Label(rect.MoveTopLeftCorner(25f, 0), KeyedResources.MissileGirl_GenMapSize_Height);
-                            Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buffer, 0, 1000);
-                            if(infoComponent.InitialMapHeight != a)
-                            {
-                                infoComponent.InitialMapHeight = (int)a;
-                                infoComponent.useCustomMapSizes = true;
-                            }
-                        }
-                    }, useMargins: true);
-                    collapsible_genMap.End(ref inRect);
-                    inRect.yMin += 5;
-                }
-
-                if (RocketPrefs.Enabled)
-                {
-                    if (RocketEnvironmentInfo.IsDevEnv)
-                    {
-                        collapsible_junk.Begin(inRect, "MissileGirl.Junk".Translate());
-                        collapsible_junk.CheckboxLabeled("MissileGirl.CorpseRemoval".Translate(), ref RocketPrefs.CorpsesRemovalEnabled, "MissileGirl.CorpseRemoval.Description".Translate());
-                        collapsible_junk.End(ref inRect);
-                        inRect.yMin += 5;
-                    }
-
-                    collapsible_other.Begin(inRect, "MissileGirl.StatCacheSettings".Translate());
-                    
-
-                    collapsible_other.CheckboxLabeled("MissileGirl.Adaptive".Translate(), ref RocketPrefs.Learning, "MissileGirl.Adaptive.Description".Translate());
-                    collapsible_other.CheckboxLabeled("MissileGirl.AdaptiveAlert.Label".Translate(), ref RocketPrefs.LearningAlertEnabled, "MissileGirl.AdaptiveAlert.Description".Translate());                    
-                    collapsible_other.CheckboxLabeled("MissileGirl.EnableGearStatCaching".Translate(), ref RocketPrefs.StatGearCachingEnabled);
-                    collapsible_other.Line(1);
-                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.MissileGirl_FixBeauty_Tip);
-                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_DeepDrillOptimize, ref RocketPrefs.DeepDrillOptimize, KeyedResources.MissileGirl_DeepDrillOptimize_Tip);
-                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_TemperatureTickCheck, ref RocketPrefs.TemperatureTickCheck, KeyedResources.MissileGirl_TemperatureTickCheck_Tip);
-                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_BuildingRepairCheck, ref RocketPrefs.BuildingRepairCheck, KeyedResources.MissileGirl_BuildingRepairCheck_Tip);
-                    collapsible_other.CheckboxLabeled(KeyedResources.MissileGirl_NotifyPawnDamage, ref RocketPrefs.NotifyPawnDamage, KeyedResources.MissileGirl_NotifyPawnDamage_Tip);
-
-
-                    collapsible_other.End(ref inRect);
-                    inRect.yMin += 5;
-
-                    if (Prefs.DevMode || RocketEnvironmentInfo.IsDevEnv)
-                    {
-                        collapsible_experimental.Begin(inRect, KeyedResources.MissileGirl_Experimental);                        
-                        // if (RocketEnvironmentInfo.IsDevEnv)
-                        // {
-                        //    collapsible_experimental.CheckboxLabeled(KeyedResources.MissileGirl_TranslationCaching, ref RocketPrefs.TranslationCaching);
-                        //    collapsible_experimental.Line(1);
-                        // }
-                        // collapsible_experimental.Label(KeyedResources.MissileGirl_Experimental_Description);
-                        bool devKeyEnabled = File.Exists(RocketEnvironmentInfo.DevKeyFilePath);
-                        if (collapsible_experimental.CheckboxLabeled(KeyedResources.MissileGirl_Experimental_OptInBeta, ref devKeyEnabled))
-                        {
-                            if (!devKeyEnabled && File.Exists(RocketEnvironmentInfo.DevKeyFilePath))
-                            {
-                                File.Delete(RocketEnvironmentInfo.DevKeyFilePath);
-                                RocketPrefs.TimeDilationColonists = false;
-                            }
-                            if (devKeyEnabled && !File.Exists(RocketEnvironmentInfo.DevKeyFilePath))
-                                File.WriteAllText(RocketEnvironmentInfo.DevKeyFilePath, "enabled");
-                        }
-                        //collapsible_experimental.Line(1);
-                        //collapsible_experimental.CheckboxLabeled(KeyedResources.MissileGirl_FixBeauty, ref RocketPrefs.FixBeauty, KeyedResources.MissileGirl_FixBeauty_Tip);
-                        collapsible_experimental.End(ref inRect);
-                        inRect.yMin += 5;
-                    }
-                    collapsible_debug.Begin(inRect, "Debugging options");
-
-                    if (collapsible_debug.CheckboxLabeled("MissileGirl.Debugging".Translate(), ref RocketDebugPrefs.Debug, "MissileGirl.Debugging.Description".Translate())
-                    && !RocketDebugPrefs.Debug)
-                    {
-                        ResetRocketDebugPrefs();
-                    }
-                    if (RocketDebugPrefs.Debug)
-                    {
-                        collapsible_debug.Line(1);
-                        collapsible_debug.CheckboxLabeled("Enable Stat Logging (Will kill performance)", ref RocketDebugPrefs.StatLogging);
-                        collapsible_debug.Gap();
-                    }
-                    collapsible_debug.End(ref inRect);
-                }
-            });
+            RocketPrefs.Enabled = true;
+            RocketPrefs.MainButtonToggle = true;
+            RocketPrefs.ShowWarmUpPopup = true;
+            RocketPrefs.Learning = true;
+            RocketPrefs.LearningAlertEnabled = true;
+            RocketPrefs.StatGearCachingEnabled = true;
+            RocketPrefs.FixBeauty = true;
+            RocketPrefs.DeepDrillOptimize = true;
+            RocketPrefs.TemperatureTickCheck = true;
+            RocketPrefs.BuildingRepairCheck = true;
+            RocketPrefs.NotifyPawnDamage = true;
+            ResetRocketDebugPrefs();
         }
 
         public static void ResetRocketDebugPrefs()

@@ -13,7 +13,6 @@ namespace Gagarin
         public static void Start()
         {
 
-            if (!RocketMod.rocketModSettings.xmlCaching) return;
             Finder.Harmony.Patch(AccessTools.Constructor(typeof(LoadableXmlAsset), [typeof(string), typeof(string)]), postfix: new HarmonyMethod(AccessTools.Method(typeof(LoadableXmlAsset_Constructor_Patch), nameof(Postfix_String))));
 
             // Is this one even needed? Game launches fine. Need more testing.
@@ -22,21 +21,18 @@ namespace Gagarin
 
         public static void Postfix_String(LoadableXmlAsset __instance, string name, string text)
         {
-            if (!RocketMod.rocketModSettings.xmlCaching) return;
             Process(__instance, text);
         }
 
         // Is this one even needed? Game launches fine. Need more testing.
         public static void Postfix_FileInfo(LoadableXmlAsset __instance, FileInfo file, ModContentPack mod)
         {
-            if (!RocketMod.rocketModSettings.xmlCaching) return;
             string contents = __instance.xmlDoc.OuterXml;
             Process(__instance, contents);
         }
 
         private static void Process(LoadableXmlAsset __instance, string text)
         {
-            if (!RocketMod.rocketModSettings.xmlCaching) return;
             if (!Context.IsLoadingModXML && !Context.IsLoadingPatchXML) return;
             try
             {

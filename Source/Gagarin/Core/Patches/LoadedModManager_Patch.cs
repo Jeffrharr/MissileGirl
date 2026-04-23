@@ -16,7 +16,6 @@ namespace Gagarin
         {
             public static void Prefix()
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 try
                 {
                     Context.IsLoadingModXML = true;
@@ -39,7 +38,6 @@ namespace Gagarin
 
             public static void Postfix(IEnumerable<LoadableXmlAsset> __result)
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 try
                 {
                     Context.XmlAssets = new Dictionary<string, LoadableXmlAsset>();
@@ -75,7 +73,6 @@ namespace Gagarin
         {
             public static void Postfix()
             {
-            if (!RocketMod.rocketModSettings.xmlCaching) return;
                 DuplicateHelper.QueueReportProcessing();
             }
         }
@@ -85,7 +82,6 @@ namespace Gagarin
         {
             public static bool Prefix()
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return true;
                 if (Context.IsUsingCache)
                 {
                     foreach (var mod in Context.RunningMods)
@@ -109,7 +105,6 @@ namespace Gagarin
             [HarmonyPriority(Priority.Last)]
             public static bool Prefix()
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return true;
                 try
                 {
                     CachedDefHelper.Prepare();
@@ -125,7 +120,6 @@ namespace Gagarin
 
             public static void Postfix(XmlDocument xmlDoc)
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 if (!Context.IsUsingCache)
                 {
                     try
@@ -158,7 +152,6 @@ namespace Gagarin
             [HarmonyPriority(Priority.Last)]
             public static void Postfix()
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 if (!Context.IsUsingCache)
                 {
                     try
@@ -185,7 +178,6 @@ namespace Gagarin
             [HarmonyPriority(Priority.Last)]
             public static bool Prefix(List<LoadableXmlAsset> xmls, ref XmlDocument __result, Dictionary<XmlNode, LoadableXmlAsset> assetlookup)
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return true;
                 try
                 {
                     Context.DefsXmlAssets = assetlookup;
@@ -211,7 +203,6 @@ namespace Gagarin
             [HarmonyPriority(Priority.First)]
             public static void Postfix(XmlDocument __result, Dictionary<XmlNode, LoadableXmlAsset> assetlookup)
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 if (!usedCache && __result != null && !assetlookup.EnumerableNullOrEmpty())
                 {
                     try

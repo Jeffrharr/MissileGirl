@@ -36,6 +36,7 @@ namespace MissileGirl
         public static List<Action> onSettingsScribedLoaded;
 
         public static List<Func<ITabContent>> yieldTabContent;
+        public static List<Func<ITabContent>> yieldModMenuTabContent;
 
         public static List<Action> onDebugginEnabled;
         public static List<Action> onDebugginDisabled;
@@ -54,6 +55,7 @@ namespace MissileGirl
             onDebugginEnabled = FunctionsUtility.GetActions<OnDebugginEnabled>().ToList();
             onDebugginDisabled = FunctionsUtility.GetActions<OnDebugginDisabled>().ToList();
             yieldTabContent = FunctionsUtility.GetFunctions<YieldTabContent, ITabContent>().ToList();
+            yieldModMenuTabContent = FunctionsUtility.GetFunctions<YieldModMenuTab, ITabContent>().ToList();
             onMapDiscarded = FunctionsUtility.GetActions<OnMapDiscarded, Map>().ToList();
             onScribe = FunctionsUtility.GetActions<Main.OnScribe>().ToList();
             onSettingsScribedLoaded = FunctionsUtility.GetActions<Main.OnSettingsScribedLoaded>().ToList();
@@ -331,6 +333,17 @@ namespace MissileGirl
         /// </remarks>
         [AttributeUsage(AttributeTargets.Method)]
         public class YieldTabContent : Attribute
+        {
+        }
+
+        /// <summary>
+        /// The flaged function will be called when <c>MissileGirl</c> is looking for UI tabs.
+        /// </summary>
+        /// <remarks>
+        /// Note: The flaged function must have a return type of <c>ITabContent</c>
+        /// </remarks>
+        [AttributeUsage(AttributeTargets.Method)]
+        public class YieldModMenuTab : Attribute
         {
         }
 

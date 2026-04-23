@@ -43,7 +43,7 @@ namespace Gagarin
                     Log.Warning("GAGARIN: Mod list changed! Deleting cache");
                 }
             }
-            if (!Context.IsUsingCache)
+            if (!Context.IsUsingCache && GagarinPrefs.Enabled)
             {
                 Log.Warning("GAGARIN: <color=green>Cache not found or got purged!</color>");
             }
@@ -64,7 +64,7 @@ namespace Gagarin
             }
             else
             {
-                Log.Message("GAGARIN: <color=red>Gagarin is disabled!</color>");
+                Log.Message("GAGARIN: <color=red>Missile Girl's XML Caching is disabled!</color>");
             }
         }
 

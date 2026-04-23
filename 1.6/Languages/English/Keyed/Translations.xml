@@ -72,6 +72,8 @@
 	<MissileGirl.EnableGearStatCaching>Enable gear stat caching</MissileGirl.EnableGearStatCaching>
 	<MissileGirl.Debugging>Enable debugging</MissileGirl.Debugging>
 	<MissileGirl.Debugging.Description>Only for advanced users and modders</MissileGirl.Debugging.Description>
+	<MissileGirl.OptimizationSettings>Vanilla Optimizations</MissileGirl.OptimizationSettings>
+
 	<!-- Soyuz Soyuz.TabContent_DilationSettings -->
 	<Soyuz.Tab>Time dilation control</Soyuz.Tab>
 	<Soyuz.Colored.Disabled>Disabled</Soyuz.Colored.Disabled>

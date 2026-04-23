@@ -12,7 +12,6 @@ namespace Gagarin
         {
             public static void Postfix(XmlNode node, LoadableXmlAsset loadingAsset, Def __result)
             {
-                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 if (!Context.IsUsingCache && __result != null)
                 {
                     try

@@ -33,7 +33,6 @@ namespace MissileGirl
             resizer.minWindowSize = new Vector2(InitialSize.x, 450);
             tabs = new TabHolder(new List<ITabContent>()
             {
-                new TabContent_Settings(){ Selected = true },
                 new TabContent_Stats(){ Selected = false },
             }, useSidebar: true);
             Main.yieldTabContent = FunctionsUtility.GetFunctions<YieldTabContent, ITabContent>().ToList();
