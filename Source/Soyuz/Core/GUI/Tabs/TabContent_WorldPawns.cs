@@ -63,11 +63,6 @@ namespace Soyuz.Tabs
             {
                 currentPawn = null;
             }
-            if (currentPawn != null)
-            {
-                var model = ContextualExtensions.GetPerformanceModel(currentPawn);
-                model.DrawGraph(ref inRect);
-            }
             MissileGirl.GUIUtility.ScrollView(inRect, ref scrollPosition, records,
                 heightLambda: (record) =>
                 {

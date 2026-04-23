@@ -52,7 +52,7 @@ namespace Soyuz.Patches
 
             public static bool AlwaysAllowMothball(HediffDef def)
             {               
-                return RocketPrefs.Enabled && RocketPrefs.TimeDilation && (def.IsAddiction || def.defName.EndsWith("Addiction") || def.defName.EndsWith("Tolerance"));
+                return RocketPrefs.Enabled && (def.IsAddiction || def.defName.EndsWith("Addiction") || def.defName.EndsWith("Tolerance"));
             }
         }
 
@@ -192,45 +192,6 @@ namespace Soyuz.Patches
             {
                 WorldPawnsTicker.isActive = false;
             }
-
-            //public static Exception Finalizer(Exception __exception)
-            //{
-            //    WorldPawnsTicker.isActive = false;
-            //    return __exception;
-            //}
-            //
-            //public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
-            //{
-            //    var codes = instructions.ToList();
-            //    var finished = false;
-            //
-            //    for (var i = 0; i < codes.Count; i++)
-            //    {
-            //        if (!finished)
-            //        {
-            //            if (codes[i].OperandIs(fTick))
-            //            {
-            //                finished = true;
-            //                yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WorldPawns_WorldPawnsTick_Patch), nameof(TickPawn))).MoveBlocksFrom(codes[i]).MoveLabelsFrom(codes[i]);
-            //                continue;
-            //            }
-            //        }
-            //        yield return codes[i];
-            //    }
-            //    if (!finished)
-            //    {
-            //        throw new System.Exception();
-            //    }
-            //}
-            //
-            //private static void TickPawn(Entity entity)
-            //{
-            //    Pawn pawn = entity as Pawn;
-            //    if (Disabled || WorldPawnsTicker.curIndex == WorldPawnsTicker.GetBucket(pawn) || !pawn.IsValidThrottleablePawn())
-            //    {
-            //        pawn.Tick();                    
-            //    }
-            //}            
         }
     }
 }
