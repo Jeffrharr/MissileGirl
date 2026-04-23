@@ -82,6 +82,7 @@ namespace MissileGirl
             {
                 Scribe.saver.FinalizeSaving();
             }
+            base.WriteSettings();
         }
 
         public class RocketSettings : IExposable
@@ -107,6 +108,7 @@ namespace MissileGirl
                     upgrade = true;
                     version = RocketAssembliesInfo.Version;
                 }
+
                 Scribe_Values.Look(ref RocketDebugPrefs.Debug, "debug", false);
                 Scribe_Values.Look(ref RocketPrefs.Enabled, "enabled", true);
                 Scribe_Values.Look(ref RocketPrefs.Learning, "learning", true);

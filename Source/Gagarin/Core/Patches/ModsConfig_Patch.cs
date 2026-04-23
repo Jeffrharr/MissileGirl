@@ -14,6 +14,7 @@ namespace Gagarin
         {
             public static bool Prefix()
             {
+                if (!RocketMod.rocketModSettings.xmlCaching) return true;
                 if (Directory.Exists(GagarinEnvironmentInfo.CacheFolderPath))
                 {
                     Directory.Delete(GagarinEnvironmentInfo.CacheFolderPath, recursive: true);
@@ -31,6 +32,7 @@ namespace Gagarin
 
             public static void Postfix()
             {
+                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 if (RocketEnvironmentInfo.IsDevEnv)
                 {
                     Logger.Debug("GAGARIN: Restarting!");

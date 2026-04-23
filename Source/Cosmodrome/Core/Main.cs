@@ -111,9 +111,10 @@ namespace MissileGirl
             // --------------
             // Used to tell other parts that defs are ready
             RocketStates.DefsLoaded = true;
-            // Loading Settings            
+
             MissileGirl.Logger.Message($"MissileGirl: MissileGirl settings are stored in <color=red>{RocketEnvironmentInfo.RocketSettingsFilePath}</color>");
             RocketMod.Instance.LoadSettings();
+
             // Reload action            
             MissileGirl.Logger.Message("MissileGirl: Defs loaded!");
             // Execute the flaged methods

@@ -15,8 +15,12 @@ namespace MissileGirl
 
         public static Vector2 scrollPositionStatSettings = Vector2.zero;
 
+        public static RocketModSettings rocketModSettings;
+
         public RocketMod(ModContentPack content) : base(content)
         {
+
+            rocketModSettings = GetSettings<RocketModSettings>();
             LongEventHandler.QueueLongEvent(() =>
             {
                 Main.DefsLoaded();
@@ -24,11 +28,14 @@ namespace MissileGirl
 
             Finder.Mod = Instance = this;
             Finder.ModContentPack = content;
+
             if (!Directory.Exists(RocketEnvironmentInfo.CustomConfigFolderPath))
             {
                 Directory.CreateDirectory(RocketEnvironmentInfo.CustomConfigFolderPath);
                 //MissileGirl.Logger.Message($"MissileGirl: Created MissileGirl config folder at <color=orange>{RocketEnvironmentInfo.CustomConfigFolderPath}</color>");
             }
+            // Loading Settings
+
             Logger.Initialize();
             // Patch all core functions
             RocketStartupPatcher.PatchAll();
@@ -65,6 +72,7 @@ namespace MissileGirl
                 foreach (var action in Main.onInitialization)
                     action.Invoke();
             }
+
         }
 
         public override string SettingsCategory()
@@ -141,6 +149,7 @@ namespace MissileGirl
                     }
                 }
                 collapsible_general.CheckboxLabeled("MissileGirl.ProgressBar".Translate(), ref RocketPrefs.ShowWarmUpPopup, "MissileGirl.ProgressBar.Description".Translate());
+                collapsible_general.CheckboxLabeled("MissileGirl.XMLCache".Translate(), ref rocketModSettings.xmlCaching, "MissileGirl.XMLCache.Description".Translate());
                 collapsible_general.End(ref inRect);
                 inRect.yMin += 5;
 

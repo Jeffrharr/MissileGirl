@@ -42,7 +42,6 @@
 		</PackageReference>				
 	</ItemGroup>
 	<ItemGroup>
-		<Folder Include="Core\" />
 		<Folder Include="Properties\" />
 		<Folder Include="Core\Resources\" />
 		<Folder Include="Core\Alerts\" />

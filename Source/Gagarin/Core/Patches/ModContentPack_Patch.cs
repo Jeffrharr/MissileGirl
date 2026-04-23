@@ -13,11 +13,13 @@ namespace Gagarin
         {
             public static void Prefix(ModContentPack __instance)
             {
+                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 Context.CurrentLoadingMod = __instance;
             }
 
             public static void Postfix(ModContentPack __instance)
             {
+                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 Context.CurrentLoadingMod = null;
 
                 CheckPatches(__instance);
@@ -25,6 +27,7 @@ namespace Gagarin
 
             private static void CheckPatches(ModContentPack mod)
             {
+                if (!RocketMod.rocketModSettings.xmlCaching) return;
                 Context.IsLoadingPatchXML = true;
                 Context.CurrentLoadingMod = mod;
                 Exception error = null;
