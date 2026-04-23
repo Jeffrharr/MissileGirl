@@ -24,9 +24,8 @@ namespace MissileGirl
         [Main.OnSettingsScribedLoaded]
         public static void OnSettingsScribedLoaded()
         {
-            Finder.StatSettings.AllSettings = Finder.StatSettings.AllSettings
-                .AsParallel()
-                .Where(s => s != null && s.statDef != null).ToList();
+            Finder.StatSettings.AllSettings = Finder.StatSettings.AllSettings.AsParallel().Where(s => s != null && s.statDef != null).ToList();
+           // Finder.StatSettings.AllSettings.RemoveAll(s => DefDatabase<StatDef>.GetNamedSilentFail(s.statDef.defName) == null);
             foreach (StatSettings settings in Finder.StatSettings.AllSettings)
             {
                 processedDefs.Add(settings.statDef);
