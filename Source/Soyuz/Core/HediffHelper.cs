@@ -15,10 +15,6 @@ namespace Soyuz
         public static bool TryGetHediffTracker(this Pawn pawn, out HediffTracker tracker)
         {
             tracker = null;
-            if (RocketPrefs.TimeDilationCriticalHediffs)
-            {
-                return false;
-            }
             if (trackers.TryGetValue(pawn.thingIDNumber, out tracker))
             {
                 return true;
@@ -31,10 +27,6 @@ namespace Soyuz
 
         public static HediffTracker GetHediffTracker(this Pawn pawn)
         {
-            if (RocketPrefs.TimeDilationCriticalHediffs)
-            {
-                return null;
-            }
             if (pawn == _pawn)
             {
                 return _tracker;

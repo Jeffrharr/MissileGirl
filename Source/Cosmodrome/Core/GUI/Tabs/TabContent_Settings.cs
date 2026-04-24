@@ -150,7 +150,6 @@ namespace MissileGirl.Tabs
                         {
                             case false when File.Exists(RocketEnvironmentInfo.DevKeyFilePath):
                                 File.Delete(RocketEnvironmentInfo.DevKeyFilePath);
-                                RocketPrefs.TimeDilationColonists = false;
                                 break;
                             case true when !File.Exists(RocketEnvironmentInfo.DevKeyFilePath):
                                 File.WriteAllText(RocketEnvironmentInfo.DevKeyFilePath, "enabled");

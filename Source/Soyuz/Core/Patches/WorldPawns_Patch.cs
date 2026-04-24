@@ -171,27 +171,5 @@ namespace Soyuz.Patches
         //    }
         //}
 
-        [SoyuzPatch(typeof(WorldPawns), nameof(WorldPawns.WorldPawnsTick))]
-        public static class WorldPawns_WorldPawnsTick_Patch
-        {
-            private static readonly MethodInfo fTick =
-                AccessTools.Method(typeof(Entity), nameof(Entity.Tick));
-
-
-            private static bool Disabled
-            {
-                get => !RocketPrefs.TimeDilation || !RocketPrefs.TimeDilationWorldPawns || !RocketPrefs.Enabled || RocketPrefs.WarmingUp;
-            }
-
-            public static void Prefix()
-            {
-                WorldPawnsTicker.isActive = true;
-            }
-
-            public static void Postfix()
-            {
-                WorldPawnsTicker.isActive = false;
-            }
-        }
     }
 }

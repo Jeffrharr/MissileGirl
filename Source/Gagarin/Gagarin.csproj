@@ -6,9 +6,9 @@
 		<TargetFramework>net481</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<PlatformTarget>x64</PlatformTarget>
-		<OutputPath>..\..\..\1.5\Plugins</OutputPath>
+		<OutputPath>..\..\..\1.6\Plugins</OutputPath>
 		<Optimize>true</Optimize>
-		<DebugType>pdbonly</DebugType>
+		
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
@@ -22,6 +22,7 @@
 		<WarningLevel>4</WarningLevel>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<NoStdLib>true</NoStdLib>
+		<DebugType>none</DebugType>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DebugType>full</DebugType>
@@ -29,6 +30,7 @@
 		<DefineConstants>TRACE;NET481;;</DefineConstants>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<NoStdLib>true</NoStdLib>
+		<DebugType>pdbonly</DebugType>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" GeneratePathProperty="true" />

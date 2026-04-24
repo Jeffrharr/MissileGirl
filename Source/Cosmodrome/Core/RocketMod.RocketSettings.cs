@@ -95,7 +95,6 @@ namespace MissileGirl
                 {
                     UpdateExceptions();
                 }
-                RocketPrefs.TimeDilationCaravans = false;
             }
 
             private void ScribeRocketPrefs()
@@ -126,32 +125,19 @@ namespace MissileGirl
                 Scribe_Values.Look(ref RocketPrefs.AlertThrottling, "alertThrottling", true);
                 Scribe_Values.Look(ref RocketPrefs.DisableAllAlert, "disableAllAlert", false);
                 Scribe_Values.Look(ref RocketPrefs.LearningAlertEnabled, "learningAlertEnabled", true);
-                Scribe_Values.Look(ref RocketPrefs.TimeDilation, "timeDilation", true);
-                Scribe_Values.Look(ref RocketPrefs.TimeDilationWildlife, "TimeDilationWildlife", true);
                 if (upgrade)
                 {
                     RocketPrefs.FixBeauty = true;
                 }
                 if (!upgrade)
-                {                                       
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationColonists, "TimeDilationColonists", false);
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationFire, "TimeDilationFire", false);
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationCaravans, "timeDilationCaravan", false);
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationVisitors, "timeDilationVisitors", false);
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationWorldPawns, "timeDilationWorldPawns", false);
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationColonyAnimals, "timeDialationColonyAnimals", false);
-                    Scribe_Values.Look(ref RocketPrefs.TimeDilationCriticalHediffs, "timeDilationCriticalHediffs", false);
+                {
+
                     Scribe_Values.Look(ref RocketPrefs.CorpsesRemovalEnabled, "corpsesRemovalEnabled", false);
                 }
 
                 Scribe_Values.Look(ref RocketPrefs.MainButtonToggle, "mainButtonToggle", true);                
                 Scribe_Values.Look(ref RocketPrefs.DisableForcedSlowdowns, "disableForcedSlowdowns", false);
                 Scribe_Values.Look(ref RocketPrefs.TranslationCaching, "translationCaching", false);
-                Scribe_Values.Look(ref RocketPrefs.GlowGridOptimization, "GlowGridOptimization", true);
-                Scribe_Values.Look(ref RocketPrefs.GlowGridOptimizationLimiter, "GlowGridOptimizationLimiter", true);               
-                
-                if (!RocketEnvironmentInfo.IsDevEnv)
-                    RocketPrefs.TimeDilationColonists = false;
             }
 
             private void ScribeExtras()

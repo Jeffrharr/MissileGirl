@@ -16,9 +16,5 @@ namespace Soyuz.Profiling
             this.grapher.TimeWindowSize = 2;
         }
 
-        public override void AddResult(float value)
-        {
-            queue.Add(new Tuple<float, float, bool>(GenTicks.TicksGame.TicksToSeconds(), value, RocketPrefs.TimeDilation));
-        }
     }
 }

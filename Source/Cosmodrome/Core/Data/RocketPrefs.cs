@@ -47,33 +47,6 @@ namespace MissileGirl
         public static bool DisableAllAlert = false;
 
         [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilation = true;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationCriticalHediffs = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationWorldPawns = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationVisitors = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationFire = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationCaravans = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationWildlife = true;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationColonists = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool TimeDilationColonyAnimals = false;
-
-        [Main.SettingsField(warmUpValue: false)]
         public static bool TranslationCaching = false;
 
         [Main.SettingsField(warmUpValue: false)]
@@ -84,18 +57,6 @@ namespace MissileGirl
 
         [Main.SettingsField(warmUpValue: false)]
         public static bool CorpsesRemovalEnabled = false;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool RefreshGrid = false;
-
-        [Main.SettingsField(warmUpValue: true)]
-        public static bool GlowGridOptimization = true;
-
-        [Main.SettingsField(warmUpValue: true)]
-        public static bool GlowGridOptimizationLimiter = true;
-
-        [Main.SettingsField(warmUpValue: false)]
-        public static bool EnableGridRefresh = false;
 
         [Main.SettingsField(warmUpValue: true)]
         public static bool MainButtonToggle = true;

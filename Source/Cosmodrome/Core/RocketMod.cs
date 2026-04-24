@@ -157,8 +157,6 @@ namespace MissileGirl
             RocketDebugPrefs.StatLogging = false;
             RocketDebugPrefs.FlashDilatedPawns = false;
             RocketDebugPrefs.AlwaysDilating = false;
-            RocketPrefs.EnableGridRefresh = false;
-            RocketPrefs.RefreshGrid = false;
             RocketStates.SingleTickIncrement = false;
         }
     }

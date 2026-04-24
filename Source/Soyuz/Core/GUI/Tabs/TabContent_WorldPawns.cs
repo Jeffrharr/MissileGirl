@@ -57,8 +57,6 @@ namespace Soyuz.Tabs
             collapsible_statistic.Label($"<color=yellow>Suspended</color> world pawns count: <color=orange>{Find.WorldPawns.pawnsMothballed.Count}</color>");
             collapsible_statistic.End(ref inRect);
             inRect.yMin += 5;
-            bool prev = WorldPawnsTicker.isActive;
-            WorldPawnsTicker.isActive = true;
             if (currentPawn != null && currentPawn.Destroyed)
             {
                 currentPawn = null;
@@ -139,7 +137,6 @@ namespace Soyuz.Tabs
                     } 
                 }
             );
-            WorldPawnsTicker.isActive = prev;
         }
 
         public override void OnDeselect()
