@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
@@ -25,7 +33,7 @@ namespace MissileGirl
         public static void OnSettingsScribedLoaded()
         {
             Finder.StatSettings.AllSettings = Finder.StatSettings.AllSettings.AsParallel().Where(s => s != null && s.statDef != null).ToList();
-           // Finder.StatSettings.AllSettings.RemoveAll(s => DefDatabase<StatDef>.GetNamedSilentFail(s.statDef.defName) == null);
+            // Finder.StatSettings.AllSettings.RemoveAll(s => DefDatabase<StatDef>.GetNamedSilentFail(s.statDef.defName) == null);
             foreach (StatSettings settings in Finder.StatSettings.AllSettings)
             {
                 processedDefs.Add(settings.statDef);

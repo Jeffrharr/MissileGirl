@@ -13,7 +13,7 @@ Adaptive Stat Caching - learns how often a stat is called/updated and will cache
 Alert Throttling / Disabling - throttled to lower performance cost on alerts with option to disable all together
 Several vanilla RimWorld optimizations
 
-## Notes: 
+## Notes:
 
 1. Currently The Multiplayer mod is untested.
 2. Bug reports with no logs will not get a response.
@@ -22,13 +22,13 @@ Github Link: https://github.com/ViralReaction/MissileGirl
 
 MissileGirl is OpenSource and for anyone to use, modify, update.
 
-## Credits: 
+## Credits:
 
 * Current developer: ViralReaction
 * Previous developer: Karim
 * The Thumbnail: Smxrez
 
-DISCLAIMER: I’m not responsible in any way for damage done by MissileGirl to your saves. 
+DISCLAIMER: I’m not responsible in any way for damage done by MissileGirl to your saves.
 
 ### RocketRules (Compatibility system)
 
@@ -36,25 +36,34 @@ MissileGirl support a new rule system to avoid compatibility issues.
 This works by placing `RocketRules.xml` files in `YourModFolder/Extras/RocketRules.xml`
 
 ### Request and notification system
+
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <RocketRules>
      <Notify type="PawnDirty" packageId="vr.MissileGirl" method="ThingWithComps:Notify_Equipped"/>
 </RocketRules>
 ```
-Your mod can notify MissileGirl to clear the statCache by calling a function in your code (preferably not empty due to patching limitations). You can follow this format
-* `packageId` is your mod `packageId`. This is used only to keep track of the current rules.
-* `method` (formated as `YourClass:Method`) is the method that you call to notify MissileGirl that your mod need the cache cleared.
 
-**Note** This works by applying a `Prefix` patch on the destination/provided method (in this case `ThingWithComps:Notify_Equipped`) thus every time you call `ThingWithComps:Notify_Equipped` in this example the prefix is executed and the cache is cleared.
+Your mod can notify MissileGirl to clear the statCache by calling a function in your code (preferably not empty due to
+patching limitations). You can follow this format
+
+* `packageId` is your mod `packageId`. This is used only to keep track of the current rules.
+* `method` (formated as `YourClass:Method`) is the method that you call to notify MissileGirl that your mod need the
+  cache cleared.
+
+**Note** This works by applying a `Prefix` patch on the destination/provided method (in this case
+`ThingWithComps:Notify_Equipped`) thus every time you call `ThingWithComps:Notify_Equipped` in this example the prefix
+is executed and the cache is cleared.
 and that prefix notify MissileGirl to clear the cache
 
 **Note** The destination/provided method should have something in it otherwise patching it may not be possible
 
 **Notification types**
-* `PawnDirty` The target/provided method for this need to have `Pawn pawn` as a parameter. 
 
-**Note on notification types** For now there is only one which is `PawnDirty`. This system is the new way forword for your mod to call MissileGirl regardless of the load order.
+* `PawnDirty` The target/provided method for this need to have `Pawn pawn` as a parameter.
+
+**Note on notification types** For now there is only one which is `PawnDirty`. This system is the new way forword for
+your mod to call MissileGirl regardless of the load order.
 
 ## Special Thanks goes to:
 

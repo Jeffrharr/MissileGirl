@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -66,7 +74,7 @@ namespace MissileGirl
 
         static Main()
         {
-            MissileGirl.Logger.Message($"<color=orange>MissileGirl:</color> Version { RocketAssembliesInfo.Version }");
+            MissileGirl.Logger.Message($"<color=orange>MissileGirl:</color> Version {RocketAssembliesInfo.Version}");
             MissileGirl.Logger.Message($"R is 2.3={GenRadial.NumCellsInRadius(2.3f)}, 8.9={GenRadial.NumCellsInRadius(8.9f)} 4.5={GenRadial.NumCellsInRadius(4.5f)}");
             // ----------------------
             // TODO more stylizations.
@@ -127,7 +135,7 @@ namespace MissileGirl
             // --------------
             // load xml data and parse it
             IgnoreMeDatabase.ParsePrepare();
-            IncompatibilityHelper.Prepare();            
+            IncompatibilityHelper.Prepare();
             // --------------
             // start patching
             RocketPatcher.PatchAll();

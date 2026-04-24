@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -55,7 +63,7 @@ namespace Gagarin
             foreach (var type in types)
             {
                 new GagarinPatchInfo(type).Patch(harmony);
-            }            
+            }
             RocketEnvironmentInfo.GagarinLoaded = true;
         }
 
@@ -65,8 +73,8 @@ namespace Gagarin
             types.AddRange(AccessTools.GetTypesFromAssembly(Assembly.GetExecutingAssembly()));
             types.AddRange(AccessTools.GetTypesFromAssembly(Assembly.GetExecutingAssembly()).SelectMany(t => t.GetNestedTypes()));
             return types
-                .Where(t => t.HasAttribute<GagarinPatch>())
-                .Distinct();
+                    .Where(t => t.HasAttribute<GagarinPatch>())
+                    .Distinct();
         }
 
         private static void LogTypesToFile(IEnumerable<Type> types)

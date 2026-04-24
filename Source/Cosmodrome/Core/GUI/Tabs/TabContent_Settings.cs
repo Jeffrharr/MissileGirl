@@ -1,3 +1,11 @@
+// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
 using System;
 using System.IO;
 using RimWorld;
@@ -15,7 +23,7 @@ namespace MissileGirl.Tabs
         private Texture2D Graphic => field ??= ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_main_nobackground", true);
 
         private const float BannerHeight = 200f;
-        private const float BannerGap    = 15f;
+        private const float BannerGap = 15f;
 
         private static readonly Listing_Collapsible.Group_Collapsible _group = new Listing_Collapsible.Group_Collapsible();
         private static readonly Listing_Collapsible _general = new Listing_Collapsible(expanded: true);
@@ -95,19 +103,26 @@ namespace MissileGirl.Tabs
                         rect =>
                         {
                             GUIFont.Anchor = TextAnchor.MiddleLeft;
-                            float a = info.InitialMapWidth; string buf = $"{a}";
+                            float a = info.InitialMapWidth;
+                            string buf = $"{a}";
                             Widgets.Label(rect, KeyedResources.MissileGirl_GenMapSize_Width);
                             Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buf, 0, 1000);
-                            if ((int)a != info.InitialMapWidth) { info.InitialMapWidth = (int)a; info.useCustomMapSizes = true; }
+                            if ((int)a != info.InitialMapWidth)
+                            {
+                                info.InitialMapWidth = (int)a;
+                                info.useCustomMapSizes = true;
+                            }
                         },
                         rect =>
                         {
                             GUIFont.Anchor = TextAnchor.MiddleLeft;
-                            float a = info.InitialMapHeight; string buf = $"{a}";
+                            float a = info.InitialMapHeight;
+                            string buf = $"{a}";
                             Widgets.Label(rect.MoveTopLeftCorner(25f, 0), KeyedResources.MissileGirl_GenMapSize_Height);
                             Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buf, 0, 1000);
                             if ((int)a == info.InitialMapHeight) return;
-                            info.InitialMapHeight = (int)a; info.useCustomMapSizes = true;
+                            info.InitialMapHeight = (int)a;
+                            info.useCustomMapSizes = true;
                         }
                     ], useMargins: true);
                     _genMap.End(ref inRect);
@@ -137,10 +152,10 @@ namespace MissileGirl.Tabs
                 if (Prefs.DevMode || RocketEnvironmentInfo.IsDevEnv)
                 {
                     _experimental.Begin(inRect, KeyedResources.MissileGirl_Experimental);
-                    bool devKeyEnabled  = File.Exists(RocketEnvironmentInfo.DevKeyFilePath);
-                    if (_experimental.CheckboxLabeled(KeyedResources.MissileGirl_Experimental_OptInBeta, ref devKeyEnabled ))
+                    bool devKeyEnabled = File.Exists(RocketEnvironmentInfo.DevKeyFilePath);
+                    if (_experimental.CheckboxLabeled(KeyedResources.MissileGirl_Experimental_OptInBeta, ref devKeyEnabled))
                     {
-                        switch (devKeyEnabled )
+                        switch (devKeyEnabled)
                         {
                             case false when File.Exists(RocketEnvironmentInfo.DevKeyFilePath):
                                 File.Delete(RocketEnvironmentInfo.DevKeyFilePath);
@@ -176,7 +191,7 @@ namespace MissileGirl.Tabs
             });
         }
 
-        public override void OnSelect()   => base.OnSelect();
+        public override void OnSelect() => base.OnSelect();
         public override void OnDeselect() => base.OnDeselect();
 
         [Main.YieldTabContent]

@@ -1,4 +1,12 @@
-﻿using System.Collections.Generic;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System.Collections.Generic;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -34,25 +42,25 @@ namespace MissileGirl.Tabs
             }
             rect.yMin += 30;
             MissileGirl.GUIUtility.ScrollView(rect, ref scrollPosition, stats,
-                (stat) =>
-                {
-                    if (searchString == null || searchString.Trim().NullOrEmpty())
-                    {
-                        return 40.0f;
-                    }
-                    return (stat.label?.ToLower().Contains(searchString) ?? false) ? 40.0f : -1.0f;
-                },
-                (rect, stat) =>
-                {
-                    GUIUtility.StashGUIState();
-                    GUIFont.Font = GUIFontSize.Tiny;
-                    Widgets.Label(rect.TopPartPixels(20), stat.label.CapitalizeFirst());
-                    GUIFont.Anchor = TextAnchor.UpperRight;
-                    GUIFont.CurFontStyle.fontStyle = FontStyle.Italic;
-                    Widgets.Label(rect, $"{RocketStates.StatExpiry[stat.index]} Ticks");
-                    GUIUtility.RestoreGUIState();
-                    Widgets.HorizontalSlider(rect.BottomPartPixels(20), ref RocketStates.StatExpiry[stat.index], new FloatRange(0, 1024), $"{RocketStates.StatExpiry[stat.index]}");
-                });
+                                              (stat) =>
+                                              {
+                                                  if (searchString == null || searchString.Trim().NullOrEmpty())
+                                                  {
+                                                      return 40.0f;
+                                                  }
+                                                  return (stat.label?.ToLower().Contains(searchString) ?? false) ? 40.0f : -1.0f;
+                                              },
+                                              (rect, stat) =>
+                                              {
+                                                  GUIUtility.StashGUIState();
+                                                  GUIFont.Font = GUIFontSize.Tiny;
+                                                  Widgets.Label(rect.TopPartPixels(20), stat.label.CapitalizeFirst());
+                                                  GUIFont.Anchor = TextAnchor.UpperRight;
+                                                  GUIFont.CurFontStyle.fontStyle = FontStyle.Italic;
+                                                  Widgets.Label(rect, $"{RocketStates.StatExpiry[stat.index]} Ticks");
+                                                  GUIUtility.RestoreGUIState();
+                                                  Widgets.HorizontalSlider(rect.BottomPartPixels(20), ref RocketStates.StatExpiry[stat.index], new FloatRange(0, 1024), $"{RocketStates.StatExpiry[stat.index]}");
+                                              });
         }
 
         public override void OnSelect()

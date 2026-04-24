@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -40,13 +48,13 @@ namespace MissileGirl
         public static IEnumerable<Action> GetActions<T>() where T : Attribute
         {
             foreach (var method in RocketAssembliesInfo.Assemblies
-                .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
-                .SelectMany(t => AccessTools.GetDeclaredMethods(t))
-                .Where(m => m.HasAttribute<T>())
-                .ToArray())
+                    .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
+                    .SelectMany(t => AccessTools.GetDeclaredMethods(t))
+                    .Where(m => m.HasAttribute<T>())
+                    .ToArray())
             {
                 Logger.Debug(string.Format("MissileGirl: Found action with attribute {0}, {1}:{2}", typeof(T).Name,
-                     method.DeclaringType.Name, method.Name));
+                                           method.DeclaringType.Name, method.Name));
                 yield return () => { method.Invoke(null, null); };
             }
         }
@@ -54,41 +62,53 @@ namespace MissileGirl
         public static IEnumerable<Action<P>> GetActions<T, P>() where T : Attribute
         {
             foreach (var method in RocketAssembliesInfo.Assemblies
-                .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
-                .SelectMany(t => AccessTools.GetDeclaredMethods(t))
-                .Where(m => m.HasAttribute<T>())
-                .ToArray())
+                    .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
+                    .SelectMany(t => AccessTools.GetDeclaredMethods(t))
+                    .Where(m => m.HasAttribute<T>())
+                    .ToArray())
             {
                 Logger.Debug(string.Format("MissileGirl: Found action with attribute {0}, {1}:{2}", typeof(T).Name,
-                     method.DeclaringType.Name, method.Name));
-                yield return (param) => { method.Invoke(null, new object[] { param }); };
+                                           method.DeclaringType.Name, method.Name));
+                yield return (param) =>
+                {
+                    method.Invoke(null, new object[]
+                    {
+                        param
+                    });
+                };
             }
         }
 
         public static IEnumerable<Action<P, K>> GetActions<T, P, K>() where T : Attribute
         {
             foreach (var method in RocketAssembliesInfo.Assemblies
-                .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
-                .SelectMany(t => AccessTools.GetDeclaredMethods(t))
-                .Where(m => m.HasAttribute<T>())
-                .ToArray())
+                    .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
+                    .SelectMany(t => AccessTools.GetDeclaredMethods(t))
+                    .Where(m => m.HasAttribute<T>())
+                    .ToArray())
             {
                 Logger.Debug(string.Format("MissileGirl: Found action with attribute {0}, {1}:{2}", typeof(T).Name,
-                     method.DeclaringType.Name, method.Name));
-                yield return (param1, param2) => { method.Invoke(null, new object[] { param1, param2 }); };
+                                           method.DeclaringType.Name, method.Name));
+                yield return (param1, param2) =>
+                {
+                    method.Invoke(null, new object[]
+                    {
+                        param1, param2
+                    });
+                };
             }
         }
 
         public static IEnumerable<Func<P>> GetFunctions<T, P>() where T : Attribute
         {
             foreach (var method in RocketAssembliesInfo.Assemblies
-                .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
-                .SelectMany(t => AccessTools.GetDeclaredMethods(t))
-                .Where(m => m.HasAttribute<T>())
-                .ToArray())
+                    .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
+                    .SelectMany(t => AccessTools.GetDeclaredMethods(t))
+                    .Where(m => m.HasAttribute<T>())
+                    .ToArray())
             {
                 Logger.Debug(string.Format("MissileGirl: Found function with attribute {0}, {1}:{2}", typeof(T).Name,
-                    method.DeclaringType.Name, method.Name));
+                                           method.DeclaringType.Name, method.Name));
                 yield return () => { return (P)method.Invoke(null, null); };
             }
         }
@@ -96,28 +116,34 @@ namespace MissileGirl
         public static IEnumerable<Func<P, K>> GetFunctions<T, P, K>() where T : Attribute
         {
             foreach (var method in RocketAssembliesInfo.Assemblies
-                .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
-                .SelectMany(t => AccessTools.GetDeclaredMethods(t))
-                .Where(m => m.HasAttribute<T>())
-                .ToArray())
+                    .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
+                    .SelectMany(t => AccessTools.GetDeclaredMethods(t))
+                    .Where(m => m.HasAttribute<T>())
+                    .ToArray())
             {
                 Logger.Debug(string.Format("MissileGirl: Found function with attribute {0}, {1}:{2}", typeof(T).Name,
-                    method.DeclaringType.Name, method.Name));
-                yield return (input) => (K)method.Invoke(null, new object[] { input });
+                                           method.DeclaringType.Name, method.Name));
+                yield return (input) => (K)method.Invoke(null, new object[]
+                {
+                    input
+                });
             }
         }
 
         public static IEnumerable<Func<P, K, U>> GetFunctions<T, P, K, U>() where T : Attribute
         {
             foreach (var method in RocketAssembliesInfo.Assemblies
-                .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
-                .SelectMany(t => AccessTools.GetDeclaredMethods(t))
-                .Where(m => m.HasAttribute<T>())
-                .ToArray())
+                    .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
+                    .SelectMany(t => AccessTools.GetDeclaredMethods(t))
+                    .Where(m => m.HasAttribute<T>())
+                    .ToArray())
             {
                 Logger.Debug(string.Format("MissileGirl: Found function with attribute {0}, {1}:{2}", typeof(T).Name,
-                    method.DeclaringType.Name, method.Name));
-                yield return (input1, input2) => (U)method.Invoke(null, new object[] { input1, input2 });
+                                           method.DeclaringType.Name, method.Name));
+                yield return (input1, input2) => (U)method.Invoke(null, new object[]
+                {
+                    input1, input2
+                });
             }
         }
     }

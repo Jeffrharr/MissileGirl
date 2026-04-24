@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Globalization;
 using System.IO;
 using RimWorld;
@@ -29,7 +37,7 @@ namespace Gagarin
             {
                 gameBuild = $"{VersionControl.CurrentBuild}:{VersionControl.CurrentBuildDate}:{VersionControl.CurrentVersionStringWithRev}";
             }
-            Scribe_Values.Look(ref gameBuild, "gameBuild", null);            
+            Scribe_Values.Look(ref gameBuild, "gameBuild", null);
             if (Scribe.mode != LoadSaveMode.Saving)
             {
                 string curGameBuild = $"{VersionControl.CurrentBuild}:{VersionControl.CurrentBuildDate}:{VersionControl.CurrentVersionStringWithRev}";
@@ -49,12 +57,12 @@ namespace Gagarin
             {
                 this.creationDateInt = GagarinPrefs.CacheCreationTime.ToString(FMT);
             }
-            Scribe_Values.Look(ref this.creationDateInt, "creationTime", DateTime.Now.ToString(FMT));            
+            Scribe_Values.Look(ref this.creationDateInt, "creationTime", DateTime.Now.ToString(FMT));
             if (Scribe.mode != LoadSaveMode.Saving && this.creationDateInt != null)
             {
                 GagarinPrefs.CacheCreationTime = DateTime.ParseExact(this.creationDateInt, FMT, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal);
             }
-        }        
+        }
 
         public static void LoadSettings()
         {

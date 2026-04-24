@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -24,13 +32,14 @@ namespace MissileGirl
 
         public static string GetMethodSummary(this MethodBase method)
         {
-            return method != null ? (summaries.TryGetValue(method, out string summary) ? summary : summaries[method] = string.Format("([REFLECTED] {0}.{1}:{3}, [DECLARING] {0}.{2}:{3}, [ISSTATIC] {7}, [ISPUBLIC] {8}, [ISVIRTUAL] {5}, [ABSTRACT] {6})", method.ReflectedType.Namespace, method.ReflectedType.Name, method.ReflectedType.Name, method.Name, method.DeclaringType.Namespace, method.DeclaringType.Name, method.IsVirtual, method.IsAbstract, method.IsStatic, method.IsPublic)) : null;
+            return method != null ? (summaries.TryGetValue(method, out string summary) ? summary : summaries[method] = string.Format("([REFLECTED] {0}.{1}:{3}, [DECLARING] {0}.{2}:{3}, [ISSTATIC] {7}, [ISPUBLIC] {8}, [ISVIRTUAL] {5}, [ABSTRACT] {6})", method.ReflectedType.Namespace, method.ReflectedType.Name, method.ReflectedType.Name, method.Name, method.DeclaringType.Namespace, method.DeclaringType.Name, method.IsVirtual, method.IsAbstract, method.IsStatic,
+                                                                                                                                     method.IsPublic)) : null;
         }
 
         public static IEnumerable<T> GetPatches<T, P>(Assembly assembly) where P : IPatch where T : IPatchInfo<P>
         {
             IEnumerable<Type> types = assembly.GetLoadableTypes()
-                .Where(t => !t.IsAbstract && !t.IsInterface && t.HasAttribute<P>());
+                    .Where(t => !t.IsAbstract && !t.IsInterface && t.HasAttribute<P>());
             foreach (var type in types)
             {
                 T patchInfo = (T)Activator.CreateInstance(typeof(T), type);

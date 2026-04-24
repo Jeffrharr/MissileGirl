@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using RimWorld;
 using MissileGirl;
@@ -69,7 +77,7 @@ namespace Proton
             collapsible.Label(KeyedResources.Proton_DisalbeAllInfo);
             collapsible.Line(1);
             if (collapsible.CheckboxLabeled(KeyedResources.Proton_AlertsDisabled, ref RocketPrefs.DisableAllAlert, disabled: !RocketPrefs.AlertThrottling)
-                && RocketPrefs.DisableAllAlert)
+                    && RocketPrefs.DisableAllAlert)
             {
                 foreach (Alert alert in Context.Alerts)
                 {
@@ -116,12 +124,12 @@ namespace Proton
                     {
                         GUIFont.Anchor = TextAnchor.MiddleLeft;
                         GUIFont.Font = GUIFontSize.Tiny;
-                        Widgets.Label(tempRect, "Proton.MinUpdate".Translate() +" <color=green>MS</color>");
+                        Widgets.Label(tempRect, "Proton.MinUpdate".Translate() + " <color=green>MS</color>");
                     },
                 }, drawDivider: false);
                 MissileGirl.GUIUtility.Row(curRect.BottomHalf(), new List<Action<Rect>>()
                 {
-                     (tempRect) =>
+                    (tempRect) =>
                     {
                         GUIFont.Anchor = TextAnchor.MiddleLeft;
                         GUIFont.Font = GUIFontSize.Tiny;
@@ -175,7 +183,7 @@ namespace Proton
                         }
                         selection_collapsible.End(ref inRect);
                     });
-                    inRect.y += 5;                  
+                    inRect.y += 5;
                 }
             });
             MissileGirl.GUIUtility.ExecuteSafeGUIAction(() =>
@@ -196,66 +204,66 @@ namespace Proton
                 tempRect.xMin += 10;
                 tempRect.xMax -= 25;
                 MissileGirl.GUIUtility.GridView<Action<Rect>>(tempRect.TopPartPixels(25), 3,
-                        new List<Action<Rect>>()
-                        {
-                        (curRect) =>
-                        {
-                            Widgets.Label(curRect, "Proton.AlertName".Translate());
-                        },
-                        (curRect) =>
-                        {
-                            Widgets.Label(curRect, "Proton.Avg".Translate());
-                        },
-                        (curRect) =>
-                        {
-                            Widgets.Label(curRect, "Proton.TimeSinceLast".Translate());
-                        }
-                        }, (rect, action) => { action.Invoke(rect); }, drawBackground: false);
+                                                              new List<Action<Rect>>()
+                                                              {
+                                                                  (curRect) =>
+                                                                  {
+                                                                      Widgets.Label(curRect, "Proton.AlertName".Translate());
+                                                                  },
+                                                                  (curRect) =>
+                                                                  {
+                                                                      Widgets.Label(curRect, "Proton.Avg".Translate());
+                                                                  },
+                                                                  (curRect) =>
+                                                                  {
+                                                                      Widgets.Label(curRect, "Proton.TimeSinceLast".Translate());
+                                                                  }
+                                                              }, (rect, action) => { action.Invoke(rect); }, drawBackground: false);
             });
             inRect.yMin += 25;
             MissileGirl.GUIUtility.ScrollView(inRect, ref scrollPosition, Context.ReadoutInstance.AllAlerts,
-            heightLambda: (alert) =>
-            {
-                if (alert == null)
-                    return -1.0f;
-                if (!Context.AlertToSettings.TryGetValue(alert, out _))
-                    return -1.0f;
-                if (searchString == null || searchString.NullOrEmpty())
-                    return 35;
-                return alert.GetNameLower().Contains(searchString) ? 40f : -1.0f;
-            },
-            elementLambda: (rect, alert) =>
-            {
-                AlertSettings settings = Context.AlertToSettings[alert];
-                if (settings.AverageExecutionTime > Context.Settings.executionTimeLimit)
-                {
-                    if (settings.ignored) Widgets.DrawBoxSolid(rect, warningColor);
-                    else Widgets.DrawBoxSolid(rect, dangerColor);
-                }
-                if (Widgets.ButtonInvisible(rect))
-                {
-                    curAlert = alert;
-                    curSettings = settings;
-                }
-                Widgets.DrawBoxSolid(rect.LeftPartPixels(3), !settings.ignored ? (settings.enabledInt ? (alert.cachedActive ? Color.green : Color.grey) : Color.red) : Color.blue);
-                MissileGirl.GUIUtility.GridView<Action<Rect>>(rect, 3,
-                    new List<Action<Rect>>()
-                    {
-                        (curRect) =>
-                        {
-                            curRect.xMin += 3;
-                            Widgets.Label(curRect, $"{alert.GetName()}");
-                        },
-                        (curRect) =>
-                        {
-                            Widgets.Label(curRect, $"{Math.Round(settings.AverageExecutionTime, 3)} MS");
-                        },
-                        (curRect) =>
-                        {
-                             Widgets.Label(curRect, $"{Math.Round(settings.TimeSinceLastExecution, 3)} Seconds");
-                        }
-                    }, (tempRect, action) => { action.Invoke(tempRect); }, drawBackground: false);
-            });
+                                              heightLambda: (alert) =>
+                                              {
+                                                  if (alert == null)
+                                                      return -1.0f;
+                                                  if (!Context.AlertToSettings.TryGetValue(alert, out _))
+                                                      return -1.0f;
+                                                  if (searchString == null || searchString.NullOrEmpty())
+                                                      return 35;
+                                                  return alert.GetNameLower().Contains(searchString) ? 40f : -1.0f;
+                                              },
+                                              elementLambda: (rect, alert) =>
+                                              {
+                                                  AlertSettings settings = Context.AlertToSettings[alert];
+                                                  if (settings.AverageExecutionTime > Context.Settings.executionTimeLimit)
+                                                  {
+                                                      if (settings.ignored) Widgets.DrawBoxSolid(rect, warningColor);
+                                                      else Widgets.DrawBoxSolid(rect, dangerColor);
+                                                  }
+                                                  if (Widgets.ButtonInvisible(rect))
+                                                  {
+                                                      curAlert = alert;
+                                                      curSettings = settings;
+                                                  }
+                                                  Widgets.DrawBoxSolid(rect.LeftPartPixels(3), !settings.ignored ? (settings.enabledInt ? (alert.cachedActive ? Color.green : Color.grey) : Color.red) : Color.blue);
+                                                  MissileGirl.GUIUtility.GridView<Action<Rect>>(rect, 3,
+                                                                                                new List<Action<Rect>>()
+                                                                                                {
+                                                                                                    (curRect) =>
+                                                                                                    {
+                                                                                                        curRect.xMin += 3;
+                                                                                                        Widgets.Label(curRect, $"{alert.GetName()}");
+                                                                                                    },
+                                                                                                    (curRect) =>
+                                                                                                    {
+                                                                                                        Widgets.Label(curRect, $"{Math.Round(settings.AverageExecutionTime, 3)} MS");
+                                                                                                    },
+                                                                                                    (curRect) =>
+                                                                                                    {
+                                                                                                        Widgets.Label(curRect, $"{Math.Round(settings.TimeSinceLastExecution, 3)} Seconds");
+                                                                                                    }
+                                                                                                }, (tempRect, action) => { action.Invoke(tempRect); }, drawBackground: false);
+                                              });
         }
 
         [Main.YieldTabContent]

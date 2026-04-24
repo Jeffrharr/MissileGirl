@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
@@ -80,8 +88,8 @@ namespace MissileGirl
                     }
                     currentRect.height = _heights[j];
                     if (false
-                        || scrollPosition.y - 50 > currentRect.yMax
-                        || scrollPosition.y + 50 + rect.height < currentRect.yMin)
+                            || scrollPosition.y - 50 > currentRect.yMax
+                            || scrollPosition.y + 50 + rect.height < currentRect.yMin)
                         inView = false;
                     if (inView)
                     {
@@ -151,14 +159,14 @@ namespace MissileGirl
             {
                 Text.Font = GameFont.Small;
                 FloatMenuUtility.MakeMenu(options,
-                    (option) =>
-                    {
-                        return labelLambda(option);
-                    },
-                    (option) =>
-                    {
-                        return () => selectedLambda(option);
-                    }
+                                          (option) =>
+                                          {
+                                              return labelLambda(option);
+                                          },
+                                          (option) =>
+                                          {
+                                              return () => selectedLambda(option);
+                                          }
                 );
             }
             finally

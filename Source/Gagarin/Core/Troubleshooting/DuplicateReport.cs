@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,12 +56,21 @@ namespace Gagarin
 
             public static DuplicationRecord Invalid
             {
-                get => new DuplicationRecord() { node = null, mod = null };
+                get => new DuplicationRecord()
+                {
+                    node = null,
+                    mod = null
+                };
             }
 
             public static DuplicationRecord Create(XmlNode node, ModContentPack mod, string xmlFilePath)
             {
-                return new DuplicationRecord() { mod = mod, node = node, xmlFilePath = xmlFilePath };
+                return new DuplicationRecord()
+                {
+                    mod = mod,
+                    node = node,
+                    xmlFilePath = xmlFilePath
+                };
             }
 
             public override bool Equals(object obj)
@@ -140,11 +157,14 @@ namespace Gagarin
             {
                 List<RecordPair> xmldiffPairs = new List<RecordPair>();
                 XmlDiff xmldiff = new XmlDiff(XmlDiffOptions.IgnoreChildOrder
-                        | XmlDiffOptions.IgnoreNamespaces
-                        | XmlDiffOptions.IgnorePrefixes
-                        | XmlDiffOptions.IgnoreWhitespace
-                        | XmlDiffOptions.IgnoreComments);
-                NullableStruct<DuplicationRecord>[] nodes = Records.Select(r => new NullableStruct<DuplicationRecord>() { value = r }).ToArray();
+                                              | XmlDiffOptions.IgnoreNamespaces
+                                              | XmlDiffOptions.IgnorePrefixes
+                                              | XmlDiffOptions.IgnoreWhitespace
+                                              | XmlDiffOptions.IgnoreComments);
+                NullableStruct<DuplicationRecord>[] nodes = Records.Select(r => new NullableStruct<DuplicationRecord>()
+                {
+                    value = r
+                }).ToArray();
                 DuplicationRecord a;
                 DuplicationRecord b;
                 for (int i = 0; i < nodes.Length; i++)

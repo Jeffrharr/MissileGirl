@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -14,7 +22,10 @@ using Verse;
 
 namespace MissileGirl.Optimizations
 {
-    [RocketPatch(typeof(StatWorker), nameof(StatWorker.GetValue), parameters = new[] { typeof(StatRequest), typeof(bool) })]
+    [RocketPatch(typeof(StatWorker), nameof(StatWorker.GetValue), parameters = new[]
+    {
+        typeof(StatRequest), typeof(bool)
+    })]
     public static class StatWorker_Patch
     {
         [StructLayout(LayoutKind.Sequential, Size = 12)]
@@ -40,7 +51,10 @@ namespace MissileGirl.Optimizations
 
         private static Dictionary<int, CachedUnit> cache = new Dictionary<int, CachedUnit>();
 
-        private static MethodBase mGetValueUnfinalized = AccessTools.Method(typeof(StatWorker), "GetValueUnfinalized", new[] { typeof(StatRequest), typeof(bool) });
+        private static MethodBase mGetValueUnfinalized = AccessTools.Method(typeof(StatWorker), "GetValueUnfinalized", new[]
+        {
+            typeof(StatRequest), typeof(bool)
+        });
 
         private static MethodBase mGetValueUnfinalized_Replacemant = AccessTools.Method(typeof(StatWorker_Patch), nameof(StatWorker_Patch.Replacemant));
 
@@ -173,10 +187,10 @@ namespace MissileGirl.Optimizations
         private static float Replacemant(StatWorker statWorker, StatRequest req, bool applyPostProcess)
         {
             if (RocketPrefs.Enabled
-                && (!statWorker.stat.cacheable || !statWorker.stat.immutable)
-                && Current.Game != null && Finder.SessionTicks >= 600
-                && !IgnoreMeDatabase.ShouldIgnore(statWorker.stat)
-                && RocketStates.Context == ContextFlag.Ticking)
+                    && (!statWorker.stat.cacheable || !statWorker.stat.immutable)
+                    && Current.Game != null && Finder.SessionTicks >= 600
+                    && !IgnoreMeDatabase.ShouldIgnore(statWorker.stat)
+                    && RocketStates.Context == ContextFlag.Ticking)
             {
                 int tick = GenTicks.TicksGame;
                 int key = Tools.GetKey(statWorker, req, applyPostProcess);
@@ -227,8 +241,8 @@ namespace MissileGirl.Optimizations
                 float T = tick - store.tick;
                 float a = Mathf.Abs(value - store.value) / Mathf.Max(value, store.value, 1f);
                 RocketStates.StatExpiry[statWorker.stat.index] = Mathf.Clamp(
-                        t - Mathf.Clamp(RocketPrefs.LearningRate * (T * a - t), -0.1f, 0.25f),
-                        0f, 1024f);
+                    t - Mathf.Clamp(RocketPrefs.LearningRate * (T * a - t), -0.1f, 0.25f),
+                    0f, 1024f);
             }
             cache[key] = new CachedUnit(value, req.thingInt?.GetSignature() ?? -1);
             return value;

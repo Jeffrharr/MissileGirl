@@ -9,7 +9,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ template debug="true" hostspecific="true" language="C#" #>
 <#@ output extension=".cs" #>
-<#      
+<#
     string docPath = "$(SolutionDir)/../../../1.4/Languages/English/Keyed/Translations.xml";
     XmlDocument doc = new XmlDocument();
     doc.Load(docPath);
@@ -38,13 +38,13 @@ namespace MissileGirl
     /// </summary>
     public static class KeyedResources 
     {     
-<# 
+<#
     foreach (XmlNode node in doc.DocumentElement.ChildNodes)
     {
         if (node.NodeType == XmlNodeType.Element)
-        { 
-            string name = node.Name.Replace('.','_');
-            string key = node.Name;                             
+        {
+            string name = node.Name.Replace('.', '_');
+            string key = node.Name;
 #>                           
         private static TaggedString _<#= name #> = null;
         /// <summary> Keyed string with key <c><#= node.Name #></c> with inner text set to:
@@ -55,8 +55,8 @@ namespace MissileGirl
             get => _<#= name #> != null ? 
                    _<#= name #> : _<#= name #> = "<#= key #>".Translate();
         }             
-<#                           
-        }              
+<#
+        }
     }
 #>
     }

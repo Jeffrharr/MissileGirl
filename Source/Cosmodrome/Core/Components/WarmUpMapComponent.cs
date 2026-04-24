@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -178,7 +186,7 @@ namespace MissileGirl
                 GUIFont.Font = GUIFontSize.Small;
                 GUIFont.Anchor = TextAnchor.MiddleCenter;
                 Widgets.Label(textRect.TopPart(0.6f), (Find.TickManager?.Paused ?? false) ?
-                    KeyedResources.MissileGirl_Unpause : "<color=orange>" + KeyedResources.MissileGirl_MissileGirl + "</color> " + KeyedResources.MissileGirl_Warming);
+                                      KeyedResources.MissileGirl_Unpause : "<color=orange>" + KeyedResources.MissileGirl_MissileGirl + "</color> " + KeyedResources.MissileGirl_Warming);
                 GUIFont.Font = GUIFontSize.Tiny;
                 Widgets.Label(textRect.BottomPart(0.4f), KeyedResources.MissileGirl_HideProgressBar);
                 DoProgressBar(progressRect);
@@ -245,14 +253,14 @@ namespace MissileGirl
             foreach (Pawn pawn in map.mapPawns.AllPawnsSpawned)
             {
                 if (false
-                   || !pawn.Spawned
-                   || pawn.Dead
-                   || pawn.Suspended
-                   || pawn.InContainerEnclosed
-                   || pawn.Destroyed)
+                        || !pawn.Spawned
+                        || pawn.Dead
+                        || pawn.Suspended
+                        || pawn.InContainerEnclosed
+                        || pawn.Destroyed)
                     continue;
                 if (positionStash.TryGetValue(pawn.thingIDNumber, out IntVec3 stashedPosition)
-                    && (pawn.positionInt.DistanceTo(pawn.positionInt) >= 7.5f || (pawn.positionInt.InBounds(map) && !pawn.positionInt.Standable(map))))
+                        && (pawn.positionInt.DistanceTo(pawn.positionInt) >= 7.5f || (pawn.positionInt.InBounds(map) && !pawn.positionInt.Standable(map))))
                 {
                     pawn.jobs?.StopAll(true, true);
                     pawn.pather.StopDead();
@@ -268,11 +276,11 @@ namespace MissileGirl
             foreach (Pawn pawn in map.mapPawns.AllPawnsSpawned)
             {
                 if (false
-                    || !pawn.Spawned
-                    || pawn.Dead
-                    || pawn.Suspended
-                    || pawn.InContainerEnclosed
-                    || pawn.Destroyed)
+                        || !pawn.Spawned
+                        || pawn.Dead
+                        || pawn.Suspended
+                        || pawn.InContainerEnclosed
+                        || pawn.Destroyed)
                     continue;
                 positionStash[pawn.thingIDNumber] = pawn.positionInt;
             }

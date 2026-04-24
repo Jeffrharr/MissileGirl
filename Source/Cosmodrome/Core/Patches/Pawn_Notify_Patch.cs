@@ -1,4 +1,12 @@
-﻿using System.Collections.Generic;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using RimWorld;
@@ -14,11 +22,11 @@ namespace MissileGirl.Patches
             public static IEnumerable<MethodBase> TargetMethods()
             {
                 yield return AccessTools.Method(typeof(Pawn_ApparelTracker),
-                    nameof(Pawn_ApparelTracker.Notify_ApparelAdded));
+                                                nameof(Pawn_ApparelTracker.Notify_ApparelAdded));
                 yield return AccessTools.Method(typeof(Pawn_ApparelTracker),
-                    nameof(Pawn_ApparelTracker.Notify_ApparelRemoved));
+                                                nameof(Pawn_ApparelTracker.Notify_ApparelRemoved));
                 yield return AccessTools.Method(typeof(Pawn_ApparelTracker),
-                    nameof(Pawn_ApparelTracker.Notify_LostBodyPart));
+                                                nameof(Pawn_ApparelTracker.Notify_LostBodyPart));
                 //yield return AccessTools.Method(typeof(Pawn_ApparelTracker),
                 //    nameof(Pawn_ApparelTracker.));
                 yield return AccessTools.Method(typeof(Pawn_ApparelTracker), nameof(Pawn_ApparelTracker.Wear));
@@ -81,7 +89,7 @@ namespace MissileGirl.Patches
                 __instance.pawn.Notify_Dirty();
             }
         }
-        
+
         [RocketPatch()]
         public static class Pawn_HediffSet_Dirty
         {

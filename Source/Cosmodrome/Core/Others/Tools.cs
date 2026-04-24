@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -17,22 +25,22 @@ namespace MissileGirl
             if (name == null)
                 return 240;
             if (false
-                || name.Contains("Combat")
-                || name.Contains("Melee")
-                || name.Contains("Range")
-                || name.Contains("Ability")
-                || name.Contains("Gain"))
+                    || name.Contains("Combat")
+                    || name.Contains("Melee")
+                    || name.Contains("Range")
+                    || name.Contains("Ability")
+                    || name.Contains("Gain"))
                 return 0;
             if (false
-                || name.Contains("Stuff")
-                || name.Contains("Cold")
-                || name.Contains("Hot")
-                || name.Contains("Insulation")
-                || name.Contains("WorkSpeed")
-                || name.Contains("Beauty")
-                || name.Contains("Comfort")
-                || name.Contains("Max")
-                || name.Contains("Min"))
+                    || name.Contains("Stuff")
+                    || name.Contains("Cold")
+                    || name.Contains("Hot")
+                    || name.Contains("Insulation")
+                    || name.Contains("WorkSpeed")
+                    || name.Contains("Beauty")
+                    || name.Contains("Comfort")
+                    || name.Contains("Max")
+                    || name.Contains("Min"))
                 return 480;
             return 960;
         }

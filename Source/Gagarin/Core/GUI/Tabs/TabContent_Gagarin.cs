@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using RimWorld;
@@ -25,7 +33,8 @@ namespace Gagarin
 
         public TabContent_Gagarin()
         {
-            optionsFilter = new List<FilterMode>() {
+            optionsFilter = new List<FilterMode>()
+            {
                 FilterMode.Bilinear,
                 FilterMode.Trilinear
             };
@@ -39,25 +48,26 @@ namespace Gagarin
                 },
                 (rect) =>
                 {
-                    if (Widgets.ButtonText(rect, (FilterMode)GagarinPrefs.FilterMode  == FilterMode.Bilinear ? "Bilinear" : "Trilinear"))
+                    if (Widgets.ButtonText(rect, (FilterMode)GagarinPrefs.FilterMode == FilterMode.Bilinear ? "Bilinear" : "Trilinear"))
                     {
                         FloatMenuUtility.MakeMenu(optionsFilter,
-                            (mode) =>
-                            {
-                                if(mode == FilterMode.Bilinear)
-                                    return "Bilinear";
-                                if(mode == FilterMode.Trilinear)
-                                    return "Trilinear";
-                                return "";
-                            },
-                            (mode)=>
-                            {
-                                return () => {
-                                    GagarinPrefs.FilterMode = (int)mode;
-                                    GagarinSettings.WriteSettings();
-                                    ClearCache();
-                                };
-                            }
+                                                  (mode) =>
+                                                  {
+                                                      if (mode == FilterMode.Bilinear)
+                                                          return "Bilinear";
+                                                      if (mode == FilterMode.Trilinear)
+                                                          return "Trilinear";
+                                                      return "";
+                                                  },
+                                                  (mode) =>
+                                                  {
+                                                      return () =>
+                                                      {
+                                                          GagarinPrefs.FilterMode = (int)mode;
+                                                          GagarinSettings.WriteSettings();
+                                                          ClearCache();
+                                                      };
+                                                  }
                         );
                     }
                 }
@@ -88,7 +98,7 @@ namespace Gagarin
                         ClearCache();
                         GagarinSettings.WriteSettings();
                     }
-                }, useMargins: true);                
+                }, useMargins: true);
                 if (RocketEnvironmentInfo.IsDevEnv)
                 {
                     collapsible.Line(1);
@@ -104,7 +114,7 @@ namespace Gagarin
                     collapsible.Label(KeyedResources.Gagarin_AdvancedSettings_Description);
                     collapsible.Line(1);
                     collapsible.Columns(20, columnsFilter, useMargins: true);
-                }                
+                }
             }
             collapsible.End(ref rect);
             if (GUI.changed)
@@ -117,9 +127,7 @@ namespace Gagarin
         {
             foreach (string file in new[]
             {
-                GagarinEnvironmentInfo.UnifiedXmlFilePath,
-                GagarinEnvironmentInfo.ModListFilePath,
-                GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath,
+                GagarinEnvironmentInfo.UnifiedXmlFilePath, GagarinEnvironmentInfo.ModListFilePath, GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath,
             })
             {
                 if (File.Exists(file))

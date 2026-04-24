@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -13,10 +21,7 @@ namespace MissileGirl
 
         public static readonly string[] ApprovedDependencies = new string[]
         {
-            "System.Numerics.Vectors.dll",
-            "BCnEncoderNet47.dll",
-            "XmlDiffPatch.dll",
-            "XmlDiffPatch.View.dll",
+            "System.Numerics.Vectors.dll", "BCnEncoderNet47.dll", "XmlDiffPatch.dll", "XmlDiffPatch.View.dll",
         };
 
         public static string Version
@@ -27,9 +32,9 @@ namespace MissileGirl
                     return versionString;
                 Version version = Assembly.GetExecutingAssembly().GetName().Version;
                 versionString = $"{version.Major}" +
-                    $".{version.Minor}" +
-                    $".{version.Build}" +
-                    $".{version.Revision}";
+                        $".{version.Minor}" +
+                        $".{version.Build}" +
+                        $".{version.Revision}";
                 return versionString;
             }
         }

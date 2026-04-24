@@ -1,4 +1,12 @@
-﻿using RimWorld;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using RimWorld;
 using UnityEngine;
 using Verse;
 
@@ -12,10 +20,10 @@ namespace MissileGirl
             {
                 this.def.buttonVisible = RocketPrefs.MainButtonToggle;
                 return !RocketPrefs.MainButtonToggle
-                  && Find.CurrentMap == null
-                  && (!def.validWithoutMap || def == MainButtonDefOf.World) || Find.WorldRoutePlanner.Active
-                  && Find.WorldRoutePlanner.FormingCaravan
-                  && (!def.validWithoutMap || def == MainButtonDefOf.World);
+                        && Find.CurrentMap == null
+                        && (!def.validWithoutMap || def == MainButtonDefOf.World) || Find.WorldRoutePlanner.Active
+                        && Find.WorldRoutePlanner.FormingCaravan
+                        && (!def.validWithoutMap || def == MainButtonDefOf.World);
             }
         }
 
@@ -38,8 +46,9 @@ namespace MissileGirl
             }
             else
             {
-                if (Find.WindowStack.WindowOfType<Window_Main>() == null) Find.WindowStack.Add(
-                    Finder.MissileGirlWindow == null ? Finder.MissileGirlWindow = new Window_Main() : Finder.MissileGirlWindow);
+                if (Find.WindowStack.WindowOfType<Window_Main>() == null)
+                    Find.WindowStack.Add(
+                        Finder.MissileGirlWindow == null ? Finder.MissileGirlWindow = new Window_Main() : Finder.MissileGirlWindow);
             }
         }
     }

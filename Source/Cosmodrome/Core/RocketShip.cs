@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -112,7 +120,7 @@ namespace MissileGirl
                     catch (Exception er)
                     {
                         Log.Error(string.Format("MissileGirl: error in patching {2} with {3} with error {0} at {1}",
-                            er.Message, er.StackTrace, target, patchType));
+                                                er.Message, er.StackTrace, target, patchType));
                     }
                 }
             }
@@ -133,8 +141,8 @@ namespace MissileGirl
                 ILGenerator generator, MethodBase original)
             {
                 return SetupSkipping(instructions, generator, original,
-                    AccessTools.Method(patchType, "Skipper"),
-                    AccessTools.Method(patchType, "Setter"));
+                                     AccessTools.Method(patchType, "Skipper"),
+                                     AccessTools.Method(patchType, "Setter"));
             }
 
 
@@ -248,7 +256,7 @@ namespace MissileGirl
                         if (methodParam.Name == parentParam.Name)
                         {
                             if (methodParam.ParameterType != parentParam.ParameterType &&
-                                !methodParam.ParameterType.IsByRef)
+                                    !methodParam.ParameterType.IsByRef)
                                 throw new InvalidOperationException(
                                     string.Format(
                                         "MissileGirl: error in patching:CallInside with method {0} with type mismatch {1}",

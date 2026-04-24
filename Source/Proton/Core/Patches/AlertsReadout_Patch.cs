@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -29,7 +37,7 @@ namespace Proton
             bool shouldSave = false;
             int index = 0;
             Context.Alerts = __instance.AllAlerts.ToArray();
-            Context.AlertSettingsByIndex = new AlertSettings[Context.Alerts.Length];            
+            Context.AlertSettingsByIndex = new AlertSettings[Context.Alerts.Length];
             Context.ReadoutInstance = __instance;
             foreach (Alert alert in Context.Alerts)
             {
@@ -45,8 +53,8 @@ namespace Proton
                 settings.alert = alert;
                 index++;
             }
-            if (shouldSave)            
-                RocketMod.Instance.WriteSettings();            
+            if (shouldSave)
+                RocketMod.Instance.WriteSettings();
         }
     }
 
@@ -104,8 +112,8 @@ namespace Proton
         private static void CheckAllActiveAlerts(AlertsReadout readoutInstance)
         {
             if (false
-                || !RocketPrefs.AlertThrottling
-                || !RocketPrefs.Enabled)
+                    || !RocketPrefs.AlertThrottling
+                    || !RocketPrefs.Enabled)
                 return;
             if (RocketPrefs.DisableAllAlert && readoutInstance.activeAlerts.Count > 0)
             {
@@ -210,7 +218,13 @@ namespace Proton
                     yield return new CodeInstruction(OpCodes.Pop);
                     yield return new CodeInstruction(OpCodes.Br_S, l1);
 
-                    yield return new CodeInstruction(OpCodes.Ldloc_0) { labels = new List<Label>() { l2 } };
+                    yield return new CodeInstruction(OpCodes.Ldloc_0)
+                    {
+                        labels = new List<Label>()
+                        {
+                            l2
+                        }
+                    };
                     yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(AlertsReadout_AlertsReadoutUpdate_Patch), nameof(AlertsReadout_AlertsReadoutUpdate_Patch.StartProfiling)));
 
                     yield return new CodeInstruction(code.opcode, code.operand);
@@ -220,7 +234,13 @@ namespace Proton
 
                     yield return new CodeInstruction(OpCodes.Br_S, l1);
 
-                    yield return new CodeInstruction(code.opcode, code.operand) { labels = new List<Label>() { l5 } };
+                    yield return new CodeInstruction(code.opcode, code.operand)
+                    {
+                        labels = new List<Label>()
+                        {
+                            l5
+                        }
+                    };
 
                     if (codes[i + 1].labels == null)
                     {

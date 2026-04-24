@@ -1,3 +1,11 @@
+// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,13 +25,13 @@ namespace Soyuz.Patches
         public class WorldPawns_ShouldMothball_Patch
         {
             private static readonly MethodInfo fAlwaysAllowMothball =
-               AccessTools.PropertyGetter(typeof(HediffDef), nameof(HediffDef.AlwaysAllowMothball));            
+                    AccessTools.PropertyGetter(typeof(HediffDef), nameof(HediffDef.AlwaysAllowMothball));
 
             public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions,
                 ILGenerator generator)
             {
                 var codes = instructions.ToList();
-                var finished = false;                
+                var finished = false;
                 var loc1 = generator.DeclareLocal(typeof(HediffDef));
 
                 for (var i = 0; i < codes.Count; i++)
@@ -32,13 +40,13 @@ namespace Soyuz.Patches
                     {
                         if (codes[i].OperandIs(fAlwaysAllowMothball))
                         {
-                            finished = true;                                                        
+                            finished = true;
                             yield return new CodeInstruction(OpCodes.Stloc_S, loc1.LocalIndex);
                             yield return new CodeInstruction(OpCodes.Ldloc_S, loc1.LocalIndex);
                             yield return codes[i];
                             yield return new CodeInstruction(OpCodes.Brtrue_S, codes[i + 1].operand);
                             yield return new CodeInstruction(OpCodes.Ldloc_S, loc1.LocalIndex);
-                            yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WorldPawns_ShouldMothball_Patch), nameof(AlwaysAllowMothball)));                            
+                            yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WorldPawns_ShouldMothball_Patch), nameof(AlwaysAllowMothball)));
                             continue;
                         }
                     }
@@ -51,7 +59,7 @@ namespace Soyuz.Patches
             }
 
             public static bool AlwaysAllowMothball(HediffDef def)
-            {               
+            {
                 return RocketPrefs.Enabled && (def.IsAddiction || def.defName.EndsWith("Addiction") || def.defName.EndsWith("Tolerance"));
             }
         }

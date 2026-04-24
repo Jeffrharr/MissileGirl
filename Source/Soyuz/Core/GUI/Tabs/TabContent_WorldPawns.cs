@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld.Planet;
@@ -62,80 +70,80 @@ namespace Soyuz.Tabs
                 currentPawn = null;
             }
             MissileGirl.GUIUtility.ScrollView(inRect, ref scrollPosition, records,
-                heightLambda: (record) =>
-                {
-                    return (record.pawn == null || record.pawn.Destroyed || record.pawn.Spawned) ? 0f : 25f;
-                },
-                elementLambda: (elementRect, record) =>
-                {
-                    var sidebarColor = Color.gray;
-                    var state = string.Empty;
-                    switch (record.state)
-                    {
-                        case WorldPawnState.Alive:
-                            state = "<color=green>Alive</color>";
-                            sidebarColor = Color.green;
-                            break;
-                        case WorldPawnState.Dead:
-                            state = "<color=red>Dead</color>";
-                            sidebarColor = Color.red;
-                            break;
-                        case WorldPawnState.Mothballed:
-                            state = "<color=yellow>Suspended</color>";
-                            sidebarColor = Color.yellow;
-                            break;
-                    }
-                    // return RocketPrefs.TimeDilationWorldPawns && !pawn.IsCaravanMember() && pawn.Faction != Faction.OfPlayer && pawn.HostFaction != Faction.OfPlayer && !HasHediffPreventingThrottling(pawn);
-                    Widgets.DrawBoxSolid(elementRect.LeftPartPixels(3), sidebarColor);
-                    elementRect.xMin += 5;
-                    MissileGirl.GUIUtility.Row(elementRect, new List<Action<Rect>>()
-                    {
-                        (rect) =>
-                        {
-                            Widgets.Label(elementRect, $"{record.pawn}");
-                        },
-                        (rect) =>
-                        {
-                            Widgets.Label(rect, state);
-                        },
-                        (rect) =>
-                        {                            
-                            if(record.state == WorldPawnState.Alive)
-                            {
-                                Widgets.Label(rect, record.pawn.IsCaravanMember() ? "Caravaning" : " ");
-                            }                            
-                        },
-                        (rect) =>
-                        {
-                            if(record.state == WorldPawnState.Alive)
-                            {
-                                Widgets.Label(rect, record.pawn.IsColonist ? "<color=green>Colonist</color>" : "");
-                            }                           
-                        },
-                        (rect) =>
-                        {
-                            if (record.state == WorldPawnState.Alive)
-                            {
-                                HediffDef hediff = Find.WorldPawns.DefPreventingMothball(record.pawn);
-                                if(hediff != null)
-                                {
-                                    Widgets.Label(rect, $"nm={hediff.label},ia={hediff.IsAddiction},cls={hediff.hediffClass}");
-                                }
-                            }
-                        },
-                        (rect) =>
-                        {
-                            if(record.state == WorldPawnState.Alive)
-                            {
-                                Widgets.Label(rect, (record.pawn.Faction?.name ?? "") + "/"+ record.pawn.HostFaction?.name ?? "");
-                            }
-                        }
-                    }, drawDivider: false);
-                    if (Widgets.ButtonInvisible(elementRect))
-                    {
-                        currentPawn = record.pawn;
-                    } 
-                }
+                                              heightLambda: (record) =>
+                                              {
+                                                  return (record.pawn == null || record.pawn.Destroyed || record.pawn.Spawned) ? 0f : 25f;
+                                              },
+                                              elementLambda: (elementRect, record) =>
+                                              {
+                                                  var sidebarColor = Color.gray;
+                                                  var state = string.Empty;
+                                                  switch (record.state)
+                                                  {
+                                                      case WorldPawnState.Alive:
+                                                          state = "<color=green>Alive</color>";
+                                                          sidebarColor = Color.green;
+                                                          break;
+                                                      case WorldPawnState.Dead:
+                                                          state = "<color=red>Dead</color>";
+                                                          sidebarColor = Color.red;
+                                                          break;
+                                                      case WorldPawnState.Mothballed:
+                                                          state = "<color=yellow>Suspended</color>";
+                                                          sidebarColor = Color.yellow;
+                                                          break;
+                                                  }
+                                                  // return RocketPrefs.TimeDilationWorldPawns && !pawn.IsCaravanMember() && pawn.Faction != Faction.OfPlayer && pawn.HostFaction != Faction.OfPlayer && !HasHediffPreventingThrottling(pawn);
+                                                  Widgets.DrawBoxSolid(elementRect.LeftPartPixels(3), sidebarColor);
+                                                  elementRect.xMin += 5;
+                                                  MissileGirl.GUIUtility.Row(elementRect, new List<Action<Rect>>()
+                                                  {
+                                                      (rect) =>
+                                                      {
+                                                          Widgets.Label(elementRect, $"{record.pawn}");
+                                                      },
+                                                      (rect) =>
+                                                      {
+                                                          Widgets.Label(rect, state);
+                                                      },
+                                                      (rect) =>
+                                                      {
+                                                          if (record.state == WorldPawnState.Alive)
+                                                          {
+                                                              Widgets.Label(rect, record.pawn.IsCaravanMember() ? "Caravaning" : " ");
+                                                          }
+                                                      },
+                                                      (rect) =>
+                                                      {
+                                                          if (record.state == WorldPawnState.Alive)
+                                                          {
+                                                              Widgets.Label(rect, record.pawn.IsColonist ? "<color=green>Colonist</color>" : "");
+                                                          }
+                                                      },
+                                                      (rect) =>
+                                                      {
+                                                          if (record.state == WorldPawnState.Alive)
+                                                          {
+                                                              HediffDef hediff = Find.WorldPawns.DefPreventingMothball(record.pawn);
+                                                              if (hediff != null)
+                                                              {
+                                                                  Widgets.Label(rect, $"nm={hediff.label},ia={hediff.IsAddiction},cls={hediff.hediffClass}");
+                                                              }
+                                                          }
+                                                      },
+                                                      (rect) =>
+                                                      {
+                                                          if (record.state == WorldPawnState.Alive)
+                                                          {
+                                                              Widgets.Label(rect, (record.pawn.Faction?.name ?? "") + "/" + record.pawn.HostFaction?.name ?? "");
+                                                          }
+                                                      }
+                                                  }, drawDivider: false);
+                                                  if (Widgets.ButtonInvisible(elementRect))
+                                                  {
+                                                      currentPawn = record.pawn;
+                                                  }
+                                              }
             );
         }
 
@@ -155,14 +163,26 @@ namespace Soyuz.Tabs
         {
             records.Clear();
             records.AddRange(
-                Find.WorldPawns.pawnsAlive.Select(p => new WorldPawnRecord() { pawn = p, state = WorldPawnState.Alive })
-                );
+                Find.WorldPawns.pawnsAlive.Select(p => new WorldPawnRecord()
+                {
+                    pawn = p,
+                    state = WorldPawnState.Alive
+                })
+            );
             records.AddRange(
-                Find.WorldPawns.pawnsDead.Select(p => new WorldPawnRecord() { pawn = p, state = WorldPawnState.Dead })
-                );
+                Find.WorldPawns.pawnsDead.Select(p => new WorldPawnRecord()
+                {
+                    pawn = p,
+                    state = WorldPawnState.Dead
+                })
+            );
             records.AddRange(
-                Find.WorldPawns.pawnsMothballed.Select(p => new WorldPawnRecord() { pawn = p, state = WorldPawnState.Mothballed })
-                );
+                Find.WorldPawns.pawnsMothballed.Select(p => new WorldPawnRecord()
+                {
+                    pawn = p,
+                    state = WorldPawnState.Mothballed
+                })
+            );
             records.RemoveAll(r => r.pawn == null || r.pawn.Destroyed);
         }
 

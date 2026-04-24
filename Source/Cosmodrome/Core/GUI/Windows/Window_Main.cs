@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -33,7 +41,10 @@ namespace MissileGirl
             resizer.minWindowSize = new Vector2(InitialSize.x, 450);
             tabs = new TabHolder(new List<ITabContent>()
             {
-                new TabContent_Stats(){ Selected = false },
+                new TabContent_Stats()
+                {
+                    Selected = false
+                },
             }, useSidebar: true);
             Main.yieldTabContent = FunctionsUtility.GetFunctions<YieldTabContent, ITabContent>().ToList();
             for (var i = 0; i < Main.yieldTabContent.Count; i++)

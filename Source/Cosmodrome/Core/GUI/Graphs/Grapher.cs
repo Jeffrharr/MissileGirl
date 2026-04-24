@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -104,21 +112,22 @@ namespace MissileGirl
                     GUIFont.Font = GUIFontSize.Tiny;
                     GUIFont.Anchor = TextAnchor.MiddleLeft;
                     rect.xMin += 25;
-                    Widgets.Label(rect , $"Min T:<color=cyan>{Math.Round(MinT, 4)}</color>");
+                    Widgets.Label(rect, $"Min T:<color=cyan>{Math.Round(MinT, 4)}</color>");
                 },
                 (rect) =>
                 {
-                    if(mouseIsOver){
+                    if (mouseIsOver)
+                    {
                         GUIFont.Font = GUIFontSize.Tiny;
                         GUIFont.Anchor = TextAnchor.MiddleCenter;
-                        Widgets.Label(rect , $"Current:(<color=cyan>{Math.Round(mouseIsOverPoint.t, 4)}</color>,<color=cyan>{Math.Round(mouseIsOverPoint.y, 4)}</color>)");
+                        Widgets.Label(rect, $"Current:(<color=cyan>{Math.Round(mouseIsOverPoint.t, 4)}</color>,<color=cyan>{Math.Round(mouseIsOverPoint.y, 4)}</color>)");
                     }
                 },
                 (rect) =>
                 {
                     GUIFont.Font = GUIFontSize.Tiny;
                     GUIFont.Anchor = TextAnchor.MiddleRight;
-                    Widgets.Label(rect , $"Max T:<color=cyan>{Math.Round(MinT + RangeT, 4)}</color>");
+                    Widgets.Label(rect, $"Max T:<color=cyan>{Math.Round(MinT + RangeT, 4)}</color>");
                 }
             };
         }
@@ -204,7 +213,7 @@ namespace MissileGirl
                 textRect.x = x0;
                 textRect.y = rect.yMax - y - textRect.height / 2;
                 Widgets.DrawLine(new Vector2(x0 + 2 + textOffset, rect.yMax - y), new Vector2(x1 - 2, rect.yMax - y), Color.gray, 1);
-                Widgets.Label(textRect, $"{ Math.Round(MinY + RangeY * (i / 5f), 3) }");
+                Widgets.Label(textRect, $"{Math.Round(MinY + RangeY * (i / 5f), 3)}");
             }
 
             width -= textOffset;

@@ -1,3 +1,11 @@
+// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -22,7 +30,7 @@ namespace MissileGirl
         private static readonly Quaternion identity = Quaternion.identity;
 
         private static readonly MethodInfo pIdentity =
-            AccessTools.PropertyGetter(typeof(Quaternion), nameof(Quaternion.identity));
+                AccessTools.PropertyGetter(typeof(Quaternion), nameof(Quaternion.identity));
 
         public static IEnumerable<CodeInstruction> FixConsts(IEnumerable<CodeInstruction> instructions)
         {
@@ -32,35 +40,50 @@ namespace MissileGirl
                 if (codes[i].OperandIs(pZero3))
                 {
                     yield return new CodeInstruction(OpCodes.Ldsfld,
-                        AccessTools.Field(typeof(TranspilerUtility), "zero3")) {labels = codes[i].labels};
+                                                     AccessTools.Field(typeof(TranspilerUtility), "zero3"))
+                    {
+                        labels = codes[i].labels
+                    };
                     continue;
                 }
 
                 if (codes[i].OperandIs(pZero2))
                 {
                     yield return new CodeInstruction(OpCodes.Ldsfld,
-                        AccessTools.Field(typeof(TranspilerUtility), "zero2")) {labels = codes[i].labels};
+                                                     AccessTools.Field(typeof(TranspilerUtility), "zero2"))
+                    {
+                        labels = codes[i].labels
+                    };
                     continue;
                 }
 
                 if (codes[i].OperandIs(pOne3))
                 {
                     yield return new CodeInstruction(OpCodes.Ldsfld,
-                        AccessTools.Field(typeof(TranspilerUtility), "one3")) {labels = codes[i].labels};
+                                                     AccessTools.Field(typeof(TranspilerUtility), "one3"))
+                    {
+                        labels = codes[i].labels
+                    };
                     continue;
                 }
 
                 if (codes[i].OperandIs(pOne2))
                 {
                     yield return new CodeInstruction(OpCodes.Ldsfld,
-                        AccessTools.Field(typeof(TranspilerUtility), "one2")) {labels = codes[i].labels};
+                                                     AccessTools.Field(typeof(TranspilerUtility), "one2"))
+                    {
+                        labels = codes[i].labels
+                    };
                     continue;
                 }
 
                 if (codes[i].OperandIs(pIdentity))
                 {
                     yield return new CodeInstruction(OpCodes.Ldsfld,
-                        AccessTools.Field(typeof(TranspilerUtility), "identity")) {labels = codes[i].labels};
+                                                     AccessTools.Field(typeof(TranspilerUtility), "identity"))
+                    {
+                        labels = codes[i].labels
+                    };
                     continue;
                 }
 

@@ -1,4 +1,12 @@
-﻿using System;
+﻿// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -12,8 +20,8 @@ namespace Gagarin
     {
         public static Dictionary<string, string> Load(string path)
         {
-            Dictionary<string, string> result   = new Dictionary<string, string>();
-            XmlDocument                document = new XmlDocument();
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            XmlDocument document = new XmlDocument();
             XmlReaderSettings settings = new XmlReaderSettings
             {
                 IgnoreComments = true,
@@ -41,21 +49,21 @@ namespace Gagarin
             }
             return result;
         }
-        
+
         public static Dictionary<string, UInt64> LoadInt(string path)
         {
-            Dictionary<string, UInt64> result   = new Dictionary<string, UInt64>();
-            XmlDocument                document = new XmlDocument();
+            Dictionary<string, UInt64> result = new Dictionary<string, UInt64>();
+            XmlDocument document = new XmlDocument();
             XmlReaderSettings settings = new XmlReaderSettings
             {
-                IgnoreComments   = true,
+                IgnoreComments = true,
                 IgnoreWhitespace = true,
-                CheckCharacters  = false
+                CheckCharacters = false
             };
             try
             {
-                using StringReader input     = new StringReader(File.ReadAllText(path));
-                using XmlReader    xmlReader = XmlReader.Create(input, settings);
+                using StringReader input = new StringReader(File.ReadAllText(path));
+                using XmlReader xmlReader = XmlReader.Create(input, settings);
                 document.Load(xmlReader);
 
                 foreach (XmlElement node in document.DocumentElement.ChildNodes)
@@ -100,23 +108,23 @@ namespace Gagarin
                 document.Save(writer);
             }
         }
-        
+
         public static string CalculateHashMd5(string text)
         {
-            MD5    md5Hasher = MD5.Create();
-            byte[] data      = md5Hasher.ComputeHash(Encoding.Default.GetBytes(text));
+            MD5 md5Hasher = MD5.Create();
+            byte[] data = md5Hasher.ComputeHash(Encoding.Default.GetBytes(text));
             return BitConverter.ToString(data);
         }
 
         public static UInt64 CalculateHash(string read, bool lowTolerance = true)
         {
             UInt64 hashedValue = 0;
-            int    i           = 0;
-            ulong  multiplier  = 1193;
+            int i = 0;
+            ulong multiplier = 1193;
             while (i < read.Length)
             {
                 hashedValue += read[i] * multiplier;
-                multiplier  *= 37;
+                multiplier *= 37;
                 if (lowTolerance) i += 2;
                 else i++;
             }
