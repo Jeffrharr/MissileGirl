@@ -8,13 +8,15 @@ MissileGirl is a RimWorld mod that is designed to improve RimWorld performance.
 
 ## Features:
 
-Description comming soon...
+XML Caching to increase load speed of RimWorld.
+Adaptive Stat Caching - learns how often a stat is called/updated and will cache approriately
+Alert Throttling / Disabling - throttled to lower performance cost on alerts with option to disable all together
+Several vanilla RimWorld optimizations
 
 ## Notes: 
 
-1. MissileGirl doesn't support RimThreaded and never will.
-2. Currently The Multiplayer mod is not supported.
-3. Bug reports with no logs will not get a response.
+1. Currently The Multiplayer mod is untested.
+2. Bug reports with no logs will not get a response.
 
 Github Link: https://github.com/ViralReaction/MissileGirl
 
@@ -22,9 +24,9 @@ MissileGirl is OpenSource and for anyone to use, modify, update.
 
 ## Credits: 
 
-* The main developer: Karim (aka Krkr)
-* The Thumbnail: Trisscar.
-* The original concept of Statistic caching: Notooshabby.
+* Current developer: ViralReaction
+* Previous developer: Karim
+* The Thumbnail: Smxrez
 
 DISCLAIMER: I’m not responsible in any way for damage done by MissileGirl to your saves. 
 
@@ -37,7 +39,7 @@ This works by placing `RocketRules.xml` files in `YourModFolder/Extras/RocketRul
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <RocketRules>
-     <Notify type="PawnDirty" packageId="krkr.MissileGirl" method="ThingWithComps:Notify_Equipped"/>
+     <Notify type="PawnDirty" packageId="vr.MissileGirl" method="ThingWithComps:Notify_Equipped"/>
 </RocketRules>
 ```
 Your mod can notify MissileGirl to clear the statCache by calling a function in your code (preferably not empty due to patching limitations). You can follow this format
@@ -57,13 +59,6 @@ and that prefix notify MissileGirl to clear the cache
 ## Special Thanks goes to:
 
 * Karim for creating original RocketMan
-* Madman666 the entire Dubwise server for the help and testing they provided!
-* Trisscar for their awesome thumbnail.
-* Dubwise for hosting me on their discord server.
-* Wiri for their awesome contribution.
-* Bad Vlad (ModderK) for their awesome feedback.
-* Taranchuk for their awesome help.
-* Brrainz for Harmony
 
 You can always ask questions on the Dubwise discord server: https://discord.gg/mKVDMqq4
  
