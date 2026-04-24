@@ -116,13 +116,7 @@ namespace MissileGirl.Tabs
 
                 if (!RocketPrefs.Enabled) return;
 
-                if (RocketEnvironmentInfo.IsDevEnv)
-                {
-                    _junk.Begin(inRect, "MissileGirl.Junk".Translate());
-                    _junk.CheckboxLabeled("MissileGirl.CorpseRemoval".Translate(), ref RocketPrefs.CorpsesRemovalEnabled, "MissileGirl.CorpseRemoval.Description".Translate());
-                    _junk.End(ref inRect);
-                    inRect.yMin += 5;
-                }
+
 
                 _statCache.Begin(inRect, "MissileGirl.StatCacheSettings".Translate());
                 _statCache.CheckboxLabeled("MissileGirl.Adaptive".Translate(), ref RocketPrefs.Learning, "MissileGirl.Adaptive.Description".Translate());
@@ -157,6 +151,13 @@ namespace MissileGirl.Tabs
                         }
                     }
                     _experimental.End(ref inRect);
+                    inRect.yMin += 5;
+                }
+                if (RocketEnvironmentInfo.IsDevEnv)
+                {
+                    _junk.Begin(inRect, "MissileGirl.Junk".Translate());
+                    _junk.CheckboxLabeled("MissileGirl.CorpseRemoval".Translate(), ref RocketPrefs.CorpsesRemovalEnabled, "MissileGirl.CorpseRemoval.Description".Translate());
+                    _junk.End(ref inRect);
                     inRect.yMin += 5;
                 }
 
