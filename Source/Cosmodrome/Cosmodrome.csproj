@@ -30,7 +30,6 @@
 		<DebugType>pdbonly</DebugType>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="BCnEncoder.Net45" Version="0.0.1" />
 		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" GeneratePathProperty="true" />
 		<PackageReference Include="Mono.TextTransform" Version="1.0.0" GeneratePathProperty="true" ExcludeAssets="runtime" />
 		<PackageReference Include="Lib.Harmony" Version="2.4.2" ExcludeAssets="runtime" />		
@@ -164,12 +163,6 @@
 		</None>
 	</ItemGroup>
 	<!-- Work around to generate T4 files on Mac -->
-	
-	<ItemGroup>
-		<Reference Include="BCnEncoderNet45">
-			<HintPath>..\BCnEncoder\BCnEncoderNet45.dll</HintPath>
-		</Reference>		
-	</ItemGroup>	
 	<PropertyGroup>
 		<TransformOnBuild>false</TransformOnBuild>
 	</PropertyGroup>	
