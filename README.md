@@ -2,7 +2,7 @@
 
 ## Description:
 
-MissileGirl is a RimWorld mod that is designed to improve RimWorld performance.
+MissileGirl, a fork of RocketMan, is a RimWorld mod that is designed to improve RimWorld performance.
 
 <b>Important note: MissileGirl should be the last mod in your mod list.</b>
 
@@ -18,14 +18,13 @@ Several vanilla RimWorld optimizations
 1. Currently The Multiplayer mod is untested.
 2. Bug reports with no logs will not get a response.
 
-Github Link: https://github.com/ViralReaction/MissileGirl
-
 MissileGirl is OpenSource and for anyone to use, modify, update.
 
 ## Credits:
 
 * Current developer: ViralReaction
 * Previous developer: Karim
+* Extra Optimizations: Wiri
 * The Thumbnail: Smxrez
 
 DISCLAIMER: I’m not responsible in any way for damage done by MissileGirl to your saves.
@@ -67,7 +66,7 @@ your mod to call MissileGirl regardless of the load order.
 
 ## Special Thanks goes to:
 
-* Karim for creating original RocketMan
+* Karim for creating original RocketMan  - Github Link: [Original RocketMan](https://github.com/kbatbouta/RimWorld-RocketMan)
 
-You can always ask questions on the Dubwise discord server: https://discord.gg/mKVDMqq4
+You can always ask questions on the Dubwise discord server: https://discord.gg/yKBVZRrRr6
  
