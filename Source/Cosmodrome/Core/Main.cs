@@ -7,22 +7,15 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using HarmonyLib;
-using Microsoft.Build.Utilities;
-using RimWorld;
 using MissileGirl.Tabs;
 using Verse;
-
 namespace MissileGirl
 {
-    public static partial class Main
+    public static class Main
     {
-        private static int debugging = 0;
+        private static int debugging;
 
         private const int TickRareMultiplier = 3;
         private const int TickLongerMultiplier = 4;
@@ -65,17 +58,17 @@ namespace MissileGirl
             yieldTabContent = FunctionsUtility.GetFunctions<YieldTabContent, ITabContent>().ToList();
             yieldModMenuTabContent = FunctionsUtility.GetFunctions<YieldModMenuTab, ITabContent>().ToList();
             onMapDiscarded = FunctionsUtility.GetActions<OnMapDiscarded, Map>().ToList();
-            onScribe = FunctionsUtility.GetActions<Main.OnScribe>().ToList();
-            onSettingsScribedLoaded = FunctionsUtility.GetActions<Main.OnSettingsScribedLoaded>().ToList();
-            onStaticConstructors = FunctionsUtility.GetActions<Main.OnStaticConstructor>().ToList();
-            onInitialization = FunctionsUtility.GetActions<Main.OnInitialization>().ToList();
-            RocketPrefs.SettingsFields = FieldsUtility.GetFields<Main.SettingsField>().ToArray();
+            onScribe = FunctionsUtility.GetActions<OnScribe>().ToList();
+            onSettingsScribedLoaded = FunctionsUtility.GetActions<OnSettingsScribedLoaded>().ToList();
+            onStaticConstructors = FunctionsUtility.GetActions<OnStaticConstructor>().ToList();
+            onInitialization = FunctionsUtility.GetActions<OnInitialization>().ToList();
+            RocketPrefs.SettingsFields = FieldsUtility.GetFields<SettingsField>().ToArray();
         }
 
         static Main()
         {
-            MissileGirl.Logger.Message($"<color=orange>MissileGirl:</color> Version {RocketAssembliesInfo.Version}");
-            MissileGirl.Logger.Message($"R is 2.3={GenRadial.NumCellsInRadius(2.3f)}, 8.9={GenRadial.NumCellsInRadius(8.9f)} 4.5={GenRadial.NumCellsInRadius(4.5f)}");
+            Logger.Message($"<color=orange>MissileGirl:</color> Version {RocketAssembliesInfo.Version}");
+            Logger.Message($"R is 2.3={GenRadial.NumCellsInRadius(2.3f)}, 8.9={GenRadial.NumCellsInRadius(8.9f)} 4.5={GenRadial.NumCellsInRadius(4.5f)}");
             // ----------------------
             // TODO more stylizations.
             // this is used to stylize the log output of MissileGirl.
@@ -93,27 +86,27 @@ namespace MissileGirl
         public static void OnStaticConstructorOnStartup()
         {
             onStaticConstructors = FunctionsUtility.GetActions<OnStaticConstructor>().ToList();
-            for (var i = 0; i < onStaticConstructors.Count; i++) onStaticConstructors[i].Invoke();
+            for (int i = 0; i < onStaticConstructors.Count; i++) onStaticConstructors[i].Invoke();
         }
 
         public static void MapLoaded(Map map)
         {
-            for (var i = 0; i < onMapLoaded.Count; i++) onMapLoaded[i].Invoke();
+            for (int i = 0; i < onMapLoaded.Count; i++) onMapLoaded[i].Invoke();
         }
 
         public static void MapComponentsInitializing(Map map)
         {
-            for (var i = 0; i < onMapComponentsInitializing.Count; i++) onMapComponentsInitializing[i].Invoke();
+            for (int i = 0; i < onMapComponentsInitializing.Count; i++) onMapComponentsInitializing[i].Invoke();
         }
 
         public static void WorldLoaded()
         {
-            for (var i = 0; i < onWorldLoaded.Count; i++) onWorldLoaded[i].Invoke();
+            for (int i = 0; i < onWorldLoaded.Count; i++) onWorldLoaded[i].Invoke();
         }
 
         public static void MapDiscarded(Map map)
         {
-            for (var i = 0; i < onMapDiscarded.Count; i++) onMapDiscarded[i].Invoke(map);
+            for (int i = 0; i < onMapDiscarded.Count; i++) onMapDiscarded[i].Invoke(map);
         }
 
         public static void DefsLoaded()
@@ -122,13 +115,13 @@ namespace MissileGirl
             // Used to tell other parts that defs are ready
             RocketStates.DefsLoaded = true;
 
-            MissileGirl.Logger.Message($"MissileGirl: MissileGirl settings are stored in <color=red>{RocketEnvironmentInfo.RocketSettingsFilePath}</color>");
+            Logger.Message($"MissileGirl: MissileGirl settings are stored in <color=red>{RocketEnvironmentInfo.RocketSettingsFilePath}</color>");
             RocketMod.Instance.LoadSettings();
 
             // Reload action            
-            MissileGirl.Logger.Message("MissileGirl: Defs loaded!");
+            Logger.Message("MissileGirl: Defs loaded!");
             // Execute the flaged methods
-            for (var i = 0; i < onDefsLoaded.Count; i++) onDefsLoaded[i].Invoke();
+            for (int i = 0; i < onDefsLoaded.Count; i++) onDefsLoaded[i].Invoke();
             // --------------
             // start loading xml data
             XMLParser.ParseXML();
@@ -167,16 +160,16 @@ namespace MissileGirl
 
         private static void PrepareTickingBuckets()
         {
-            _tickers = new BucketActionTicker[]
+            _tickers = new[]
             {
                 new BucketActionTicker(
                     onTickRare, GenTicks.TickRareInterval),
                 new BucketActionTicker(
-                    onTickRarer, GenTicks.TickRareInterval * Main.TickRareMultiplier),
+                    onTickRarer, GenTicks.TickRareInterval * TickRareMultiplier),
                 new BucketActionTicker(
                     onTickLong, GenTicks.TickLongInterval),
                 new BucketActionTicker(
-                    onTickLonger, GenTicks.TickLongInterval * Main.TickLongerMultiplier),
+                    onTickLonger, GenTicks.TickLongInterval * TickLongerMultiplier),
             };
             _tickers = _tickers.Where(t => !t.Empty).ToArray();
         }
@@ -187,7 +180,7 @@ namespace MissileGirl
             switch (debugging)
             {
                 case 0:
-                    if (RocketDebugPrefs.Debug == true)
+                    if (RocketDebugPrefs.Debug)
                         changed = true;
                     else return;
                     break;
@@ -198,7 +191,7 @@ namespace MissileGirl
                     changed = true;
                     break;
                 case 2:
-                    if (RocketDebugPrefs.Debug == true)
+                    if (RocketDebugPrefs.Debug)
                         return;
                     debugging = 1;
                     changed = true;
@@ -210,11 +203,11 @@ namespace MissileGirl
             }
             if (debugging == 1)
             {
-                for (var i = 0; i < onDebugginDisabled.Count; i++) onDebugginDisabled[i].Invoke();
+                for (int i = 0; i < onDebugginDisabled.Count; i++) onDebugginDisabled[i].Invoke();
             }
             else if (debugging == 2)
             {
-                for (var i = 0; i < onDebugginEnabled.Count; i++) onDebugginEnabled[i].Invoke();
+                for (int i = 0; i < onDebugginEnabled.Count; i++) onDebugginEnabled[i].Invoke();
             }
         }
 
@@ -395,7 +388,7 @@ namespace MissileGirl
 
             private readonly bool empty;
 
-            private int cycleIndex = 0;
+            private int cycleIndex;
 
             public int Interval
             {
@@ -411,23 +404,23 @@ namespace MissileGirl
             {
                 if (actions.EnumerableNullOrEmpty())
                 {
-                    this.empty = true;
+                    empty = true;
                     return;
                 }
-                this.baseInterval = interval;
-                this.bucketInterval = (int)Math.Max((float)interval / (float)actions.Count(), 1);
-                this.buckets = new List<Action>[Math.Min(interval, actions.Count())];
+                baseInterval = interval;
+                bucketInterval = (int)Math.Max(interval / (float)actions.Count(), 1);
+                buckets = new List<Action>[Math.Min(interval, actions.Count())];
                 for (int i = 0; i < buckets.Length; i++)
                 {
-                    this.buckets[i] = new List<Action>();
+                    buckets[i] = new List<Action>();
                 }
                 int k = 0;
                 foreach (Action action in actions)
                 {
-                    this.buckets[k].Add(action);
-                    k = (k + 1) % this.bucketInterval;
+                    buckets[k].Add(action);
+                    k = (k + 1) % bucketInterval;
                 }
-                this.Log_BucketData();
+                Log_BucketData();
             }
 
             public void Tick(int currentTick)
@@ -436,7 +429,7 @@ namespace MissileGirl
                 {
                     return;
                 }
-                foreach (Action action in this.buckets[this.cycleIndex])
+                foreach (Action action in buckets[cycleIndex])
                 {
                     try
                     {
@@ -444,25 +437,25 @@ namespace MissileGirl
                     }
                     catch (Exception er)
                     {
-                        this.Log_Error(er);
+                        Log_Error(er);
                     }
                 }
-                this.cycleIndex = (cycleIndex + 1) % this.buckets.Length;
+                cycleIndex = (cycleIndex + 1) % buckets.Length;
             }
 
             private void Log_Error(Exception er)
             {
                 Log.Error($"Created ticker bucket: BaseInterval={baseInterval} BucketInterval={bucketInterval} {er}");
-                MissileGirl.Logger.Debug($"", exception: er);
+                Logger.Debug("", exception: er);
             }
 
             private void Log_BucketData()
             {
                 int j = 0;
-                MissileGirl.Logger.Debug($"Created ticker bucket: BaseInterval={baseInterval} BucketInterval={bucketInterval}");
+                Logger.Debug($"Created ticker bucket: BaseInterval={baseInterval} BucketInterval={bucketInterval}");
                 foreach (List<Action> bucket in buckets)
                 {
-                    MissileGirl.Logger.Debug($"Bucket[{j++}].Count = {bucket.Count}");
+                    Logger.Debug($"Bucket[{j++}].Count = {bucket.Count}");
                 }
             }
         }

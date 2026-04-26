@@ -7,7 +7,6 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using RimWorld;
-
 namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(CompDeepDrill), nameof(CompDeepDrill.CanDrillNow))]

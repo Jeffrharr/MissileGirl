@@ -6,11 +6,9 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.Collections.Generic;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl
 {
     public class StatSettings : IExposable
@@ -31,7 +29,7 @@ namespace MissileGirl
         public StatSettings(StatDef statDef)
         {
             this.statDef = statDef;
-            this.expiryAfter = Tools.PredictStatExpiryFromString(statDef.defName);
+            expiryAfter = statDef.defName.PredictStatExpiryFromString();
         }
 
         // public void ExposeData()
@@ -98,12 +96,12 @@ namespace MissileGirl
 
         public void Prepare()
         {
-            RocketStates.StatExpiry[statDef.index] = this.expiryAfter;
+            RocketStates.StatExpiry[statDef.index] = expiryAfter;
         }
 
         public void Resolve()
         {
-            this.expiryAfter = RocketStates.StatExpiry[statDef.index];
+            expiryAfter = RocketStates.StatExpiry[statDef.index];
         }
     }
 

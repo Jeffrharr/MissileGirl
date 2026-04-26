@@ -13,7 +13,6 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
-
 namespace MissileGirl
 {
     public static partial class GUIUtility
@@ -159,11 +158,11 @@ namespace MissileGirl
             {
                 Text.Font = GameFont.Small;
                 FloatMenuUtility.MakeMenu(options,
-                                          (option) =>
+                                          option =>
                                           {
                                               return labelLambda(option);
                                           },
-                                          (option) =>
+                                          option =>
                                           {
                                               return () => selectedLambda(option);
                                           }

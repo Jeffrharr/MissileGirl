@@ -6,11 +6,9 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using HarmonyLib;
 using RimWorld.Planet;
 using Verse;
-
 namespace MissileGirl
 {
     public static class Finder

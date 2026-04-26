@@ -7,10 +7,8 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using System;
-using HarmonyLib;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl.Patches
 {
     [RocketPatch(typeof(Pawn_TimetableTracker), nameof(Pawn_TimetableTracker.GetAssignment))]

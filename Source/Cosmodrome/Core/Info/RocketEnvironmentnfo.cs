@@ -6,11 +6,8 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.IO;
-using HarmonyLib;
 using Verse;
-
 namespace MissileGirl
 {
     public static class RocketEnvironmentInfo

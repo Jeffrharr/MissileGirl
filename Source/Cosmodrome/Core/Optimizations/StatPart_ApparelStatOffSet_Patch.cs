@@ -6,12 +6,6 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System.Runtime.CompilerServices;
-using HarmonyLib;
-using RimWorld;
-using UnityEngine;
-using Verse;
-
 namespace MissileGirl.Optimizations
 {
     /*[RocketPatch(typeof(StatPart_ApparelStatOffset), nameof(StatPart_ApparelStatOffset.TransformValue))]

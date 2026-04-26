@@ -11,12 +11,11 @@ using System.Reflection;
 using HarmonyLib;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl.Patches
 {
     public static class Pawn_Notify_Dirty
     {
-        [RocketPatch()]
+        [RocketPatch]
         public static class Pawn_ApparelTracker_Dirty
         {
             public static IEnumerable<MethodBase> TargetMethods()
@@ -40,7 +39,7 @@ namespace MissileGirl.Patches
             }
         }
 
-        [RocketPatch()]
+        [RocketPatch]
         public static class Pawn_EquipmentTracker_Dirty
         {
             public static IEnumerable<MethodBase> TargetMethods()
@@ -56,7 +55,7 @@ namespace MissileGirl.Patches
             }
         }
 
-        [RocketPatch()]
+        [RocketPatch]
         public static class Pawn_Dirty
         {
             public static IEnumerable<MethodBase> TargetMethods()
@@ -75,7 +74,7 @@ namespace MissileGirl.Patches
             }
         }
 
-        [RocketPatch()]
+        [RocketPatch]
         public static class Pawn_HealthTracker_Dirty
         {
             public static IEnumerable<MethodBase> TargetMethods()
@@ -90,7 +89,7 @@ namespace MissileGirl.Patches
             }
         }
 
-        [RocketPatch()]
+        [RocketPatch]
         public static class Pawn_HediffSet_Dirty
         {
             public static IEnumerable<MethodBase> TargetMethods()

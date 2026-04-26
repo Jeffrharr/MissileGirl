@@ -8,10 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
-using System.IO.Ports;
-using System.Linq;
-using RimWorld;
 using UnityEngine;
 using Verse;
 using GUILambda = System.Action<UnityEngine.Rect>;
@@ -22,7 +18,7 @@ namespace MissileGirl
     {
         private Group_Collapsible group;
 
-        private bool expanded = false;
+        private bool expanded;
 
         public class Group_Collapsible
         {
@@ -62,18 +58,18 @@ namespace MissileGirl
 
         public bool Expanded
         {
-            get => this.expanded;
+            get => expanded;
             set
             {
-                this.group.CollapseAll();
-                this.expanded = value;
+                group.CollapseAll();
+                expanded = value;
             }
         }
 
         public Listing_Collapsible(bool expanded = false, bool scrollViewOnOverflow = true) : base(scrollViewOnOverflow)
         {
             this.expanded = expanded;
-            this.group = new Group_Collapsible();
+            group = new Group_Collapsible();
         }
 
         public Listing_Collapsible(Group_Collapsible group, bool expanded = false, bool scrollViewOnOverflow = true) : base(scrollViewOnOverflow)
@@ -90,12 +86,12 @@ namespace MissileGirl
             {
                 GUIFont.Font = GUIFontSize.Tiny;
                 GUIFont.Anchor = TextAnchor.MiddleLeft;
-                RectSlice slice = Slice(title.GetTextHeight(this.insideWidth - 30f));
+                RectSlice slice = Slice(title.GetTextHeight(insideWidth - 30f));
                 if (hightlightIfMouseOver)
                 {
                     Widgets.DrawHighlightIfMouseover(slice.outside);
                 }
-                GUI.color = this.CollapsibleBGBorderColor;
+                GUI.color = CollapsibleBGBorderColor;
                 GUI.color = Color.gray;
                 Rect titleRect = slice.inside;
                 if (drawInfo)
@@ -118,19 +114,19 @@ namespace MissileGirl
                 {
                     Expanded = !Expanded;
                 }
-                GUI.color = this.CollapsibleBGBorderColor;
-                Widgets.DrawBox(slice.outside, 1);
+                GUI.color = CollapsibleBGBorderColor;
+                Widgets.DrawBox(slice.outside);
             });
             if (Expanded)
             {
-                this.Gap(2);
+                Gap(2);
             }
             base.Start();
         }
 
         public void Label(TaggedString text, string tooltip = null, bool invert = false, bool hightlightIfMouseOver = true, GUIFontSize fontSize = GUIFontSize.Tiny, FontStyle fontStyle = FontStyle.Normal)
         {
-            if (invert == this.expanded)
+            if (invert == expanded)
             {
                 return;
             }
@@ -139,7 +135,7 @@ namespace MissileGirl
 
         public bool CheckboxLabeled(TaggedString text, ref bool checkOn, string tooltip = null, bool invert = false, bool disabled = false, bool hightlightIfMouseOver = true, GUIFontSize fontSize = GUIFontSize.Tiny, FontStyle fontStyle = FontStyle.Normal)
         {
-            if (invert == this.expanded)
+            if (invert == expanded)
             {
                 return false;
             }
@@ -149,7 +145,7 @@ namespace MissileGirl
 
         public void DropDownMenu<T>(string text, T selection, Func<T, string> labelLambda, Action<T> selectedLambda, IEnumerable<T> options, bool invert = false, bool disabled = false, GUIFontSize fontSize = GUIFontSize.Tiny, FontStyle fontStyle = FontStyle.Normal)
         {
-            if (invert == this.expanded)
+            if (invert == expanded)
             {
                 return;
             }

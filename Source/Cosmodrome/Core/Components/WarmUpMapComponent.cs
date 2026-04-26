@@ -12,23 +12,21 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 using Verse;
-using Verse.AI.Group;
-
 namespace MissileGirl
 {
     public class WarmUpMapComponent : MapComponent
     {
         private const int WARMUP_TIME = 4;
 
-        private bool finished = false;
+        private bool finished;
 
-        private bool started = false;
+        private bool started;
 
         private bool settingsStashed;
 
         private int startingTicksGame = -1;
 
-        private int ticksPassed = 0;
+        private int ticksPassed;
 
         private bool showUI = true;
 
@@ -66,7 +64,7 @@ namespace MissileGirl
 
         public static WarmUpMapComponent current;
 
-        public static int warmUpsCount = 0;
+        public static int warmUpsCount;
 
         public static bool settingsBeingStashed;
 
@@ -106,7 +104,7 @@ namespace MissileGirl
             base.MapComponentTick();
             if (finished && GenTicks.TicksGame == integrityGameTick)
             {
-                MissileGirl.Logger.Message("MissileGirl: Position verfication started!");
+                Logger.Message("MissileGirl: Position verfication started!");
                 PopPawnsPosition();
                 if (RocketPrefs.PauseAfterWarmup && !Find.TickManager.Paused)
                     Find.TickManager.Pause();
@@ -129,7 +127,7 @@ namespace MissileGirl
             finished = true;
             current = null;
             PopSettings();
-            MissileGirl.Logger.Message("MissileGirl: <color=red>Warm up</color> Finished for new map!");
+            Logger.Message("MissileGirl: <color=red>Warm up</color> Finished for new map!");
         }
 
         public override void MapRemoved()
@@ -154,7 +152,7 @@ namespace MissileGirl
                 current = null;
                 finished = true;
                 PopSettings();
-                MissileGirl.Logger.Message("MissileGirl: <color=red>Warm up ABORTED!</color> for new map!");
+                Logger.Message("MissileGirl: <color=red>Warm up ABORTED!</color> for new map!");
             }
         }
 
@@ -170,7 +168,7 @@ namespace MissileGirl
                 current = this;
                 started = true;
                 startingTicksGame = tick;
-                MissileGirl.Logger.Message("MissileGirl: <color=red>Warm up</color> started for new map!");
+                Logger.Message("MissileGirl: <color=red>Warm up</color> started for new map!");
             }
         }
 
@@ -194,9 +192,6 @@ namespace MissileGirl
             catch (Exception er)
             {
                 Log.Warning($"MissileGirl: Warmup Popup error! {er}");
-            }
-            finally
-            {
             }
         }
 
@@ -262,7 +257,7 @@ namespace MissileGirl
                 if (positionStash.TryGetValue(pawn.thingIDNumber, out IntVec3 stashedPosition)
                         && (pawn.positionInt.DistanceTo(pawn.positionInt) >= 7.5f || (pawn.positionInt.InBounds(map) && !pawn.positionInt.Standable(map))))
                 {
-                    pawn.jobs?.StopAll(true, true);
+                    pawn.jobs?.StopAll(true);
                     pawn.pather.StopDead();
                     pawn.Position = stashedPosition;
                 }
@@ -291,7 +286,7 @@ namespace MissileGirl
             foreach (FieldInfo field in RocketPrefs.SettingsFields)
             {
                 object value = field.GetValue(null);
-                if (field.TryGetAttribute<Main.SettingsField>(out Main.SettingsField config))
+                if (field.TryGetAttribute(out Main.SettingsField config))
                 {
                     stashedValues[field] = value;
                     field.SetValue(null, config.warmUpValue);

@@ -6,16 +6,12 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using RimWorld;
 using UnityEngine;
 using Verse;
-using Verse.Sound;
-
 namespace MissileGirl
 {
     public static partial class GUIUtility
@@ -41,7 +37,7 @@ namespace MissileGirl
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void StashGUIState()
         {
-            stack.Add(new GUIState()
+            stack.Add(new GUIState
             {
                 font = Text.Font,
                 curStyle = Text.CurFontStyle.fontStyle,

@@ -7,8 +7,6 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using RimWorld;
-using Verse;
-
 namespace MissileGirl
 {
     public partial class RocketMod

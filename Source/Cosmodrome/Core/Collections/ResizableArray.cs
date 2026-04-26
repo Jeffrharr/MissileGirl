@@ -10,8 +10,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-
-
 namespace MissileGirl
 {
     public class ResizableArray<T> : IEnumerable<T>
@@ -35,20 +33,17 @@ namespace MissileGirl
                 {
                     throw new ArgumentNullException();
                 }
-                else if (index < -Length || index >= Length)
+                if (index < -Length || index >= Length)
                 {
                     throw new IndexOutOfRangeException();
                 }
-                else
-                {
-                    array[TransformIndex(index)] = value;
-                }
+                array[TransformIndex(index)] = value;
             }
         }
 
         public ResizableArray(int initialSize)
         {
-            this.array = new T[initialSize];
+            array = new T[initialSize];
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -103,7 +98,7 @@ namespace MissileGirl
 
             public ResizableArrayEnum(ResizableArray<T> resizableArray)
             {
-                this._array = resizableArray;
+                _array = resizableArray;
             }
 
             public bool MoveNext()

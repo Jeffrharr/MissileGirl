@@ -15,7 +15,6 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
-
 namespace MissileGirl
 {
     public partial class RocketMod : Mod
@@ -79,7 +78,7 @@ namespace MissileGirl
                     Logger.Debug($"Found in AppDomain after loading assembly {assembly.FullName}", file: "Assemblies.log");
                 }
                 Main.ReloadActions();
-                foreach (var action in Main.onInitialization)
+                foreach (Action action in Main.onInitialization)
                     action.Invoke();
             }
 

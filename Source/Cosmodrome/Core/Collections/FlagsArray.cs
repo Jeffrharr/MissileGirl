@@ -8,8 +8,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using Verse;
-
 namespace MissileGirl
 {
     public class FlagArray
@@ -27,7 +25,7 @@ namespace MissileGirl
 
         public FlagArray(int size)
         {
-            this.map = new int[(size / ChunkSize) + ChunkSize];
+            map = new int[(size / ChunkSize) + ChunkSize];
         }
 
         public bool this[int key]
@@ -60,7 +58,7 @@ namespace MissileGirl
             {
                 int[] expanded = new int[targetLength];
                 Array.Copy(map, 0, expanded, 0, map.Length);
-                this.map = expanded;
+                map = expanded;
             }
         }
 

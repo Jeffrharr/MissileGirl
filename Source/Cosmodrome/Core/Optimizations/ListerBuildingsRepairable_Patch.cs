@@ -6,10 +6,8 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System.Collections.Generic;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(ListerBuildingsRepairable), nameof(ListerBuildingsRepairable.UpdateBuilding))]

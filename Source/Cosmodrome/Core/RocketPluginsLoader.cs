@@ -11,22 +11,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using UnityEngine.Assertions;
-using Verse;
-
 namespace MissileGirl
 {
     public sealed class RocketPluginsLoader
     {
-        private readonly string[] ApprovedAssemblies = new string[]
+        private readonly string[] ApprovedAssemblies = new[]
         {
             "Gagarin.dll", "Soyuz.dll", "Proton.dll",
         };
-
-        public RocketPluginsLoader()
-        {
-        }
 
         public IEnumerable<Assembly> LoadAll()
         {
@@ -35,7 +27,7 @@ namespace MissileGirl
 
             if (RocketEnvironmentInfo.IsDevEnv)
             {
-                MissileGirl.Logger.Message($"MissileGirl: Dev enviroment detected! Loading experimental plugins!");
+                Logger.Message("MissileGirl: Dev enviroment detected! Loading experimental plugins!");
 
                 assemblies.AddRange(
                     LoadDirectory(RocketEnvironmentInfo.ExperimentalPluginsFolderPath).ToList()
@@ -88,7 +80,7 @@ namespace MissileGirl
                 Logger.Debug($"MissileGirl: Assembly is currently [valid={assembly != null}] and Named {assembly.FullName}");
                 if (assembly == null)
                 {
-                    Logger.Debug($"MissileGirl: Preparing to throw new Exception!");
+                    Logger.Debug("MissileGirl: Preparing to throw new Exception!");
                     LogAssembliesInDomain();
                     throw new Exception($"MissileGirl: Loaded assembly {assemblyName} not in the " +
                                         $"<color=red>current app domain</color> and path fo {assemblyPath}");

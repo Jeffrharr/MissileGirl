@@ -12,7 +12,6 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Verse;
-
 namespace MissileGirl
 {
     public abstract class IPatchInfo<T> where T : IPatch
@@ -131,7 +130,7 @@ namespace MissileGirl
                     }
                     else
                     {
-                        targets = new MethodBase[]
+                        targets = new[]
                         {
                             AccessTools.Method(declaringType, "TargetMethod").Invoke(null, null) as MethodBase
                         };
@@ -141,7 +140,7 @@ namespace MissileGirl
             catch (Exception er)
             {
                 Logger.Debug($"{PluginName}: target type {type.Name}", exception: er);
-                throw er;
+                throw;
             }
         }
 
@@ -152,7 +151,7 @@ namespace MissileGirl
                 Logger.Debug($"{PluginName}: Prepare failed for {attribute.targetType.Name ?? null}:{attribute.targetMethod ?? null}");
                 return;
             }
-            foreach (var target in targets.ToHashSet())
+            foreach (MethodBase target in targets.ToHashSet())
             {
                 if (target == null || !target.IsValidTarget())
                 {
@@ -161,26 +160,25 @@ namespace MissileGirl
                 }
                 try
                 {
-                    HarmonyPriority priority;
 
                     int prefixPriority = -1;
 
-                    if (prefix != null && prefix.HasAttribute<HarmonyPriority>() && prefix.TryGetAttribute<HarmonyPriority>(out priority))
+                    if (prefix != null && prefix.HasAttribute<HarmonyPriority>() && prefix.TryGetAttribute(out HarmonyPriority priority))
                         prefixPriority = priority.info.priority;
 
                     int postfixPriority = -1;
 
-                    if (postfix != null && postfix.HasAttribute<HarmonyPriority>() && postfix.TryGetAttribute<HarmonyPriority>(out priority))
+                    if (postfix != null && postfix.HasAttribute<HarmonyPriority>() && postfix.TryGetAttribute(out priority))
                         postfixPriority = priority.info.priority;
 
                     int transpilerPriority = -1;
 
-                    if (transpiler != null && transpiler.HasAttribute<HarmonyPriority>() && transpiler.TryGetAttribute<HarmonyPriority>(out priority))
+                    if (transpiler != null && transpiler.HasAttribute<HarmonyPriority>() && transpiler.TryGetAttribute(out priority))
                         transpilerPriority = priority.info.priority;
 
                     int finalizerPriority = -1;
 
-                    if (finalizer != null && finalizer.HasAttribute<HarmonyPriority>() && finalizer.TryGetAttribute<HarmonyPriority>(out priority))
+                    if (finalizer != null && finalizer.HasAttribute<HarmonyPriority>() && finalizer.TryGetAttribute(out priority))
                         finalizerPriority = priority.info.priority;
 
                     replacement = harmony.Patch(target,
@@ -191,14 +189,14 @@ namespace MissileGirl
 
                     patchedSuccessfully = true;
 
-                    this.OnPatchingSuccessful(replacement);
+                    OnPatchingSuccessful(replacement);
 
                     Logger.Debug($"{PluginName}:[NOTANERROR] patching {target?.DeclaringType?.Name}:{target} finished!");
                 }
                 catch (Exception er)
                 {
-                    this.OnPatchingFailed(er);
-                    Logger.Debug($"Patching failed", exception: er);
+                    OnPatchingFailed(er);
+                    Logger.Debug("Patching failed", exception: er);
                     Log.Warning($"{PluginName}:<color=orange>[ERROR]</color> <color=red>patching {target.DeclaringType.Name}:{target} Failed!</color> {er}");
                 }
             }

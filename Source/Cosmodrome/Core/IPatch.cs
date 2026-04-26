@@ -8,7 +8,6 @@
 
 using System;
 using HarmonyLib;
-
 namespace MissileGirl
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
@@ -16,20 +15,20 @@ namespace MissileGirl
     {
         public string targetMethod;
         public Type targetType;
-        public Type[] parameters = null;
-        public Type[] generics = null;
+        public Type[] parameters;
+        public Type[] generics;
         public MethodType methodType;
 
         public readonly PatchType patchType;
 
         public IPatch()
         {
-            this.patchType = PatchType.empty;
+            patchType = PatchType.empty;
         }
 
         public IPatch(Type targetType, string targetMethod = null, MethodType methodType = MethodType.Normal, Type[] parameters = null, Type[] generics = null)
         {
-            this.patchType = PatchType.normal;
+            patchType = PatchType.normal;
             this.targetType = targetType;
             this.targetMethod = targetMethod;
             this.methodType = methodType;

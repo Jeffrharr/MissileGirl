@@ -11,14 +11,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Verse;
-
 namespace MissileGirl
 {
     public static class FieldsUtility
     {
         public static IEnumerable<FieldInfo> GetFields<T>() where T : Attribute
         {
-            foreach (var field in RocketAssembliesInfo.Assemblies
+            foreach (FieldInfo field in RocketAssembliesInfo.Assemblies
                     .Where(ass => !ass.FullName.Contains("System") && !ass.FullName.Contains("VideoTool"))
                     .SelectMany(a => a.GetTypes())
                     .Where(t => !t.IsAbstract && !t.IsInterface)
@@ -27,7 +26,7 @@ namespace MissileGirl
                     .ToArray())
             {
                 if (Prefs.DevMode && RocketDebugPrefs.Debug)
-                    MissileGirl.Logger.Message(string.Format("MissileGirl: Found <color=yellow>settings fields</color> with {0}, {1}:{2}", typeof(T).Name,
+                    Logger.Message(string.Format("MissileGirl: Found <color=yellow>settings fields</color> with {0}, {1}:{2}", typeof(T).Name,
                                                              field.DeclaringType.Name, field.Name));
                 yield return field;
             }

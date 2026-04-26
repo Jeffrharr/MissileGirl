@@ -7,8 +7,6 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using UnityEngine;
-using Verse;
-
 namespace MissileGirl.Tabs
 {
     public abstract class ITabContent

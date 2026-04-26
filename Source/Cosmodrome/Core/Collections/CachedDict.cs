@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Verse;
-
 namespace MissileGirl
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -53,7 +52,7 @@ namespace MissileGirl
         public bool TryGetValue(A key, out B value, int expiry = 0)
         {
             CleanUp();
-            if (cache.TryGetValue(key, out var store))
+            if (cache.TryGetValue(key, out CachedUnit<B> store))
             {
                 if (store.IsValid(expiry))
                 {
@@ -70,7 +69,7 @@ namespace MissileGirl
         public bool TryGetValue(A key, out B value, out bool failed, int expiry = 0)
         {
             CleanUp();
-            if (cache.TryGetValue(key, out var store))
+            if (cache.TryGetValue(key, out CachedUnit<B> store))
             {
                 if (store.IsValid(expiry))
                 {

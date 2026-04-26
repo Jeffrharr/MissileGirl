@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public class Selector_DefSelection : ISelector_GenericSelection<Def>
@@ -23,7 +22,7 @@ namespace MissileGirl
         protected override void DoSingleItem(Rect rect, Def item)
         {
             Widgets.DrawHighlightIfMouseover(rect);
-            Widgets.DefLabelWithIcon(rect, item, 2);
+            Widgets.DefLabelWithIcon(rect, item);
         }
 
         protected override bool ItemMatchSearchString(Def item)

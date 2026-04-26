@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using RimWorld;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl.Tabs
 {
     public class TabContent_Stats : ITabContent
@@ -41,8 +40,8 @@ namespace MissileGirl.Tabs
                 searchString = tempStr;
             }
             rect.yMin += 30;
-            MissileGirl.GUIUtility.ScrollView(rect, ref scrollPosition, stats,
-                                              (stat) =>
+            GUIUtility.ScrollView(rect, ref scrollPosition, stats,
+                                              stat =>
                                               {
                                                   if (searchString == null || searchString.Trim().NullOrEmpty())
                                                   {

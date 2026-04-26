@@ -12,9 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public static class Logger
@@ -27,7 +25,7 @@ namespace MissileGirl
 
         public static void Initialize()
         {
-            Logger.logsFolder = RocketEnvironmentInfo.LogsFolderPath;
+            logsFolder = RocketEnvironmentInfo.LogsFolderPath;
 
             if (!Directory.Exists(logsFolder))
             {
@@ -35,7 +33,7 @@ namespace MissileGirl
             }
             foreach (string filePath in Directory.GetFiles(logsFolder))
             {
-                System.IO.File.Delete(filePath);
+                File.Delete(filePath);
             }
         }
 
@@ -70,7 +68,7 @@ namespace MissileGirl
             StringBuilder.Append(message);
             if (exception != null)
             {
-                StringBuilder.AppendInNewLine($"<#-ERROR-#>");
+                StringBuilder.AppendInNewLine("<#-ERROR-#>");
                 StringBuilder.AppendInNewLine(exception.GetType().FullName);
                 StringBuilder.AppendInNewLine(exception.Message);
                 AddStackTrace(StringBuilder, new StackTrace(exception));

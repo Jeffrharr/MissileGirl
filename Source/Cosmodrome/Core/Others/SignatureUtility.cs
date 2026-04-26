@@ -9,7 +9,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using Verse;
-
 namespace MissileGirl
 {
     public static class SignatureUtility

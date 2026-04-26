@@ -6,12 +6,7 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.AI;
-using Verse;
-
 namespace MissileGirl
 {
     public static class StringUtility

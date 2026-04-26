@@ -7,9 +7,7 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using System;
-using System.Collections.Generic;
 using UnityEngine;
-
 namespace MissileGirl
 {
     public static class RectUtility

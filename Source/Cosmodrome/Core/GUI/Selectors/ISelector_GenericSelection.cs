@@ -8,10 +8,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public abstract class ISelector_GenericSelection<T> : ISelector
@@ -52,7 +50,7 @@ namespace MissileGirl
             try
             {
                 GUIUtility.ScrollView(inRect, ref scrollPosition, items,
-                                      heightLambda: (item) => !searchString.NullOrEmpty() ? (ItemMatchSearchString(item) ? RowHeight : -1f) : RowHeight,
+                                      heightLambda: item => !searchString.NullOrEmpty() ? (ItemMatchSearchString(item) ? RowHeight : -1f) : RowHeight,
                                       elementLambda: (rect, item) =>
                                       {
                                           DoSingleItem(rect, item);

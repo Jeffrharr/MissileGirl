@@ -7,7 +7,6 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using System.Runtime.CompilerServices;
-
 namespace MissileGirl
 {
     public static class HashUtility

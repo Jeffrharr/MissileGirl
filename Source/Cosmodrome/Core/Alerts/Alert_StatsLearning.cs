@@ -6,17 +6,15 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.Diagnostics;
 using RimWorld;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public class Alert_StatsLearning : Alert
     {
-        private bool active = false;
+        private bool active;
 
         private float activeSeconds;
         private float activeLastTick;
@@ -61,10 +59,10 @@ namespace MissileGirl
             get => AlertPriority.Medium;
         }
 
-        public Alert_StatsLearning() : base()
+        public Alert_StatsLearning()
         {
-            base.defaultLabel = KeyedResources.MissileGirl_Alert_StatsLearning_Label;
-            base.defaultExplanation = KeyedResources.MissileGirl_Alert_StatsLearning_Explanation;
+            defaultLabel = KeyedResources.MissileGirl_Alert_StatsLearning_Label;
+            defaultExplanation = KeyedResources.MissileGirl_Alert_StatsLearning_Explanation;
         }
 
         public override void OnClick()
@@ -97,7 +95,7 @@ namespace MissileGirl
                 UpdateGUI();
                 updateGUIStopwatch.Restart();
             }
-            activeSeconds += ((float)GenTicks.TicksGame - activeLastTick) / 60f;
+            activeSeconds += (GenTicks.TicksGame - activeLastTick) / 60f;
             activeLastTick = GenTicks.TicksGame;
             if (SecondsSinceGUIUpdate > 21f)
             {
@@ -122,8 +120,8 @@ namespace MissileGirl
         {
             float progress = activeSeconds / (MaxActiveMinutes * 60f);
 
-            this.color = new Color(Mathf.Lerp(R0, R1, progress), Mathf.Lerp(G0, G1, progress), Mathf.Lerp(B0, B1, progress), 0.5f);
-            this.explanation = KeyedResources.MissileGirl_Alert_StatsLearning_Explanation.Formatted(MinutesActive, MaxActiveMinutes);
+            color = new Color(Mathf.Lerp(R0, R1, progress), Mathf.Lerp(G0, G1, progress), Mathf.Lerp(B0, B1, progress), 0.5f);
+            explanation = KeyedResources.MissileGirl_Alert_StatsLearning_Explanation.Formatted(MinutesActive, MaxActiveMinutes);
         }
     }
 }

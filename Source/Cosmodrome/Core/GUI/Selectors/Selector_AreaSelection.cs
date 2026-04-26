@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public class Selector_AreaSelection : ISelector_GenericSelection<Area>
@@ -24,7 +23,7 @@ namespace MissileGirl
 
         protected override void DoSingleItem(Rect rect, Area item)
         {
-            var color = item.Color;
+            Color color = item.Color;
             color.a = 0.5f;
             GUIFont.Anchor = TextAnchor.MiddleLeft;
             Widgets.DrawHighlightIfMouseover(rect);

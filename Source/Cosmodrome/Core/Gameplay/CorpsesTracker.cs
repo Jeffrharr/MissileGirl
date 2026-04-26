@@ -12,7 +12,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl.Gameplay
 {
     public class CorpsesTracker : MapComponent
@@ -51,7 +50,7 @@ namespace MissileGirl.Gameplay
             while (counter < records.Count && stopwatch.ElapsedMilliseconds <= 1)
                 try
                 {
-                    var record = records[curIndex];
+                    CorpseRecord record = records[curIndex];
                     if (record.thing == null || record.thing.Destroyed || !record.thing.Spawned)
                         removalList.Add(record);
                     else ProcessCorpse(record);
@@ -67,7 +66,7 @@ namespace MissileGirl.Gameplay
                 }
 
             stopwatch.Stop();
-            foreach (var record in removalList)
+            foreach (CorpseRecord record in removalList)
             {
                 records.Remove(record);
                 if (record.thing is Corpse corpse) corpses.Remove(corpse);
@@ -78,8 +77,8 @@ namespace MissileGirl.Gameplay
             {
                 try
                 {
-                    var record = destroyList.Pop();
-                    if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"MissileGirl: removed thing {record.thing} with total removed {removedThingsCount + 1}");
+                    CorpseRecord record = destroyList.Pop();
+                    if (RocketDebugPrefs.Debug) Logger.Message($"MissileGirl: removed thing {record.thing} with total removed {removedThingsCount + 1}");
                     if (!(record.thing?.Destroyed ?? true)) record.thing?.Destroy();
                 }
                 catch (Exception er)
@@ -118,12 +117,12 @@ namespace MissileGirl.Gameplay
 
         private void FindCorpses()
         {
-            var corpsesTemp = map.listerThings.ThingsInGroup(ThingRequestGroup.Corpse);
-            foreach (var thing in corpsesTemp)
+            List<Thing> corpsesTemp = map.listerThings.ThingsInGroup(ThingRequestGroup.Corpse);
+            foreach (Thing thing in corpsesTemp)
             {
                 if (!corpses.Contains(thing) && thing is Corpse corpse && corpse.CurRotDrawMode == RotDrawMode.Dessicated)
                 {
-                    var record = new CorpseRecord(corpse);
+                    CorpseRecord record = new CorpseRecord(corpse);
                     corpses.Add(corpse);
                     records.Add(record);
                 }
@@ -132,7 +131,7 @@ namespace MissileGirl.Gameplay
 
         private void ProcessCorpse(CorpseRecord record)
         {
-            var position = record.thing.positionInt;
+            IntVec3 position = record.thing.positionInt;
 
             if (viewRect.Contains(position))
                 record.RegisterVisibility(true);

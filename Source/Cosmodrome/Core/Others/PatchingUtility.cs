@@ -10,10 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using HarmonyLib;
 using Verse;
-
 namespace MissileGirl
 {
     public static class PatchingUtility
@@ -40,12 +38,12 @@ namespace MissileGirl
         {
             IEnumerable<Type> types = assembly.GetLoadableTypes()
                     .Where(t => !t.IsAbstract && !t.IsInterface && t.HasAttribute<P>());
-            foreach (var type in types)
+            foreach (Type type in types)
             {
                 T patchInfo = (T)Activator.CreateInstance(typeof(T), type);
                 if (!patchInfo.IsValid)
                 {
-                    MissileGirl.Logger.Message($"{type} is not a valid patch!");
+                    Logger.Message($"{type} is not a valid patch!");
                     continue;
                 }
                 yield return patchInfo;

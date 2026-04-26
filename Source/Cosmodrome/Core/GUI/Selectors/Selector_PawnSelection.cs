@@ -6,12 +6,6 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
-using System.Collections.Generic;
-using RimWorld;
-using UnityEngine;
-using Verse;
-
 namespace MissileGirl
 {
     // TODO update to 1.3

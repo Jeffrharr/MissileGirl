@@ -14,7 +14,6 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using JetBrains.Annotations;
 using Verse;
-
 namespace MissileGirl
 {
     public class RocketShip
@@ -50,7 +49,7 @@ namespace MissileGirl
 
                 if (methodType == MethodType.Normal)
                 {
-                    var m = AccessTools.Method(targetType, targetMethod, methodArguments, genericsTypes);
+                    MethodInfo m = AccessTools.Method(targetType, targetMethod, methodArguments, genericsTypes);
                     if (m != null) found = true;
                     method = m;
                     return m;
@@ -58,7 +57,7 @@ namespace MissileGirl
 
                 if (methodType == MethodType.Getter)
                 {
-                    var m = AccessTools.PropertyGetter(targetType, targetMethod);
+                    MethodInfo m = AccessTools.PropertyGetter(targetType, targetMethod);
                     if (m != null) found = true;
                     method = m;
                     return m;
@@ -66,7 +65,7 @@ namespace MissileGirl
 
                 if (methodType == MethodType.Setter)
                 {
-                    var m = AccessTools.PropertySetter(targetType, targetMethod);
+                    MethodInfo m = AccessTools.PropertySetter(targetType, targetMethod);
                     if (m != null) found = true;
                     method = m;
                     return m;
@@ -95,8 +94,8 @@ namespace MissileGirl
 
             public void PatchAll()
             {
-                var types = GetSkipperPatchTypes();
-                foreach (var t in types)
+                IEnumerable<Type> types = GetSkipperPatchTypes();
+                foreach (Type t in types)
                 {
                     SkipperPatch patchInfo = t.TryGetAttribute<SkipperPatch>();
                     MethodBase method = patchInfo.GetMethodInfo();
@@ -115,7 +114,7 @@ namespace MissileGirl
                         harmony.Patch(target, transpiler: new HarmonyMethod(mTranspiler));
                         patchedMethods.Add(target);
                         patches.Add(target, patchType);
-                        if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: patched target {0}", target));
+                        if (RocketDebugPrefs.Debug) Logger.Message(string.Format("MissileGirl: patched target {0}", target));
                     }
                     catch (Exception er)
                     {
@@ -127,11 +126,11 @@ namespace MissileGirl
 
             public static IEnumerable<Type> GetSkipperPatchTypes()
             {
-                var types = RocketAssembliesInfo.Assemblies.SelectMany(x => x.GetLoadableTypes());
-                foreach (var type in types)
+                IEnumerable<Type> types = RocketAssembliesInfo.Assemblies.SelectMany(x => x.GetLoadableTypes());
+                foreach (Type type in types)
                     if (type.HasAttribute<SkipperPatch>())
                     {
-                        if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message(string.Format("MissileGirl: found type {0} with skipper patch attributes", type));
+                        if (RocketDebugPrefs.Debug) Logger.Message(string.Format("MissileGirl: found type {0} with skipper patch attributes", type));
                         yield return type;
                     }
             }
@@ -149,8 +148,8 @@ namespace MissileGirl
             private static IEnumerable<CodeInstruction> SetupSkipping(IEnumerable<CodeInstruction> instructions,
                 ILGenerator generator, MethodBase original, MethodBase skipper, MethodBase setter)
             {
-                var codes = instructions.ToList();
-                var returnType = (original as MethodInfo).ReturnType;
+                List<CodeInstruction> codes = instructions.ToList();
+                Type returnType = (original as MethodInfo).ReturnType;
 
                 LocalBuilder result = null;
                 LocalBuilder state = null;
@@ -159,14 +158,14 @@ namespace MissileGirl
 
                 if (skipper != null)
                 {
-                    if (TryGetStateType(skipper as MethodInfo, out var stateType))
+                    if (TryGetStateType(skipper as MethodInfo, out Type stateType))
                         state = generator.DeclareLocal(stateType);
 
-                    var start = generator.DefineLabel();
+                    Label start = generator.DefineLabel();
                     if (returnType != typeof(void))
                         yield return new CodeInstruction(OpCodes.Ldloca_S, result.LocalIndex);
-                    var extras = CallInside(original, skipper, state).ToList();
-                    foreach (var extra in extras)
+                    List<CodeInstruction> extras = CallInside(original, skipper, state).ToList();
+                    foreach (CodeInstruction extra in extras)
                         yield return extra;
 
                     yield return new CodeInstruction(OpCodes.Brtrue_S, start);
@@ -177,9 +176,9 @@ namespace MissileGirl
                     codes[0].labels.Add(start);
                 }
 
-                for (var i = 0; i < codes.Count; i++)
+                for (int i = 0; i < codes.Count; i++)
                 {
-                    var code = codes[i];
+                    CodeInstruction code = codes[i];
                     if (code.opcode == OpCodes.Ret && setter != null)
                     {
                         if (returnType != typeof(void))
@@ -188,9 +187,9 @@ namespace MissileGirl
                             yield return new CodeInstruction(OpCodes.Ldloca_S, result.LocalIndex);
                         }
 
-                        var extras = CallInside(original, setter, state).ToList();
+                        List<CodeInstruction> extras = CallInside(original, setter, state).ToList();
                         extras[0].labels = code.labels;
-                        foreach (var extra in extras) yield return extra;
+                        foreach (CodeInstruction extra in extras) yield return extra;
 
                         if (returnType != typeof(void))
                             yield return new CodeInstruction(OpCodes.Ldloc_S, result.LocalIndex);
@@ -211,8 +210,8 @@ namespace MissileGirl
                     return false;
                 }
 
-                var mParameters = skipper.GetParameters();
-                for (var i = 0; i < mParameters.Length; i++)
+                ParameterInfo[] mParameters = skipper.GetParameters();
+                for (int i = 0; i < mParameters.Length; i++)
                     if (mParameters[i].Name.ToLower() == "__state")
                     {
                         stateType = mParameters[i].ParameterType;
@@ -229,15 +228,15 @@ namespace MissileGirl
                 if (!method.IsStatic)
                     throw new InvalidOperationException(
                         string.Format("MissileGirl: can't use non static method {0} in a patch:CallInside", parent.Name));
-                var mParameters = method.GetParameters();
-                var pParameters = parent.GetParameters();
+                ParameterInfo[] mParameters = method.GetParameters();
+                ParameterInfo[] pParameters = parent.GetParameters();
 
-                var paramCounter = 0;
+                int paramCounter = 0;
                 if (!parent.IsStatic) paramCounter += 1;
 
-                for (var i = 0; i < mParameters.Length; i++)
+                for (int i = 0; i < mParameters.Length; i++)
                 {
-                    var methodParam = mParameters[i];
+                    ParameterInfo methodParam = mParameters[i];
                     if (methodParam.Name == "__instance")
                     {
                         yield return new CodeInstruction(OpCodes.Ldarg_0);
@@ -250,9 +249,9 @@ namespace MissileGirl
                         continue;
                     }
 
-                    for (var j = 0; j < pParameters.Length; j++)
+                    for (int j = 0; j < pParameters.Length; j++)
                     {
-                        var parentParam = pParameters[j];
+                        ParameterInfo parentParam = pParameters[j];
                         if (methodParam.Name == parentParam.Name)
                         {
                             if (methodParam.ParameterType != parentParam.ParameterType &&

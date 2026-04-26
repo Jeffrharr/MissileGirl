@@ -6,7 +6,6 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
@@ -18,7 +17,7 @@ namespace MissileGirl
 
         private int initialMapWidth;
 
-        public bool useCustomMapSizes = false;
+        public bool useCustomMapSizes;
 
         public Vector3 IntialMapSize
         {
@@ -59,7 +58,7 @@ namespace MissileGirl
         public override void ExposeData()
         {
             base.ExposeData();
-            Scribe_Values.Look(ref useCustomMapSizes, "useCustomMapSizes", false);
+            Scribe_Values.Look(ref useCustomMapSizes, "useCustomMapSizes");
             Scribe_Values.Look(ref initialMapWidth, "initialMapWidth", 250);
             Scribe_Values.Look(ref initialMapHeight, "initialMapHeight", 250);
         }

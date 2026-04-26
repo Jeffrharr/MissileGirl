@@ -15,7 +15,7 @@ namespace MissileGirl.Optimizations
     {
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
         private static Dictionary<int, FloatRange> tempCache = new Dictionary<int, FloatRange>();
-        private static int LastTick = 0;
+        private static int LastTick;
 
         public static bool Prepare()
         {

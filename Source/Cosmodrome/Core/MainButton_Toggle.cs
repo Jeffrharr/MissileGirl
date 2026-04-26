@@ -9,7 +9,6 @@
 using RimWorld;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     internal class MainButton_Toggle : MainButtonWorker
@@ -18,7 +17,7 @@ namespace MissileGirl
         {
             get
             {
-                this.def.buttonVisible = RocketPrefs.MainButtonToggle;
+                def.buttonVisible = RocketPrefs.MainButtonToggle;
                 return !RocketPrefs.MainButtonToggle
                         && Find.CurrentMap == null
                         && (!def.validWithoutMap || def == MainButtonDefOf.World) || Find.WorldRoutePlanner.Active

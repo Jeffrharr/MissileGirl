@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-
 namespace MissileGirl
 {
     public static class RocketAssembliesInfo
@@ -19,7 +18,7 @@ namespace MissileGirl
 
         private static HashSet<Assembly> assemblies = new HashSet<Assembly>();
 
-        public static readonly string[] ApprovedDependencies = new string[]
+        public static readonly string[] ApprovedDependencies = new[]
         {
             "System.Numerics.Vectors.dll", "BCnEncoderNet47.dll", "XmlDiffPatch.dll", "XmlDiffPatch.View.dll",
         };

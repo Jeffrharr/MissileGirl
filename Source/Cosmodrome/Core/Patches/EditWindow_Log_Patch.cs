@@ -14,7 +14,6 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using LudeonTK;
 using Verse;
-
 namespace MissileGirl
 {
     public static class EditWindow_Log_DoMessagesListing_Patch
@@ -26,7 +25,7 @@ namespace MissileGirl
             try
             {
                 Finder.Harmony.Patch(AccessTools.Method(typeof(EditWindow_Log), nameof(EditWindow_Log.DoMessagesListing)),
-                                     transpiler: new HarmonyMethod(typeof(EditWindow_Log_DoMessagesListing_Patch), nameof(EditWindow_Log_DoMessagesListing_Patch.Transpiler)));
+                                     transpiler: new HarmonyMethod(typeof(EditWindow_Log_DoMessagesListing_Patch), nameof(Transpiler)));
             }
             catch (Exception er) { Log.Warning($"<color=orange>MissileGirl:</color>[<color=red>NOTANERROR</color>] Unable to stylize logs: {er}"); }
         }

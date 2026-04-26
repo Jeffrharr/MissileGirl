@@ -9,7 +9,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RimWorld;
 using UnityEngine;
 using Verse;
 using GUILambda = System.Action<UnityEngine.Rect>;
@@ -22,25 +21,25 @@ namespace MissileGirl
 
         protected Vector2 margins = new Vector2(8, 4);
 
-        protected float inXMin = 0f;
+        protected float inXMin;
 
-        protected float inXMax = 0f;
+        protected float inXMax;
 
-        protected float curYMin = 0f;
+        protected float curYMin;
 
-        protected float inYMin = 0f;
+        protected float inYMin;
 
-        protected float inYMax = 0f;
+        protected float inYMax;
 
-        protected float previousHeight = 0f;
+        protected float previousHeight;
 
-        protected bool isOverflowing = false;
+        protected bool isOverflowing;
 
         protected Rect contentRect;
 
         private Rect inRect;
 
-        private bool started = false;
+        private bool started;
 
         public readonly bool ScrollViewOnOverflow;
 
@@ -74,7 +73,7 @@ namespace MissileGirl
 
         public virtual Vector4 Margins
         {
-            get => this.margins;
+            get => margins;
         }
 
         public Rect Rect
@@ -82,17 +81,17 @@ namespace MissileGirl
             get => new Rect(inXMin, curYMin, inXMax - inXMin, inYMax - curYMin);
             set
             {
-                this.inXMin = value.xMin;
-                this.inXMax = value.xMax;
-                this.curYMin = value.yMin;
-                this.inYMin = value.yMin;
-                this.inYMax = value.yMax;
+                inXMin = value.xMin;
+                inXMax = value.xMax;
+                curYMin = value.yMin;
+                inYMin = value.yMin;
+                inYMax = value.yMax;
             }
         }
 
         public IListing_Custom(bool scrollViewOnOverflow = true)
         {
-            this.ScrollViewOnOverflow = scrollViewOnOverflow;
+            ScrollViewOnOverflow = scrollViewOnOverflow;
         }
 
         protected virtual void Begin(Rect inRect, bool scrollViewOnOverflow = true)
@@ -104,15 +103,15 @@ namespace MissileGirl
                 GUIUtility.StashGUIState();
                 GUI.color = Color.white;
                 contentRect = new Rect(0f, 0f, inRect.width - ScrollViewWidthDelta, previousHeight);
-                this.inYMin = contentRect.yMin;
-                this.Rect = contentRect;
+                inYMin = contentRect.yMin;
+                Rect = contentRect;
                 Widgets.BeginScrollView(inRect, ref ScrollPosition, contentRect);
                 GUIUtility.RestoreGUIState();
             }
             else
             {
-                this.inYMin = inRect.yMin;
-                this.Rect = new Rect(inRect.x, inRect.y, inRect.width, inRect.height);
+                inYMin = inRect.yMin;
+                Rect = new Rect(inRect.x, inRect.y, inRect.width, inRect.height);
             }
         }
 
@@ -125,7 +124,7 @@ namespace MissileGirl
 
         protected virtual void Label(TaggedString text, string tooltip = null, bool hightlightIfMouseOver = true, GUIFontSize fontSize = GUIFontSize.Tiny, FontStyle fontStyle = FontStyle.Normal)
         {
-            RectSlice slice = Slice(text.GetTextHeight(this.insideWidth));
+            RectSlice slice = Slice(text.GetTextHeight(insideWidth));
             if (hightlightIfMouseOver)
             {
                 Widgets.DrawHighlightIfMouseover(slice.outside);
@@ -192,7 +191,7 @@ namespace MissileGirl
             GUIFont.CurFontStyle.fontStyle = fontStyle;
 
             Rect rect = Slice(selectedText.GetTextHeight(insideWidth - 23f)).inside;
-            Rect[] columns = rect.Columns(2, 5);
+            Rect[] columns = rect.Columns(2);
 
             Widgets.Label(columns[0], text);
 
@@ -219,7 +218,7 @@ namespace MissileGirl
         protected virtual void Line(float thickness)
         {
             Gap(height: 3.5f);
-            Widgets.DrawBoxSolid(this.Slice(thickness, includeMargins: false).outside, this.CollapsibleBGBorderColor);
+            Widgets.DrawBoxSolid(Slice(thickness, includeMargins: false).outside, CollapsibleBGBorderColor);
             Gap(height: 3.5f);
         }
 
@@ -227,7 +226,7 @@ namespace MissileGirl
         {
             Gap(height: 5);
 
-            GUI.color = this.CollapsibleBGBorderColor;
+            GUI.color = CollapsibleBGBorderColor;
             Widgets.DrawBox(new Rect(inXMin, inYMin, inXMax - inXMin, curYMin - inYMin));
 
             started = true;
@@ -237,7 +236,7 @@ namespace MissileGirl
                 Widgets.EndScrollView();
                 if (started && inRect.height < previousHeight)
                 {
-                    GUI.color = this.CollapsibleBGBorderColor;
+                    GUI.color = CollapsibleBGBorderColor;
                     Widgets.DrawBox(new Rect(inRect.xMin, inRect.yMin, inRect.width - 25f, 1));
                     Widgets.DrawBox(new Rect(inRect.xMin, inRect.yMax - 1, inRect.width - 25f, 1));
                 }
@@ -262,7 +261,7 @@ namespace MissileGirl
                 inside.yMin += margins.y / 2f;
                 inside.yMax -= margins.y / 2f;
             }
-            this.curYMin += includeMargins ? height + margins.y : height;
+            curYMin += includeMargins ? height + margins.y : height;
             Widgets.DrawBoxSolid(outside, CollapsibleBGColor);
             return new RectSlice(inside, outside);
         }

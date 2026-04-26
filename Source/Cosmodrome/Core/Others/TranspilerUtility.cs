@@ -12,7 +12,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
-
 namespace MissileGirl
 {
     public static class TranspilerUtility
@@ -34,8 +33,8 @@ namespace MissileGirl
 
         public static IEnumerable<CodeInstruction> FixConsts(IEnumerable<CodeInstruction> instructions)
         {
-            var codes = instructions.ToList();
-            for (var i = 0; i < codes.Count; i++)
+            List<CodeInstruction> codes = instructions.ToList();
+            for (int i = 0; i < codes.Count; i++)
             {
                 if (codes[i].OperandIs(pZero3))
                 {

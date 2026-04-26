@@ -8,11 +8,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using RimWorld;
 using UnityEngine;
 using Verse;
-using Verse.Sound;
 using GUITextState = System.Tuple<string, MissileGirl.GUIFontSize, System.Tuple<float, float>, System.Tuple<int, int, int, int>, System.Tuple<UnityEngine.FontStyle, UnityEngine.FontStyle, UnityEngine.FontStyle, UnityEngine.FontStyle>>;
 
 namespace MissileGirl
@@ -37,7 +34,7 @@ namespace MissileGirl
             {
                 return text;
             }
-            return text.Substring(0, (int)((float)text.Length * height / rect.height)) + "...";
+            return text.Substring(0, (int)(text.Length * height / rect.height)) + "...";
         }
 
         public static float GetTextHeight(this string text, Rect rect)

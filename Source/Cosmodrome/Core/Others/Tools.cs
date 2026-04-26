@@ -8,13 +8,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using HarmonyLib;
 using RimWorld;
-//using MissileGirl.Optimizations;
 using Verse;
+//using MissileGirl.Optimizations;
 
 namespace MissileGirl
 {
@@ -106,7 +103,7 @@ namespace MissileGirl
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetKey(ThoughtDef def, Pawn pawn)
         {
-            var hash = 0;
+            int hash = 0;
             unchecked
             {
                 hash = HashUtility.HashOne(def.shortHash);
@@ -136,8 +133,8 @@ namespace MissileGirl
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Dictionary<A, B> DeepCopy<A, B>(this Dictionary<A, B> dict)
         {
-            var other = new Dictionary<A, B>();
-            foreach (var unit in dict)
+            Dictionary<A, B> other = new Dictionary<A, B>();
+            foreach (KeyValuePair<A, B> unit in dict)
                 other[unit.Key] = unit.Value;
             return other;
         }

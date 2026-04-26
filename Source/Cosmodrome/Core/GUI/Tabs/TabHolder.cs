@@ -11,8 +11,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
-using MissileGirl;
-
 namespace MissileGirl.Tabs
 {
     public class TabHolder
@@ -47,10 +45,10 @@ namespace MissileGirl.Tabs
 
         public void DoContent(Rect inRect)
         {
-            var selectedFound = false;
-            var counter = 0;
+            bool selectedFound = false;
+            int counter = 0;
 
-            foreach (var tab in tabs)
+            foreach (ITabContent tab in tabs)
             {
                 if (tab.Selected && tab.ShouldShow)
                 {
@@ -148,7 +146,7 @@ namespace MissileGirl.Tabs
             else
             {
                 tabs.RemoveAll(t => t == tab);
-                for (var i = 0; i < tabs.Count; i++)
+                for (int i = 0; i < tabs.Count; i++)
                     if (tabs[i].Selected)
                         curTabIndex = i;
             }
@@ -157,11 +155,11 @@ namespace MissileGirl.Tabs
         private void MakeRecords()
         {
             tabsRecord.Clear();
-            var counter = 0;
-            foreach (var tab in tabs)
+            int counter = 0;
+            foreach (ITabContent tab in tabs)
             {
-                var localTab = tab;
-                var localCounter = counter;
+                ITabContent localTab = tab;
+                int localCounter = counter;
                 tabsRecord.Add(new TabRecord(tab.Label, () =>
                 {
                     tab.Selected = true;
@@ -182,8 +180,8 @@ namespace MissileGirl.Tabs
             Widgets.DrawMenuSection(inRect);
             Widgets.BeginScrollView(inRect, ref scrollPosition, tabBarRect.AtZero());
             Rect rect = new Rect(5, 5, 40, 40);
-            var counter = 0;
-            foreach (var tab in tabs)
+            int counter = 0;
+            foreach (ITabContent tab in tabs)
             {
                 if (!tab.ShouldShow)
                 {
@@ -221,9 +219,9 @@ namespace MissileGirl.Tabs
             Widgets.BeginScrollView(rect, ref scrollPosition, tabBarRect);
             GUIFont.Anchor = TextAnchor.MiddleLeft;
             GUIFont.Font = GUIFontSize.Tiny;
-            var curRect = new Rect(rect.xMin + 5, rect.yMin + 5, 160, 30);
-            var counter = 0;
-            foreach (var tab in tabs)
+            Rect curRect = new Rect(rect.xMin + 5, rect.yMin + 5, 160, 30);
+            int counter = 0;
+            foreach (ITabContent tab in tabs)
             {
                 if (!tab.ShouldShow)
                 {
@@ -235,11 +233,11 @@ namespace MissileGirl.Tabs
                     Widgets.DrawWindowBackgroundTutor(curRect);
                 }
                 Widgets.DrawHighlightIfMouseover(curRect);
-                var textRect = new Rect(curRect);
+                Rect textRect = new Rect(curRect);
                 textRect.xMin += 10;
                 Widgets.Label(textRect, tab.Label);
-                var localTab = tab;
-                var localCounter = counter;
+                ITabContent localTab = tab;
+                int localCounter = counter;
                 if (!tab.Selected && Widgets.ButtonInvisible(curRect))
                 {
                     localTab.Selected = true;

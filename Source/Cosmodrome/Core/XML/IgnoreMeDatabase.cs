@@ -10,9 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using RimWorld;
 using Verse;
-
 namespace MissileGirl
 {
     public static class IgnoreMeDatabase
@@ -46,7 +44,7 @@ namespace MissileGirl
         {
             packageIds.Add(packageId.ToLower());
 
-            MissileGirl.Logger.Message($"ROCKETRULES: IgnoreMeRule for {packageId}");
+            Logger.Message($"ROCKETRULES: IgnoreMeRule for {packageId}");
         }
 
         public static string Report(Def def)
@@ -83,7 +81,7 @@ namespace MissileGirl
             }
             finally
             {
-                MissileGirl.Logger.Message(report);
+                Logger.Message(report);
             }
         }
 

@@ -6,15 +6,6 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using HarmonyLib;
-using Verse;
-using CachedKey = Verse.Pair<Verse.Room, Verse.RoomStatDef>;
-
 namespace MissileGirl.Patches
 {
     //[RocketPatch]

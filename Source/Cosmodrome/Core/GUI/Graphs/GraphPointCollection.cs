@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
 using System.Linq;
 using UnityEngine;
 using static MissileGirl.Grapher;
@@ -93,13 +92,9 @@ namespace MissileGirl
             get => points;
         }
 
-        public GraphPointCollection()
-        {
-        }
-
-        private int _maxAge = 0;
-        private int _minAge = 0;
-        private int _streak = 0;
+        private int _maxAge;
+        private int _minAge;
+        private int _streak;
 
         public void Add(GraphPoint point)
         {

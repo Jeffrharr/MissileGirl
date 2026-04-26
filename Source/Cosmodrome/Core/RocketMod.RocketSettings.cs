@@ -7,12 +7,8 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using Verse;
-
 namespace MissileGirl
 {
     public partial class RocketMod : Mod
@@ -27,10 +23,10 @@ namespace MissileGirl
                     Scribe.loader.InitLoading(RocketEnvironmentInfo.RocketSettingsFilePath);
                     try
                     {
-                        Scribe_Deep.Look(ref RocketMod.Settings, "ModSettings");
-                        settingsFound = RocketMod.Settings != null;
-                        if (RocketMod.Settings == null)
-                            RocketMod.Settings = new RocketSettings();
+                        Scribe_Deep.Look(ref Settings, "ModSettings");
+                        settingsFound = Settings != null;
+                        if (Settings == null)
+                            Settings = new RocketSettings();
                     }
                     catch (Exception er)
                     {
@@ -45,18 +41,18 @@ namespace MissileGirl
             }
             catch (Exception ex)
             {
-                Log.Error($"MissileGirl: Caught exception while loading mod settings data for {Content.FolderName}. Generating fresh settings. The exception was: {ex.ToString()}");
-                RocketMod.Settings = null;
+                Log.Error($"MissileGirl: Caught exception while loading mod settings data for {Content.FolderName}. Generating fresh settings. The exception was: {ex}");
+                Settings = null;
             }
-            if (RocketMod.Settings == null)
+            if (Settings == null)
             {
-                RocketMod.Settings = new RocketSettings();
+                Settings = new RocketSettings();
             }
             if (!settingsFound)
             {
                 WriteSettings();
             }
-            foreach (var action in Main.onSettingsScribedLoaded)
+            foreach (Action action in Main.onSettingsScribedLoaded)
             {
                 try
                 {
@@ -79,7 +75,7 @@ namespace MissileGirl
             Scribe.saver.InitSaving(RocketEnvironmentInfo.RocketSettingsFilePath, "SettingsBlock");
             try
             {
-                Scribe_Deep.Look(ref RocketMod.Settings, "ModSettings");
+                Scribe_Deep.Look(ref Settings, "ModSettings");
             }
             catch (Exception er)
             {
@@ -109,14 +105,14 @@ namespace MissileGirl
             {
                 string version = RocketAssembliesInfo.Version;
                 bool upgrade = false;
-                Scribe_Values.Look(ref version, "version", null, forceSave: true);
+                Scribe_Values.Look(ref version, "version", forceSave: true);
                 if (version != RocketAssembliesInfo.Version && !RocketEnvironmentInfo.IsDevEnv)
                 {
                     upgrade = true;
                     version = RocketAssembliesInfo.Version;
                 }
 
-                Scribe_Values.Look(ref RocketDebugPrefs.Debug, "debug", false);
+                Scribe_Values.Look(ref RocketDebugPrefs.Debug, "debug");
                 Scribe_Values.Look(ref RocketPrefs.Enabled, "enabled", true);
                 Scribe_Values.Look(ref RocketPrefs.Learning, "learning", true);
                 Scribe_Values.Look(ref RocketPrefs.FixBeauty, "FixBeauty", true);
@@ -129,9 +125,9 @@ namespace MissileGirl
 
                 Scribe_Values.Look(ref RocketPrefs.StatGearCachingEnabled, "statGearCachingEnabled", true);
                 Scribe_Values.Look(ref RocketPrefs.ShowWarmUpPopup, "showWarmUpPopup", true);
-                Scribe_Values.Look(ref RocketPrefs.PauseAfterWarmup, "pauseAfterWarmup", false);
+                Scribe_Values.Look(ref RocketPrefs.PauseAfterWarmup, "pauseAfterWarmup");
                 Scribe_Values.Look(ref RocketPrefs.AlertThrottling, "alertThrottling", true);
-                Scribe_Values.Look(ref RocketPrefs.DisableAllAlert, "disableAllAlert", false);
+                Scribe_Values.Look(ref RocketPrefs.DisableAllAlert, "disableAllAlert");
                 Scribe_Values.Look(ref RocketPrefs.LearningAlertEnabled, "learningAlertEnabled", true);
                 if (upgrade)
                 {
@@ -140,17 +136,17 @@ namespace MissileGirl
                 if (!upgrade)
                 {
 
-                    Scribe_Values.Look(ref RocketPrefs.CorpsesRemovalEnabled, "corpsesRemovalEnabled", false);
+                    Scribe_Values.Look(ref RocketPrefs.CorpsesRemovalEnabled, "corpsesRemovalEnabled");
                 }
 
                 Scribe_Values.Look(ref RocketPrefs.MainButtonToggle, "mainButtonToggle", true);
-                Scribe_Values.Look(ref RocketPrefs.DisableForcedSlowdowns, "disableForcedSlowdowns", false);
-                Scribe_Values.Look(ref RocketPrefs.TranslationCaching, "translationCaching", false);
+                Scribe_Values.Look(ref RocketPrefs.DisableForcedSlowdowns, "disableForcedSlowdowns");
+                Scribe_Values.Look(ref RocketPrefs.TranslationCaching, "translationCaching");
             }
 
             private void ScribeExtras()
             {
-                foreach (var action in Main.onScribe)
+                foreach (Action action in Main.onScribe)
                 {
                     try
                     {

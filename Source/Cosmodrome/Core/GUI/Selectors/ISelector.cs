@@ -9,7 +9,6 @@
 using System;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public abstract class ISelector : Window

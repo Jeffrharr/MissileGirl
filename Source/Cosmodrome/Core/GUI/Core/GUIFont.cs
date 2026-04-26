@@ -7,13 +7,8 @@
 // // SPDX-License-Identifier: EPL-2.0
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using RimWorld;
 using UnityEngine;
 using Verse;
-using Verse.Sound;
-
 namespace MissileGirl
 {
     public enum GUIFontSize
@@ -21,9 +16,9 @@ namespace MissileGirl
         Tiny = 0, Smaller = 1, Small = 2, Medium = 3,
     }
 
-    public static partial class GUIFont
+    public static class GUIFont
     {
-        public static bool UseCustomFonts = false;
+        public static bool UseCustomFonts;
 
         private static GUIFontSize fontInt;
 
@@ -60,7 +55,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     return anchorInt;
                 }
@@ -68,7 +63,7 @@ namespace MissileGirl
             }
             set
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     anchorInt = value;
 
@@ -84,7 +79,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     return wordWrapInt;
                 }
@@ -92,7 +87,7 @@ namespace MissileGirl
             }
             set
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     wordWrapInt = value;
 
@@ -107,7 +102,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     return fontInt;
                 }
@@ -115,7 +110,7 @@ namespace MissileGirl
             }
             set
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     fontInt = value;
                     return;
@@ -128,7 +123,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     GUIStyle style = tempfontStyles[0];
                     switch (fontInt)
@@ -158,7 +153,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     GUIStyle style = temptextAreaReadOnlyStyles[0];
                     switch (fontInt)
@@ -186,7 +181,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     GUIStyle style = temptextAreaStyles[0];
                     switch (fontInt)
@@ -214,7 +209,7 @@ namespace MissileGirl
         {
             get
             {
-                if (GUIFont.UseCustomFonts)
+                if (UseCustomFonts)
                 {
                     GUIStyle style = temptextFieldStyles[0];
                     switch (fontInt)
@@ -307,12 +302,12 @@ namespace MissileGirl
                 obj.onFocused.background = null;
                 obj.focused.background = null;
             }
-            GUIFont.RestorStyles();
+            RestorStyles();
 
             UseCustomFonts = true;
 
             int index = 0;
-            foreach (GUIFontSize value in new GUIFontSize[]
+            foreach (GUIFontSize value in new[]
             {
                 GUIFontSize.Tiny, GUIFontSize.Smaller, GUIFontSize.Small, GUIFontSize.Medium
             })

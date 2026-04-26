@@ -11,10 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
-using MissileGirl;
-using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
@@ -41,13 +38,13 @@ namespace MissileGirl
 
     public class RocketStartupPatcher
     {
-        public static RocketStartupPatchInfo[] patches = null;
+        public static RocketStartupPatchInfo[] patches;
 
         public static void PatchAll()
         {
-            foreach (var patch in patches)
+            foreach (RocketStartupPatchInfo patch in patches)
                 patch.Patch(Finder.Harmony);
-            if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"MissileGirl: Patching finished");
+            if (RocketDebugPrefs.Debug) Logger.Message("MissileGirl: Patching finished");
         }
 
         static RocketStartupPatcher()
@@ -59,7 +56,7 @@ namespace MissileGirl
             {
                 RocketStartupPatchInfo patch = new RocketStartupPatchInfo(type);
                 patchList.Add(patch);
-                if (RocketDebugPrefs.Debug) MissileGirl.Logger.Message($"MissileGirl: Found patch in {type} and is {(patch.IsValid ? "valid" : "invalid")}");
+                if (RocketDebugPrefs.Debug) Logger.Message($"MissileGirl: Found patch in {type} and is {(patch.IsValid ? "valid" : "invalid")}");
             }
             patches = patchList.Where(p => p.IsValid).ToArray();
         }

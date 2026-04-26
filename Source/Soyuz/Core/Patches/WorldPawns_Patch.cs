@@ -54,7 +54,7 @@ namespace Soyuz.Patches
                 }
                 if (!finished)
                 {
-                    throw new System.Exception();
+                    throw new InvalidOperationException("MissileGirl: Failed to patch WorldPawns.DefPreventingMothball");
                 }
             }
 

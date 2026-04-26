@@ -13,7 +13,6 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
 
@@ -23,13 +22,13 @@ namespace MissileGirl
     {
         public static Action drawButtonsCached;
 
-        public static FieldInfo mDrawButtonCache = AccessTools.Field(typeof(DebugWindowsOpener_Patch), nameof(DebugWindowsOpener_Patch.drawButtonsCached));
+        public static FieldInfo mDrawButtonCache = AccessTools.Field(typeof(DebugWindowsOpener_Patch), nameof(drawButtonsCached));
 
         static DebugWindowsOpener_Patch()
         {
-            Finder.Harmony.Patch(AccessTools.Constructor(typeof(DebugWindowsOpener)), postfix: new HarmonyMethod(AccessTools.Method(typeof(DebugWindowsOpener_Patch), nameof(DebugWindowsOpener_Patch.Postfix))));
+            Finder.Harmony.Patch(AccessTools.Constructor(typeof(DebugWindowsOpener)), postfix: new HarmonyMethod(AccessTools.Method(typeof(DebugWindowsOpener_Patch), nameof(Postfix))));
 
-            Finder.Harmony.Patch(AccessTools.Method(typeof(DebugWindowsOpener), nameof(DebugWindowsOpener.DevToolStarterOnGUI)), transpiler: new HarmonyMethod(AccessTools.Method(typeof(DebugWindowsOpener_Patch), nameof(DebugWindowsOpener_Patch.Transpiler))));
+            Finder.Harmony.Patch(AccessTools.Method(typeof(DebugWindowsOpener), nameof(DebugWindowsOpener.DevToolStarterOnGUI)), transpiler: new HarmonyMethod(AccessTools.Method(typeof(DebugWindowsOpener_Patch), nameof(Transpiler))));
         }
 
         public static void Postfix(DebugWindowsOpener __instance)
@@ -38,7 +37,7 @@ namespace MissileGirl
             {
                 __instance.DrawButtons();
 
-                if (__instance.widgetRow.ButtonIcon(ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_debug_options_button", true), "Open " + "<color=orange>MissileGirls</color> hidden debug options."))
+                if (__instance.widgetRow.ButtonIcon(ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_debug_options_button"), "Open " + "<color=orange>MissileGirls</color> hidden debug options."))
                 {
                     if (Find.WindowStack.WindowOfType<Window_HiddenDebugMenu>() != null)
                     {
@@ -56,6 +55,7 @@ namespace MissileGirl
         public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             bool patched = false;
+            bool replacedDrawButtons = false;
             foreach (CodeInstruction code in instructions)
             {
                 if (!patched && code.opcode == OpCodes.Ldc_R4 && 28f.Equals(code.operand))
@@ -70,9 +70,14 @@ namespace MissileGirl
                     {
                         labels = code.labels
                     };
+                    replacedDrawButtons = true;
                     continue;
                 }
                 yield return code;
+            }
+            if (!patched || !replacedDrawButtons)
+            {
+                Logger.Debug("MissileGirl: DebugWindowsOpener.DevToolStarterOnGUI patch did not find all expected IL anchors.");
             }
         }
     }

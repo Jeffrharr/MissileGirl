@@ -9,7 +9,6 @@
 using System.Collections.Generic;
 using HarmonyLib;
 using Verse;
-
 namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(PlayLog), nameof(PlayLog.ReduceToCapacity))]
@@ -17,7 +16,7 @@ namespace MissileGirl.Optimizations
     {
         public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            foreach (var code in instructions)
+            foreach (CodeInstruction code in instructions)
             {
                 if (code.OperandIs(150))
                     code.operand = 75;

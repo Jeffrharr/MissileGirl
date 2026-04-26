@@ -8,18 +8,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using HarmonyLib;
 using RimWorld;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl.Optimizations
 {
     [RocketPatch(typeof(StatWorker), nameof(StatWorker.GetValue), parameters = new[]
@@ -39,13 +36,13 @@ namespace MissileGirl.Optimizations
             {
                 this.value = value;
                 this.signature = signature;
-                this.tick = GenTicks.TicksGame;
+                tick = GenTicks.TicksGame;
             }
         }
 
         private static CachedUnit store;
 
-        private static bool hijackedCaller = false;
+        private static bool hijackedCaller;
 
         private const int MAX_CACHE_SIZE = 10000;
 
@@ -56,9 +53,9 @@ namespace MissileGirl.Optimizations
             typeof(StatRequest), typeof(bool)
         });
 
-        private static MethodBase mGetValueUnfinalized_Replacemant = AccessTools.Method(typeof(StatWorker_Patch), nameof(StatWorker_Patch.Replacemant));
+        private static MethodBase mGetValueUnfinalized_Replacemant = AccessTools.Method(typeof(StatWorker_Patch), nameof(Replacemant));
 
-        private static MethodBase mGetValueUnfinalized_Transpiler = AccessTools.Method(typeof(StatWorker_Patch), nameof(StatWorker_Patch.Transpiler));
+        private static MethodBase mGetValueUnfinalized_Transpiler = AccessTools.Method(typeof(StatWorker_Patch), nameof(Transpiler));
 
         private static FieldInfo fHijackedCaller = AccessTools.Field(typeof(StatWorker_Patch), nameof(hijackedCaller));
 
@@ -169,13 +166,13 @@ namespace MissileGirl.Optimizations
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
         {
-            var codes = instructions.ToList();
+            List<CodeInstruction> codes = instructions.ToList();
             for (int i = 0; i < codes.Count; i++)
             {
-                var code = codes[i];
+                CodeInstruction code = codes[i];
                 if (code.OperandIs(mGetValueUnfinalized))
                 {
-                    MissileGirl.Logger.Message($"MissileGirl: Hijacking {original.GetMethodSummary()}");
+                    Logger.Message($"MissileGirl: Hijacking {original.GetMethodSummary()}");
                     break;
                 }
             }

@@ -6,21 +6,16 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl
 {
     [RocketPatch(typeof(MainMenuDrawer), nameof(MainMenuDrawer.DoMainMenuControls))]
     public static class MainMenuDrawer_DoMainMenuControls_Patch
     {
-        private static bool finished = false;
+        private static bool finished;
 
-        private static bool confirming = false;
+        private static bool confirming;
 
         public static bool Prefix()
         {

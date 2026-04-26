@@ -9,10 +9,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using MissileGirl.Tabs;
 using UnityEngine;
-using UnityEngine.Playables;
 using Verse;
 using static MissileGirl.Main;
 
@@ -22,7 +20,7 @@ namespace MissileGirl
     {
         private TabHolder tabs;
 
-        private int _errors = 0;
+        private int _errors;
 
         public override Vector2 InitialSize => new Vector2(685, 700);
 
@@ -39,18 +37,18 @@ namespace MissileGirl
             layer = WindowLayer.SubSuper;
             resizer = new WindowResizer();
             resizer.minWindowSize = new Vector2(InitialSize.x, 450);
-            tabs = new TabHolder(new List<ITabContent>()
+            tabs = new TabHolder(new List<ITabContent>
             {
-                new TabContent_Stats()
+                new TabContent_Stats
                 {
                     Selected = false
                 },
             }, useSidebar: true);
-            Main.yieldTabContent = FunctionsUtility.GetFunctions<YieldTabContent, ITabContent>().ToList();
-            for (var i = 0; i < Main.yieldTabContent.Count; i++)
+            yieldTabContent = FunctionsUtility.GetFunctions<YieldTabContent, ITabContent>().ToList();
+            for (int i = 0; i < yieldTabContent.Count; i++)
             {
-                ITabContent tab = Main.yieldTabContent[i].Invoke();
-                MissileGirl.Logger.Message($"MissileGirl: Found a new tab {tab.Label}");
+                ITabContent tab = yieldTabContent[i].Invoke();
+                Logger.Message($"MissileGirl: Found a new tab {tab.Label}");
                 tabs.AddTab(tab);
             }
             Finder.MissileGirlWindow = this;

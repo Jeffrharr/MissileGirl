@@ -11,7 +11,6 @@ using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl
 {
     public static class MapGenerator_Patch
@@ -35,7 +34,7 @@ namespace MissileGirl
                             mapSize.z = (int)vector.z;
 
                             comp.useCustomMapSizes = false;
-                            MissileGirl.Logger.Message($"MissileGirl: Applied custom map size for new settelment/map");
+                            Logger.Message("MissileGirl: Applied custom map size for new settelment/map");
                         }
                     }
                 }
@@ -43,7 +42,9 @@ namespace MissileGirl
                 {
                     Logger.Debug("MissileGirl: Caught error while generating map", er);
                     if (RocketEnvironmentInfo.IsDevEnv && Prefs.DevMode)
-                        throw er;
+                    {
+                        throw;
+                    }
                 }
             }
         }

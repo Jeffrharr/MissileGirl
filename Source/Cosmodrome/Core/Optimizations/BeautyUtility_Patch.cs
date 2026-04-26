@@ -13,10 +13,8 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using RimWorld;
-using RimWorld.Planet;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl.Patches
 {
     public class BeautyUtility_Patch
@@ -62,6 +60,10 @@ namespace MissileGirl.Patches
                         }
                     }
                     yield return codes[i];
+                }
+                if (!finished)
+                {
+                    throw new InvalidOperationException("MissileGirl: Failed to patch BeautyUtility.FillBeautyRelevantCells; BeautyUtility.SampleNumCells_Beauty load was not found.");
                 }
             }
         }

@@ -6,12 +6,10 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.IO;
 using RimWorld;
 using UnityEngine;
 using Verse;
-
 namespace MissileGirl.Tabs
 {
     public class TabContent_Settings : ITabContent
@@ -20,7 +18,7 @@ namespace MissileGirl.Tabs
         public override string Label => KeyedResources.MissileGirl_Tab;
         public override bool ShouldShow => true;
 
-        private Texture2D Graphic => field ??= ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_main_nobackground", true);
+        private Texture2D Graphic => field ??= ContentFinder<Texture2D>.Get("MissileGirl/UI/missilegirl_main_nobackground");
 
         private const float BannerHeight = 200f;
         private const float BannerGap = 15f;
@@ -118,7 +116,7 @@ namespace MissileGirl.Tabs
                             GUIFont.Anchor = TextAnchor.MiddleLeft;
                             float a = info.InitialMapHeight;
                             string buf = $"{a}";
-                            Widgets.Label(rect.MoveTopLeftCorner(25f, 0), KeyedResources.MissileGirl_GenMapSize_Height);
+                            Widgets.Label(rect.MoveTopLeftCorner(25f), KeyedResources.MissileGirl_GenMapSize_Height);
                             Widgets.TextFieldNumeric(rect.RightHalf(), ref a, ref buf, 0, 1000);
                             if ((int)a == info.InitialMapHeight) return;
                             info.InitialMapHeight = (int)a;

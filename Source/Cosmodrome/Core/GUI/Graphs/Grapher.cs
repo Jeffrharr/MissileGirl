@@ -8,12 +8,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using UnityEngine;
-using UnityEngine.UIElements;
 using Verse;
-
 namespace MissileGirl
 {
     public class Grapher
@@ -46,7 +42,7 @@ namespace MissileGirl
 
         private GraphPoint mouseIsOverPoint = new GraphPoint(0, 0, Color.white);
 
-        private bool mouseIsOver = false;
+        private bool mouseIsOver;
 
         private List<Action<Rect>> header;
 
@@ -105,16 +101,16 @@ namespace MissileGirl
         {
             this.title = title;
             this.description = description ?? string.Empty;
-            this.header = new List<Action<Rect>>()
+            header = new List<Action<Rect>>
             {
-                (rect) =>
+                rect =>
                 {
                     GUIFont.Font = GUIFontSize.Tiny;
                     GUIFont.Anchor = TextAnchor.MiddleLeft;
                     rect.xMin += 25;
                     Widgets.Label(rect, $"Min T:<color=cyan>{Math.Round(MinT, 4)}</color>");
                 },
-                (rect) =>
+                rect =>
                 {
                     if (mouseIsOver)
                     {
@@ -123,7 +119,7 @@ namespace MissileGirl
                         Widgets.Label(rect, $"Current:(<color=cyan>{Math.Round(mouseIsOverPoint.t, 4)}</color>,<color=cyan>{Math.Round(mouseIsOverPoint.y, 4)}</color>)");
                     }
                 },
-                (rect) =>
+                rect =>
                 {
                     GUIFont.Font = GUIFontSize.Tiny;
                     GUIFont.Anchor = TextAnchor.MiddleRight;
@@ -139,7 +135,7 @@ namespace MissileGirl
 
         public void Add(float t, float y)
         {
-            this.Add(t, y, Color.cyan);
+            Add(t, y, Color.cyan);
         }
 
         public void Add(float t, float y, Color color)
@@ -168,13 +164,13 @@ namespace MissileGirl
                 points.Rebuild();
                 pointsQueue.Clear();
             }
-            collapsible.Begin(inRect, this.title);
+            collapsible.Begin(inRect, title);
             if (points.Ready && points.Count > 24)
             {
                 GUI.color = Color.white;
-                collapsible.Columns(15, this.header);
+                collapsible.Columns(15, header);
                 collapsible.Line(1);
-                collapsible.Lambda(100, this.Draw);
+                collapsible.Lambda(100, Draw);
 
                 if (!description.NullOrEmpty())
                 {
@@ -219,7 +215,7 @@ namespace MissileGirl
             width -= textOffset;
             rect.xMin += textOffset;
 
-            this.mouseIsOver = false;
+            mouseIsOver = false;
 
             Vector2 v0 = new Vector2();
             Vector2 v1 = new Vector2();

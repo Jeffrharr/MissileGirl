@@ -6,14 +6,9 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Xml;
-using HarmonyLib;
 using Verse;
-
 namespace MissileGirl
 {
     public static class XMLParser
@@ -22,14 +17,14 @@ namespace MissileGirl
 
         public static void ParseXML()
         {
-            MissileGirl.Logger.Message("MissileGirl: XMLParser started");
+            Logger.Message("MissileGirl: XMLParser started");
             foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
             {
                 LoadableXmlAsset[] assets = DirectXmlLoader.XmlAssetsInModFolder(mod, rocketRulesFolder);
-                foreach (var ass in assets)
+                foreach (LoadableXmlAsset ass in assets)
                 {
                     if (!ass.name.ToLower().StartsWith("rocket") || !ass.name.ToLower().EndsWith(".xml")) continue;
-                    foreach (var element in ass.xmlDoc["RocketRules"].OfType<XmlElement>())
+                    foreach (XmlElement element in ass.xmlDoc["RocketRules"].OfType<XmlElement>())
                         ProcessRocketRuleData(element);
                 }
             }
@@ -47,7 +42,6 @@ namespace MissileGirl
                 if (node.HasAttribute("packageId"))
                 {
                     IgnoreMeDatabase.AddPackageId(node.GetAttribute("packageId"));
-                    return;
                 }
             }
             else if (node.Name == "Incompatibility")

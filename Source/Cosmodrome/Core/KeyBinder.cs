@@ -12,12 +12,11 @@ using System.Reflection;
 using HarmonyLib;
 using RimWorld;
 using Verse;
-
 namespace MissileGirl
 {
     public static class KeyBinder
     {
-        private static bool success = false;
+        private static bool success;
 
         private static KeyBindingDef ToggleMissileGirl;
 
@@ -29,7 +28,7 @@ namespace MissileGirl
 
         private static MethodBase mtarget = AccessTools.Method(typeof(UIRoot_Play), nameof(UIRoot_Play.UIRootOnGUI));
 
-        private static MethodBase mOnGUI = AccessTools.Method(typeof(KeyBinder), nameof(KeyBinder.OnGUI));
+        private static MethodBase mOnGUI = AccessTools.Method(typeof(KeyBinder), nameof(OnGUI));
 
         [Main.OnDefsLoaded]
         public static void Start()
@@ -46,7 +45,7 @@ namespace MissileGirl
 
                 Finder.Harmony.Patch(mtarget, postfix: new HarmonyMethod(mOnGUI as MethodInfo));
 
-                MissileGirl.Logger.Message("MissileGirl: Patched KeyBinder!");
+                Logger.Message("MissileGirl: Patched KeyBinder!");
 
                 success = true;
             }

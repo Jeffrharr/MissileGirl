@@ -12,7 +12,6 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Verse;
-
 namespace MissileGirl
 {
     public static class FunctionsUtility
@@ -47,7 +46,7 @@ namespace MissileGirl
 
         public static IEnumerable<Action> GetActions<T>() where T : Attribute
         {
-            foreach (var method in RocketAssembliesInfo.Assemblies
+            foreach (MethodInfo method in RocketAssembliesInfo.Assemblies
                     .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
                     .SelectMany(t => AccessTools.GetDeclaredMethods(t))
                     .Where(m => m.HasAttribute<T>())
@@ -61,7 +60,7 @@ namespace MissileGirl
 
         public static IEnumerable<Action<P>> GetActions<T, P>() where T : Attribute
         {
-            foreach (var method in RocketAssembliesInfo.Assemblies
+            foreach (MethodInfo method in RocketAssembliesInfo.Assemblies
                     .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
                     .SelectMany(t => AccessTools.GetDeclaredMethods(t))
                     .Where(m => m.HasAttribute<T>())
@@ -69,7 +68,7 @@ namespace MissileGirl
             {
                 Logger.Debug(string.Format("MissileGirl: Found action with attribute {0}, {1}:{2}", typeof(T).Name,
                                            method.DeclaringType.Name, method.Name));
-                yield return (param) =>
+                yield return param =>
                 {
                     method.Invoke(null, new object[]
                     {
@@ -81,7 +80,7 @@ namespace MissileGirl
 
         public static IEnumerable<Action<P, K>> GetActions<T, P, K>() where T : Attribute
         {
-            foreach (var method in RocketAssembliesInfo.Assemblies
+            foreach (MethodInfo method in RocketAssembliesInfo.Assemblies
                     .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
                     .SelectMany(t => AccessTools.GetDeclaredMethods(t))
                     .Where(m => m.HasAttribute<T>())
@@ -101,7 +100,7 @@ namespace MissileGirl
 
         public static IEnumerable<Func<P>> GetFunctions<T, P>() where T : Attribute
         {
-            foreach (var method in RocketAssembliesInfo.Assemblies
+            foreach (MethodInfo method in RocketAssembliesInfo.Assemblies
                     .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
                     .SelectMany(t => AccessTools.GetDeclaredMethods(t))
                     .Where(m => m.HasAttribute<T>())
@@ -115,7 +114,7 @@ namespace MissileGirl
 
         public static IEnumerable<Func<P, K>> GetFunctions<T, P, K>() where T : Attribute
         {
-            foreach (var method in RocketAssembliesInfo.Assemblies
+            foreach (MethodInfo method in RocketAssembliesInfo.Assemblies
                     .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
                     .SelectMany(t => AccessTools.GetDeclaredMethods(t))
                     .Where(m => m.HasAttribute<T>())
@@ -123,7 +122,7 @@ namespace MissileGirl
             {
                 Logger.Debug(string.Format("MissileGirl: Found function with attribute {0}, {1}:{2}", typeof(T).Name,
                                            method.DeclaringType.Name, method.Name));
-                yield return (input) => (K)method.Invoke(null, new object[]
+                yield return input => (K)method.Invoke(null, new object[]
                 {
                     input
                 });
@@ -132,7 +131,7 @@ namespace MissileGirl
 
         public static IEnumerable<Func<P, K, U>> GetFunctions<T, P, K, U>() where T : Attribute
         {
-            foreach (var method in RocketAssembliesInfo.Assemblies
+            foreach (MethodInfo method in RocketAssembliesInfo.Assemblies
                     .SelectMany(a => AccessTools.GetTypesFromAssembly(a))
                     .SelectMany(t => AccessTools.GetDeclaredMethods(t))
                     .Where(m => m.HasAttribute<T>())

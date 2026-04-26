@@ -6,12 +6,8 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
-using System.Collections.Generic;
 using System.Reflection;
-using HarmonyLib;
 using Verse;
-
 namespace MissileGirl
 {
     [StaticConstructorOnStartup]

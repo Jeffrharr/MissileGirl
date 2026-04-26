@@ -6,11 +6,9 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Verse;
-
 namespace MissileGirl
 {
     public static class IncompatibilityHelper
@@ -27,7 +25,7 @@ namespace MissileGirl
 
         public static void Register(string name, string packageId)
         {
-            metaDatabase.Add(new ModMetaData()
+            metaDatabase.Add(new ModMetaData
             {
                 name = name,
                 packageId = packageId
