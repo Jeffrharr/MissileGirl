@@ -19,11 +19,14 @@ namespace Gagarin
 {
     public class TabContent_Gagarin : ITabContent
     {
+        private string cacheRetentionTimeBuffer;
+
         private List<FilterMode> optionsFilter;
 
         private List<Action<Rect>> columnsFilter;
 
         private Listing_Collapsible collapsible = new Listing_Collapsible(expanded: true);
+        private Listing_Collapsible cacheCollapsible = new Listing_Collapsible(expanded: true);
 
         public override Texture2D Icon => TexTab.Gagarin;
 
@@ -85,13 +88,47 @@ namespace Gagarin
             if (GagarinPrefs.Enabled)
             {
                 collapsible.Line(1);
-                collapsible.Label(KeyedResources.Gagarin_Expiry.Formatted(3 - DateTime.Now.Subtract(GagarinPrefs.CacheCreationTime).Days));
+                if (collapsible.CheckboxLabeled("Gagarin.CacheExpires".Translate(), ref GagarinPrefs.CacheExpires, "Gagarin.CacheExpires.Desc".Translate()))
+                {
+                    GagarinSettings.WriteSettings();
+                }
+
+                if (GagarinPrefs.CacheExpires)
+                {
+                    int daysLeft = Math.Max(0, GagarinPrefs.CacheRetentionTime - DateTime.Now.Subtract(GagarinPrefs.CacheCreationTime).Days);
+                    collapsible.Label("Gagarin.Expiry".Translate(daysLeft));
+                    collapsible.Gap(4);
+
+                    collapsible.Lambda(30, rect =>
+                    {
+                        cacheRetentionTimeBuffer ??= GagarinPrefs.CacheRetentionTime.ToString();
+
+                        Rect labelRect = rect.LeftPartPixels(rect.width - 80f);
+                        Rect fieldRect = rect.RightPartPixels(80f);
+
+                        TextAnchor oldAnchor = Text.Anchor;
+                        Text.Anchor = TextAnchor.MiddleLeft;
+                        Widgets.Label(labelRect, "Gagarin.CacheRetentionTime".Translate());
+                        Text.Anchor = oldAnchor;
+
+                        int oldValue = GagarinPrefs.CacheRetentionTime;
+
+                        Widgets.TextFieldNumeric(fieldRect, ref GagarinPrefs.CacheRetentionTime, ref cacheRetentionTimeBuffer, min: 1, max: 365);
+
+                        if (GagarinPrefs.CacheRetentionTime != oldValue)
+                        {
+                            GagarinSettings.WriteSettings();
+                        }
+                    }, useMargins: true);
+                }
+
                 collapsible.Gap(4);
                 collapsible.Label(KeyedResources.Gagarin_Tip);
                 collapsible.Label(KeyedResources.Gagarin_Tip, invert: true);
                 collapsible.Line(1);
                 collapsible.Label(KeyedResources.Gagarin_ClearCache_Description);
-                collapsible.Lambda(25, (rect) =>
+
+                collapsible.Lambda(25, rect =>
                 {
                     if (Widgets.ButtonText(rect, label: KeyedResources.Gagarin_ClearCache))
                     {
@@ -100,6 +137,7 @@ namespace Gagarin
                     }
                 }, useMargins: true);
             }
+
             collapsible.End(ref rect);
             if (GUI.changed)
             {

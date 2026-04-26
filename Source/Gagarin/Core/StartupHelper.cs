@@ -59,7 +59,7 @@ namespace Gagarin
             RunningModsSetUtility.Dump(Context.RunningMods, GagarinEnvironmentInfo.ModListFilePath);
 
             GagarinSettings.LoadSettings();
-            if (DateTime.Now.Subtract(GagarinPrefs.CacheCreationTime).Days >= 2)
+            if (GagarinPrefs.CacheExpires && DateTime.Now.Subtract(GagarinPrefs.CacheCreationTime).Days >= GagarinPrefs.CacheRetentionTime)
             {
                 GagarinPrefs.CacheCreationTime = default(DateTime);
                 Context.IsUsingCache = false;

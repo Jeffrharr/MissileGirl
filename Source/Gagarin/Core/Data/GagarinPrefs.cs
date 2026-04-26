@@ -20,5 +20,8 @@ namespace Gagarin
         public static float MipMapBias = float.MinValue;
 
         public static DateTime CacheCreationTime;
+
+        public static bool CacheExpires = true;
+        public static int CacheRetentionTime = 3;
     }
 }

@@ -52,6 +52,8 @@ namespace Gagarin
             Scribe_Values.Look(ref GagarinPrefs.TextureCachingEnabled, "TextureCachingEnabled", false);
             Scribe_Values.Look(ref GagarinPrefs.FilterMode, "FilterMode", (int)UnityEngine.FilterMode.Trilinear);
             Scribe_Values.Look(ref GagarinPrefs.MipMapBias, "MipMapBias", float.MinValue);
+            Scribe_Values.Look(ref GagarinPrefs.CacheExpires, "CacheExpires", true);
+            Scribe_Values.Look(ref GagarinPrefs.CacheRetentionTime, "CacheRetentionTime", 3);
 
             if (Scribe.mode == LoadSaveMode.Saving)
             {
