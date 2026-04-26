@@ -21,12 +21,7 @@ namespace Gagarin
     {
         private string cacheRetentionTimeBuffer;
 
-        private List<FilterMode> optionsFilter;
-
-        private List<Action<Rect>> columnsFilter;
-
         private Listing_Collapsible collapsible = new Listing_Collapsible(expanded: true);
-        private Listing_Collapsible cacheCollapsible = new Listing_Collapsible(expanded: true);
 
         public override Texture2D Icon => TexTab.Gagarin;
 
@@ -36,45 +31,7 @@ namespace Gagarin
 
         public TabContent_Gagarin()
         {
-            optionsFilter = new List<FilterMode>()
-            {
-                FilterMode.Bilinear,
-                FilterMode.Trilinear
-            };
-            this.columnsFilter = new List<Action<Rect>>()
-            {
-                (rect) =>
-                {
-                    GUIFont.Anchor = TextAnchor.MiddleLeft;
 
-                    Widgets.Label(rect, KeyedResources.Gagarin_FilterMode);
-                },
-                (rect) =>
-                {
-                    if (Widgets.ButtonText(rect, (FilterMode)GagarinPrefs.FilterMode == FilterMode.Bilinear ? "Bilinear" : "Trilinear"))
-                    {
-                        FloatMenuUtility.MakeMenu(optionsFilter,
-                                                  (mode) =>
-                                                  {
-                                                      if (mode == FilterMode.Bilinear)
-                                                          return "Bilinear";
-                                                      if (mode == FilterMode.Trilinear)
-                                                          return "Trilinear";
-                                                      return "";
-                                                  },
-                                                  (mode) =>
-                                                  {
-                                                      return () =>
-                                                      {
-                                                          GagarinPrefs.FilterMode = (int)mode;
-                                                          GagarinSettings.WriteSettings();
-                                                          ClearCache();
-                                                      };
-                                                  }
-                        );
-                    }
-                }
-            };
         }
 
         public override void DoContent(Rect rect)

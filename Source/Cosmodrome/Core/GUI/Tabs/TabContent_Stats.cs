@@ -62,6 +62,9 @@ namespace MissileGirl.Tabs
                                               });
         }
 
+        [Main.YieldTabContent]
+        public static ITabContent YieldTab() => new TabContent_Stats();
+
         public override void OnSelect()
         {
             base.OnSelect();

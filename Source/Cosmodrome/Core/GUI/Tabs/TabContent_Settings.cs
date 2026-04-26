@@ -192,7 +192,6 @@ namespace MissileGirl.Tabs
         public override void OnSelect() => base.OnSelect();
         public override void OnDeselect() => base.OnDeselect();
 
-        [Main.YieldTabContent]
         [Main.YieldModMenuTab]
         public static ITabContent YieldTab() => new TabContent_Settings();
     }
