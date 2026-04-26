@@ -42,33 +42,10 @@
     <MissileGirl.Debugging>Включить дебаг режим</MissileGirl.Debugging>
     <MissileGirl.Debugging.Description>Только для продвинутых пользователей и моддеров
     </MissileGirl.Debugging.Description>
+
     <!-- Soyuz Soyuz.TabContent_DilationSettings -->
     <Soyuz.Tab>Настройки замедления времени</Soyuz.Tab>
-    <Soyuz.Colored.Disabled>Отключено</Soyuz.Colored.Disabled>
-    <Soyuz.Colored.IgnoredAndDisabled>Игнорируется и выключено</Soyuz.Colored.IgnoredAndDisabled>
-    <Soyuz.Colored.IsFastMoving>Быстро двигается</Soyuz.Colored.IsFastMoving>
-    <Soyuz.Colored.IgnorePlayerFaction>Игрорировать фракцию игрока</Soyuz.Colored.IgnorePlayerFaction>
-    <Soyuz.Colored.IgnoreAllFaction>Игнорировать все фракции</Soyuz.Colored.IgnoreAllFaction>
-    <Soyuz.EnableTimeDilation>Включить замедление времени</Soyuz.EnableTimeDilation>
-    <Soyuz.Current.Enable>Включено</Soyuz.Current.Enable>
-    <Soyuz.Current.IgnorePlayerFaction>Игрорировать фракцию игрока</Soyuz.Current.IgnorePlayerFaction>
-    <Soyuz.Current.IgnoreAllFactions>Игнорировать все фракции</Soyuz.Current.IgnoreAllFactions>
-    <Soyuz.Current.FastPawn>Объект двигается слишком быстро что бы применить замедление</Soyuz.Current.FastPawn>
-    <Soyuz.Current.Ignored>Объект игнорирутеся, потому что:</Soyuz.Current.Ignored>
-    <Soyuz.Current.MoveSpeed>Этот тип движется со средней скоростью {0} клеток/в сек</Soyuz.Current.MoveSpeed>
-    <Soyuz.Current.EnableTimeDilation>Включить замедление времени</Soyuz.Current.EnableTimeDilation>
-    <Soyuz.Current.EnableTimeDilationVisitors>Включить замедление времени для гостей
-    </Soyuz.Current.EnableTimeDilationVisitors>
-    <Soyuz.Current.EnableTimeWorldPawns>Включить замедление времени для внешних пешек
-    </Soyuz.Current.EnableTimeWorldPawns>
-    <Soyuz.Current.EnableTimeWildlife>Включить замедление времени для дикий животных</Soyuz.Current.EnableTimeWildlife>
-    <Soyuz.Current.EnableTimeColonnyAnimals>Включить замедление времени для ручных животных
-    </Soyuz.Current.EnableTimeColonnyAnimals>
-    <Soyuz.DilationDisabled>Замедление времени отключено!</Soyuz.DilationDisabled>
-    <Soyuz.EnableDataLogging>Включить запись дебаг информации</Soyuz.EnableDataLogging>
-    <Soyuz.Debug150MTPS>Ускорить тик рейт игры в 150 раз</Soyuz.Debug150MTPS>
-    <Soyuz.FlashPawns>Включить индикаторы замедленных пешек</Soyuz.FlashPawns>
-    <Soyuz.AlwaysDilate>Эмулировать нахождение объектов за пределами экрана</Soyuz.AlwaysDilate>
+
     <!-- Proton Proton.TabContent_Alerts -->
     <Proton.Tab>Настройки уведомлений</Proton.Tab>
     <Proton.Colored.ActiveNow>Активна сейчас</Proton.Colored.ActiveNow>

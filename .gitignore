@@ -11,3 +11,4 @@ Source/.mfractor/
 *.pdb
 *.vs
 .DS_Store
+*.dds

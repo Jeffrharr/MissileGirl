@@ -34,7 +34,7 @@ namespace Gagarin
                         File.Delete(GagarinEnvironmentInfo.UnifiedXmlFilePath);
                     StackTrace trace = new StackTrace(1);
                     StringBuilder builder = new StringBuilder();
-                    builder.Append("GAGARIN: <color=yello>Cache disabled from</color>");
+                    builder.Append("GAGARIN: <color=yellow>Cache disabled from</color>");
                     for (int i = 0; i < trace.FrameCount; i++)
                     {
                         var frame = trace.GetFrame(i);

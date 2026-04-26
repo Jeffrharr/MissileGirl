@@ -25,6 +25,5 @@ namespace MissileGirl
 
         public static bool LogData = false;
 
-        public static bool Debug150MTPS = false;
     }
 }

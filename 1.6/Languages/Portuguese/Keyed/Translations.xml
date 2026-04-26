@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
     <!-- General -->
     <MissileGirl.Settings>Configurações</MissileGirl.Settings>
@@ -77,44 +77,10 @@
     </MissileGirl.EnableGearStatCaching>
     <MissileGirl.Debugging>Habilitar debugging</MissileGirl.Debugging>
     <MissileGirl.Debugging.Description>Apenas para usuários avançados e modders</MissileGirl.Debugging.Description>
+
     <!-- Soyuz Soyuz.TabContent_DilationSettings -->
     <Soyuz.Tab>Controle de dilatação temporal</Soyuz.Tab>
-    <Soyuz.Colored.Disabled>Desabilitado</Soyuz.Colored.Disabled>
-    <Soyuz.Colored.IgnoredAndDisabled>Ignorado e desabilitado</Soyuz.Colored.IgnoredAndDisabled>
-    <Soyuz.Colored.IsFastMoving>Está se movendo rapidamente</Soyuz.Colored.IsFastMoving>
-    <Soyuz.Colored.IgnorePlayerFaction>Ignora facção do jogador</Soyuz.Colored.IgnorePlayerFaction>
-    <Soyuz.Colored.IgnoreAllFaction>Ignora todas facções</Soyuz.Colored.IgnoreAllFaction>
-    <Soyuz.Enable>Habilitar</Soyuz.Enable>
-    <Soyuz.GeneralTip>Você pode usar as configurações a baixo para consertar qualquer problemas com pawns que estão
-        dilatados.
-    </Soyuz.GeneralTip>
-    <Soyuz.EnableTimeDilation>Habilitar dilatação temporal</Soyuz.EnableTimeDilation>
-    <Soyuz.EnableTimeDilationVisitors>Habilitar dilatação temporal para visitantes</Soyuz.EnableTimeDilationVisitors>
-    <Soyuz.EnableTimeWorldPawns>Habilitar</Soyuz.EnableTimeWorldPawns>
-    <Soyuz.EnableTimeCriticalHediffs>Habilitar dilatação temporal para pawns com hediffs críticos
-    </Soyuz.EnableTimeCriticalHediffs>
-    <Soyuz.EnableTimeWildlife>Habilitar dilatação temporal para vida selvagem</Soyuz.EnableTimeWildlife>
-    <Soyuz.EnableTimeColonyAnimals>Habilitar dilatação temporal para animais</Soyuz.EnableTimeColonyAnimals>
-    <Soyuz.EnableTimeColonists>Habilitar dilatação temporal para colonistas</Soyuz.EnableTimeColonists>
-    <Soyuz.EnableTimeColonists.Warning>AVISO: Isso é extremamente perigoso. NÃO USE ISSO a não ser que o autor do mod te
-        peça. Usar isso pode destruir seus saves e causar comportamento estranho
-    </Soyuz.EnableTimeColonists.Warning>
-    <Soyuz.Current.Enable>Habilitar</Soyuz.Current.Enable>
-    <Soyuz.Current.Tip>Só mude as configurações abaixo se você sabe o que está fazendo. Essas configurações te ajudam a
-        customizar a raça selecionada.
-    </Soyuz.Current.Tip>
-    <Soyuz.Current.IgnorePlayerFaction>Ignorar facção do jogador</Soyuz.Current.IgnorePlayerFaction>
-    <Soyuz.Current.IgnoreAllFactions>Ignorar todas facções</Soyuz.Current.IgnoreAllFactions>
-    <Soyuz.Current.FastPawn>Esse pawn se move rápido demais para ser "desacelerado"</Soyuz.Current.FastPawn>
-    <Soyuz.Current.Ignored>Esse pawn vai ser ignorado por:</Soyuz.Current.Ignored>
-    <Soyuz.Current.MoveSpeed>Esse tipo se move numa velocidade média de {0} celulas/segundos</Soyuz.Current.MoveSpeed>
-    <Soyuz.DilationDisabled>Dilatação temporal desabilitada!</Soyuz.DilationDisabled>
-    <Soyuz.RaceName>Raça</Soyuz.RaceName>
-    <Soyuz.PackageId>Mod pai</Soyuz.PackageId>
-    <Soyuz.EnableDataLogging>Habilitar log de data</Soyuz.EnableDataLogging>
-    <Soyuz.Debug150MTPS>Muda o multiplicado de ticks para 150x</Soyuz.Debug150MTPS>
-    <Soyuz.FlashPawns>Piscar pawns dilatados</Soyuz.FlashPawns>
-    <Soyuz.AlwaysDilate>Simular comportamento fora da tela</Soyuz.AlwaysDilate>
+
     <!-- Proton Proton.TabContent_Alerts -->
     <Proton.Tab>Gerenciamento de alertas</Proton.Tab>
     <Proton.Colored.ActiveNow>Ativo agora</Proton.Colored.ActiveNow>
@@ -147,13 +113,5 @@
     <Gagarin.ClearCache.Description>Limpar o cache pode ajudar a resolver problemas de cacheamento de XML, também
         permite que texturas novas sejam cacheadas\nÉ recomendado que você limpe-o a cada 2 dias.
     </Gagarin.ClearCache.Description>
-    <Gagarin.EnableTextureCaching>Habilitar cacheamento de texturas</Gagarin.EnableTextureCaching>
-    <Gagarin.EnableTextureCaching.Description>Cacheamento de texturas vai deixar seu carregamento mais rápido, mas não é
-        compatível com o Graphic setter mod ou o High Quality texture mod.
-    </Gagarin.EnableTextureCaching.Description>
-    <Gagarin.AdvancedSettings>Configurações avançadas</Gagarin.AdvancedSettings>
-    <Gagarin.AdvancedSettings.Description>Por favor só use essas se você sabe o que está fazendo!
-    </Gagarin.AdvancedSettings.Description>
-    <Gagarin.FilterMode>Modo de filtro</Gagarin.FilterMode>
-    <Gagarin.MipMapBias>Bias de mip map</Gagarin.MipMapBias>
+
 </LanguageData>

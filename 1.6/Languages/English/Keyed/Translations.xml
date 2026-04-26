@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
+
+    <MissileGirl.ModNameShort>Missile Girl</MissileGirl.ModNameShort>
     <!-- General -->
     <MissileGirl.Settings>Settings</MissileGirl.Settings>
     <MissileGirl.Settings.Debugging>Debug Settings</MissileGirl.Settings.Debugging>
@@ -11,8 +13,8 @@
     </MissileGirl.Settings.PleaseUnpause>
     <MissileGirl.Settings.PleaseWait>Please wait... MissileGirl is warming up!</MissileGirl.Settings.PleaseWait>
     <MissileGirl.IncompatibilityWindow.Title>You are running incompatible mods</MissileGirl.IncompatibilityWindow.Title>
-    <MissileGirl.IncompatibilityWindow.Description>You are running incompatibile mods with MissileGirl. This type of
-        incompatilibity will nuke/destroy your save! You can Disable MissileGirl or You continue on your own
+    <MissileGirl.IncompatibilityWindow.Description>You are running incompatible mods with MissileGirl. This type of
+        incompatibility will nuke/destroy your save! You can Disable MissileGirl or You continue on your own
         responsibility.\nCurrent incompatible mods are:\n
     </MissileGirl.IncompatibilityWindow.Description>
     <MissileGirl.IncompatibilityWindow.Continue>Yes, I understand! Continue!
@@ -23,7 +25,7 @@
         this message or continue!
     </MissileGirl.IncompatibilityWindow.Disclaimer>
     <MissileGirl.Alert_StatsLearning.Label>Adaptive mode is active</MissileGirl.Alert_StatsLearning.Label>
-    <MissileGirl.Alert_StatsLearning.Explanation>Adaptive mode has been active for {0} minutes! It is recomended to have
+    <MissileGirl.Alert_StatsLearning.Explanation>Adaptive mode has been active for {0} minutes! It is recommended to have
         it running for {1} minutes per new save or when you change your mods.
     </MissileGirl.Alert_StatsLearning.Explanation>
     <MissileGirl.AdaptiveAlert.Label>Enable adaptive mode alert</MissileGirl.AdaptiveAlert.Label>
@@ -112,46 +114,7 @@
 
     <!-- Soyuz Soyuz.TabContent_DilationSettings -->
     <Soyuz.Tab>Time dilation control</Soyuz.Tab>
-    <Soyuz.Colored.Disabled>Disabled</Soyuz.Colored.Disabled>
-    <Soyuz.DilationFactor.OnScreen>On screen dilation factor</Soyuz.DilationFactor.OnScreen>
-    <Soyuz.DilationFactor.OffScreen>Off screen dilation factor</Soyuz.DilationFactor.OffScreen>
-    <Soyuz.DilationFactor>Dilation Factors are numbers from 0.1 to 1.0. The lower the number used, dilation will be done
-        at a lower rate. Higher number results in performance increase but introduce the chance of animation issues.
-        Recommended value is 0.6 for offscreen and 0.2 for on screen.
-    </Soyuz.DilationFactor>
-    <Soyuz.Colored.IgnoredAndDisabled>Ignored and disabled</Soyuz.Colored.IgnoredAndDisabled>
-    <Soyuz.Colored.IsFastMoving>Is fast moving</Soyuz.Colored.IsFastMoving>
-    <Soyuz.Colored.IgnorePlayerFaction>Ignores player faction</Soyuz.Colored.IgnorePlayerFaction>
-    <Soyuz.Colored.IgnoreAllFaction>Ignores all factions</Soyuz.Colored.IgnoreAllFaction>
-    <Soyuz.Enable>Enable</Soyuz.Enable>
-    <Soyuz.GeneralTip>You can use the settings below to fix any issues with dilated pawns.</Soyuz.GeneralTip>
-    <Soyuz.EnableTimeDilation>Enable time dilation</Soyuz.EnableTimeDilation>
-    <Soyuz.EnableTimeDilationVisitors>Enable time dilation for visitors</Soyuz.EnableTimeDilationVisitors>
-    <Soyuz.EnableTimeWorldPawns>Enable time dilation for world pawns</Soyuz.EnableTimeWorldPawns>
-    <Soyuz.EnableTimeCriticalHediffs>Enable time dilation for pawns with critical hediffs
-    </Soyuz.EnableTimeCriticalHediffs>
-    <Soyuz.EnableTimeWildlife>Enable time dilation for wildlife</Soyuz.EnableTimeWildlife>
-    <Soyuz.EnableTimeColonyAnimals>Enable time dilation for colony animals</Soyuz.EnableTimeColonyAnimals>
-    <Soyuz.EnableTimeColonists>Enable time dilation for colonists</Soyuz.EnableTimeColonists>
-    <Soyuz.EnableTimeColonists.Warning>WARNING: This is extremely dangerous. DO NOT USE THIS unless the mod author allow
-        you to do so. Using this can break your saves and result in strange behaviour
-    </Soyuz.EnableTimeColonists.Warning>
-    <Soyuz.Current.Enable>Enable</Soyuz.Current.Enable>
-    <Soyuz.Current.Tip>Only tune the settings below if you know what you are doing. These settings help you customize
-        the selected race.
-    </Soyuz.Current.Tip>
-    <Soyuz.Current.IgnorePlayerFaction>Ignore player faction</Soyuz.Current.IgnorePlayerFaction>
-    <Soyuz.Current.IgnoreAllFactions>Ignore all factions</Soyuz.Current.IgnoreAllFactions>
-    <Soyuz.Current.FastPawn>This pawn move too fast to be throttled</Soyuz.Current.FastPawn>
-    <Soyuz.Current.Ignored>This pawn will be ignored because:</Soyuz.Current.Ignored>
-    <Soyuz.Current.MoveSpeed>This kind move at an average speed of {0} cell/seconds</Soyuz.Current.MoveSpeed>
-    <Soyuz.DilationDisabled>Time dilation disabled!</Soyuz.DilationDisabled>
-    <Soyuz.RaceName>Race</Soyuz.RaceName>
-    <Soyuz.PackageId>Parent mod</Soyuz.PackageId>
-    <Soyuz.EnableDataLogging>Enable data logging</Soyuz.EnableDataLogging>
-    <Soyuz.Debug150MTPS>Set tick multiplier to 150x</Soyuz.Debug150MTPS>
-    <Soyuz.FlashPawns>Flash dilated pawns</Soyuz.FlashPawns>
-    <Soyuz.AlwaysDilate>Simulate offscreen behavior</Soyuz.AlwaysDilate>
+
     <!-- Proton Proton.TabContent_Alerts -->
     <Proton.Tab>Alert management</Proton.Tab>
     <Proton.Colored.ActiveNow>Active now</Proton.Colored.ActiveNow>
@@ -182,16 +145,8 @@
         patching. You can disable it from the main menu in MissileGirl
     </Gagarin.Tip>
     <Gagarin.ClearCache>Clear cache</Gagarin.ClearCache>
-    <Gagarin.ClearCache.Description>Clearing the cache can help resolve XML caching issues incase of a mod update as
+    <Gagarin.ClearCache.Description>Clearing the cache can help resolve XML caching issues in case of a mod update as
         well as allowing new textures to be cached.\nIt is recommended to clear it every other day.
     </Gagarin.ClearCache.Description>
-    <Gagarin.EnableTextureCaching>Enable texture caching</Gagarin.EnableTextureCaching>
-    <Gagarin.EnableTextureCaching.Description>Texture caching will speedup your loading time but is not compatible with
-        Graphics Settings mod or High quality textures mod.
-    </Gagarin.EnableTextureCaching.Description>
-    <Gagarin.AdvancedSettings>Advanced settings</Gagarin.AdvancedSettings>
-    <Gagarin.AdvancedSettings.Description>Please only use these if you know what you are doing!
-    </Gagarin.AdvancedSettings.Description>
-    <Gagarin.FilterMode>Filter mode</Gagarin.FilterMode>
-    <Gagarin.MipMapBias>Mip map bias</Gagarin.MipMapBias>
+
 </LanguageData>

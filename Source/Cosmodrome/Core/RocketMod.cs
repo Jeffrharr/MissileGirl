@@ -160,7 +160,6 @@ namespace MissileGirl
         public static void ResetRocketDebugPrefs()
         {
             RocketDebugPrefs.Debug = false;
-            RocketDebugPrefs.Debug150MTPS = false;
             RocketDebugPrefs.LogData = false;
             RocketDebugPrefs.StatLogging = false;
             RocketDebugPrefs.FlashDilatedPawns = false;

@@ -82,41 +82,7 @@
     <MissileGirl.Debugging.Description>Solo para usuarios avanzados y modders</MissileGirl.Debugging.Description>
     <!-- Soyuz Soyuz.TabContent_DilationSettings -->
     <Soyuz.Tab>Controles para la demora del tiempo</Soyuz.Tab>
-    <Soyuz.Colored.Disabled>Deshabilitado</Soyuz.Colored.Disabled>
-    <Soyuz.Colored.IgnoredAndDisabled>Ignorado y deshabilitado</Soyuz.Colored.IgnoredAndDisabled>
-    <Soyuz.Colored.IsFastMoving>Se mueve rápido</Soyuz.Colored.IsFastMoving>
-    <Soyuz.Colored.IgnorePlayerFaction>Ignora la facción del jugador</Soyuz.Colored.IgnorePlayerFaction>
-    <Soyuz.Colored.IgnoreAllFaction>Ignora todas las facciones</Soyuz.Colored.IgnoreAllFaction>
-    <Soyuz.Enable>Activar</Soyuz.Enable>
-    <Soyuz.GeneralTip>Puedes usar esta opción para arreglar cualquier problema con peones demorados.</Soyuz.GeneralTip>
-    <Soyuz.EnableTimeDilation>Activar la demora del tiempo</Soyuz.EnableTimeDilation>
-    <Soyuz.EnableTimeDilationVisitors>Activar la demora del tiempo para visitantes</Soyuz.EnableTimeDilationVisitors>
-    <Soyuz.EnableTimeWorldPawns>Activar la demora del tiempo para los peones del mundo</Soyuz.EnableTimeWorldPawns>
-    <Soyuz.EnableTimeCriticalHediffs>Activar la demora del tiempo para los peones con hediffs críticos
-    </Soyuz.EnableTimeCriticalHediffs>
-    <Soyuz.EnableTimeWildlife>Activar la demora del tiempo para la vida salvaje</Soyuz.EnableTimeWildlife>
-    <Soyuz.EnableTimeColonyAnimals>Activar la demora del tiempo para los animales de la colonia
-    </Soyuz.EnableTimeColonyAnimals>
-    <Soyuz.EnableTimeColonists>Activar la demora del tiempo para los colonos</Soyuz.EnableTimeColonists>
-    <Soyuz.EnableTimeColonists.Warning>ADVERTENCIA: Esto es extremadamente peligroso. NO lo uses a no ser que el creador
-        del mod te lo permita. Usar esto puede romper tu partida grabada o provocar comportamientos extraños
-    </Soyuz.EnableTimeColonists.Warning>
-    <Soyuz.Current.Enable>Activar</Soyuz.Current.Enable>
-    <Soyuz.Current.Tip>Cambia esta configuración solo si sabes lo que haces. Estas opciones te ayudarán a personalizar
-        la especie seleccionada.
-    </Soyuz.Current.Tip>
-    <Soyuz.Current.IgnorePlayerFaction>Ignora la facción del jugador</Soyuz.Current.IgnorePlayerFaction>
-    <Soyuz.Current.IgnoreAllFactions>Ignora todas las facciones</Soyuz.Current.IgnoreAllFactions>
-    <Soyuz.Current.FastPawn>El peón se mueve demasiado rápido para estar limitado</Soyuz.Current.FastPawn>
-    <Soyuz.Current.Ignored>Este peón será ignorado porque:</Soyuz.Current.Ignored>
-    <Soyuz.Current.MoveSpeed>Este tipo se mueve a una velocidad media de {0} celdas/segundo</Soyuz.Current.MoveSpeed>
-    <Soyuz.DilationDisabled>¡Demora de tiempo desactivada!</Soyuz.DilationDisabled>
-    <Soyuz.RaceName>Especie</Soyuz.RaceName>
-    <Soyuz.PackageId>Mod de origen</Soyuz.PackageId>
-    <Soyuz.EnableDataLogging>Activar el registro de datos</Soyuz.EnableDataLogging>
-    <Soyuz.Debug150MTPS>Establecer el multiplicador de ticks en 150x</Soyuz.Debug150MTPS>
-    <Soyuz.FlashPawns>Resaltar los peones demorados</Soyuz.FlashPawns>
-    <Soyuz.AlwaysDilate>Simular el comportamiento fuera de pantalla</Soyuz.AlwaysDilate>
+
     <!-- Proton Proton.TabContent_Alerts -->
     <Proton.Tab>Gestión de alertas</Proton.Tab>
     <Proton.Colored.ActiveNow>Activar ahora</Proton.Colored.ActiveNow>
@@ -149,13 +115,5 @@
     <Gagarin.ClearCache.Description>Borrar el almacenamiento te ayudará a resolver problemas con XML en el caso de la
         actualización de un mod que necesite almacenar nuevas texturas.\nSe recomienda hacerlo de vez en cuando.
     </Gagarin.ClearCache.Description>
-    <Gagarin.EnableTextureCaching>Activar el almacenamiento de texturas</Gagarin.EnableTextureCaching>
-    <Gagarin.EnableTextureCaching.Description>El almacenamiento de texturas te permitirá acelerar tu tiempo de carga
-        pero no es compatible con mods como Graphics Settings o High quality textures.
-    </Gagarin.EnableTextureCaching.Description>
-    <Gagarin.AdvancedSettings>Configuraciones avanzadas</Gagarin.AdvancedSettings>
-    <Gagarin.AdvancedSettings.Description>¡Por favor, usa esto solo si sabes lo que estás haciendo!
-    </Gagarin.AdvancedSettings.Description>
-    <Gagarin.FilterMode>Filtros</Gagarin.FilterMode>
-    <Gagarin.MipMapBias>Mip map bias</Gagarin.MipMapBias>
+
 </LanguageData>

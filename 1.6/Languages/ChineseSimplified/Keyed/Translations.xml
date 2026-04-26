@@ -63,39 +63,10 @@
     <MissileGirl.EnableGearStatCaching>缓存装备状态数据</MissileGirl.EnableGearStatCaching>
     <MissileGirl.Debugging>启用debugging</MissileGirl.Debugging>
     <MissileGirl.Debugging.Description>仅适用于高级用户及Mod作者</MissileGirl.Debugging.Description>
+
     <!-- Soyuz Soyuz.TabContent_DilationSettings -->
     <Soyuz.Tab>间隔扩增配置</Soyuz.Tab>
-    <Soyuz.Colored.Disabled>禁用</Soyuz.Colored.Disabled>
-    <Soyuz.Colored.IgnoredAndDisabled>忽略及禁用</Soyuz.Colored.IgnoredAndDisabled>
-    <Soyuz.Colored.IsFastMoving>高移速</Soyuz.Colored.IsFastMoving>
-    <Soyuz.Colored.IgnorePlayerFaction>忽略玩家派系</Soyuz.Colored.IgnorePlayerFaction>
-    <Soyuz.Colored.IgnoreAllFaction>忽略所有派系</Soyuz.Colored.IgnoreAllFaction>
-    <Soyuz.Enable>启用</Soyuz.Enable>
-    <Soyuz.GeneralTip>你可调整以下设置来移除受限生物出现的问题。</Soyuz.GeneralTip>
-    <Soyuz.EnableTimeDilation>启用间隔扩增</Soyuz.EnableTimeDilation>
-    <Soyuz.EnableTimeDilationVisitors>对访客启用间隔扩增</Soyuz.EnableTimeDilationVisitors>
-    <Soyuz.EnableTimeWorldPawns>对系统生物启用间隔扩增</Soyuz.EnableTimeWorldPawns>
-    <Soyuz.EnableTimeCriticalHediffs>对即将崩溃人物启用间隔扩增</Soyuz.EnableTimeCriticalHediffs>
-    <Soyuz.EnableTimeWildlife>对野外生物启用间隔扩增</Soyuz.EnableTimeWildlife>
-    <Soyuz.EnableTimeColonyAnimals>对基地动物启用间隔扩增</Soyuz.EnableTimeColonyAnimals>
-    <Soyuz.EnableTimeColonists>对殖民者启用间隔扩增</Soyuz.EnableTimeColonists>
-    <Soyuz.EnableTimeColonists.Warning>
-        警告：高风险操作。不要启用该选项除非Mod作者推荐启用。启用该选项可能会导致坏档及不正常的表现
-    </Soyuz.EnableTimeColonists.Warning>
-    <Soyuz.Current.Enable>启用</Soyuz.Current.Enable>
-    <Soyuz.Current.Tip>仅在你明确清楚更改设置的后果时再调整以下设置。这些选项可自定义所选的种族。</Soyuz.Current.Tip>
-    <Soyuz.Current.IgnorePlayerFaction>忽略玩家派系</Soyuz.Current.IgnorePlayerFaction>
-    <Soyuz.Current.IgnoreAllFactions>忽略所有派系</Soyuz.Current.IgnoreAllFactions>
-    <Soyuz.Current.FastPawn>该生物因移速过快而不受限制</Soyuz.Current.FastPawn>
-    <Soyuz.Current.Ignored>该生物不受限制，因为:</Soyuz.Current.Ignored>
-    <Soyuz.Current.MoveSpeed>此类生物的平均移速为 {0} 格/秒</Soyuz.Current.MoveSpeed>
-    <Soyuz.DilationDisabled>已禁用间隔扩增!</Soyuz.DilationDisabled>
-    <Soyuz.RaceName>种族</Soyuz.RaceName>
-    <Soyuz.PackageId>所属Mod</Soyuz.PackageId>
-    <Soyuz.EnableDataLogging>开启详细日志</Soyuz.EnableDataLogging>
-    <Soyuz.Debug150MTPS>将Tick倍数设为150倍</Soyuz.Debug150MTPS>
-    <Soyuz.FlashPawns>突出受限生物</Soyuz.FlashPawns>
-    <Soyuz.AlwaysDilate>模拟屏幕外的行为</Soyuz.AlwaysDilate>
+
     <!-- Proton Proton.TabContent_Alerts -->
     <Proton.Tab>警报配置</Proton.Tab>
     <Proton.Colored.ActiveNow>正在运行</Proton.Colored.ActiveNow>
@@ -126,12 +97,5 @@
     <Gagarin.ClearCache.Description>
         清空缓存可解决因XML文件缓存而导致的问题，以便Mod更新添加新贴图到缓存中。\n建议每隔上方提示的天数清空一次缓存。
     </Gagarin.ClearCache.Description>
-    <Gagarin.EnableTextureCaching>启用贴图缓存</Gagarin.EnableTextureCaching>
-    <Gagarin.EnableTextureCaching.Description>贴图缓存可加速载入时间，但不兼容优化贴图以及高清贴图的Mod。
-    </Gagarin.EnableTextureCaching.Description>
-    <Gagarin.AdvancedSettings>高级设置</Gagarin.AdvancedSettings>
-    <Gagarin.AdvancedSettings.Description>请在明确自己行为后果后再调整以下内容！</Gagarin.AdvancedSettings.Description>
-    <Gagarin.FilterMode>Filter mode</Gagarin.FilterMode>
-    <Gagarin.MipMapBias>Mip map bias</Gagarin.MipMapBias>
 
 </LanguageData>

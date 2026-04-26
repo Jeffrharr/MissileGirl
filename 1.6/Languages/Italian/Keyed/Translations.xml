@@ -51,39 +51,9 @@
 
 
     <!-- Soyuz Soyuz.TabContent_DilationSettings -->
-
-
     <Soyuz.Tab>Controllo Dilatazione Del Tempo</Soyuz.Tab>
-    <Soyuz.Colored.Disabled>Disabilitato</Soyuz.Colored.Disabled>
-    <Soyuz.Colored.IgnoredAndDisabled>Ignorato e Disabilitato</Soyuz.Colored.IgnoredAndDisabled>
-    <Soyuz.Colored.IsFastMoving>Si sta muovendo Velocemente</Soyuz.Colored.IsFastMoving>
-    <Soyuz.Colored.IgnorePlayerFaction>Ignora la Fazione del giocatore</Soyuz.Colored.IgnorePlayerFaction>
-    <Soyuz.Colored.IgnoreAllFaction>Ignora tutte le Fazioni</Soyuz.Colored.IgnoreAllFaction>
-    <Soyuz.EnableTimeDilation>Abilitare la Dilatazione del Tempo</Soyuz.EnableTimeDilation>
-    <Soyuz.Current.Enable>Abilitato</Soyuz.Current.Enable>
-    <Soyuz.Current.IgnorePlayerFaction>Ignora la Fazione del giocatore</Soyuz.Current.IgnorePlayerFaction>
-    <Soyuz.Current.IgnoreAllFactions>Ignora tutte le Fazioni</Soyuz.Current.IgnoreAllFactions>
-    <Soyuz.Current.FastPawn>Questo pawn si muove troppo velocemente per essere rallentato</Soyuz.Current.FastPawn>
-    <Soyuz.Current.Ignored>Questo pawn sarà ignorato perche:</Soyuz.Current.Ignored>
-    <Soyuz.Current.MoveSpeed>Questo tipo si muove a una velocità media di {0} celle/secondo</Soyuz.Current.MoveSpeed>
-    <Soyuz.Current.EnableTimeDilation>Abilitare la Dilatazione del Tempo</Soyuz.Current.EnableTimeDilation>
-    <Soyuz.Current.EnableTimeDilationVisitors>Abilitare la dilatazione del tempo per visitatori
-    </Soyuz.Current.EnableTimeDilationVisitors>
-    <Soyuz.Current.EnableTimeWorldPawns>Abilitare la dilatazione del tempo per pawn del mondo
-    </Soyuz.Current.EnableTimeWorldPawns>
-    <Soyuz.Current.EnableTimeWildlife>Abilitare la dilatazione del tempo per la fauna</Soyuz.Current.EnableTimeWildlife>
-    <Soyuz.Current.EnableTimeColonnyAnimals>Abilitare la dilatazione del temp per animali della colonia
-    </Soyuz.Current.EnableTimeColonnyAnimals>
-    <Soyuz.DilationDisabled>Dilatazione del Tempo disabilitata!</Soyuz.DilationDisabled>
-    <Soyuz.EnableDataLogging>Abilitare il Log dei Dati</Soyuz.EnableDataLogging>
-    <Soyuz.Debug150MTPS>Imposta il tick multiplier a 150x</Soyuz.Debug150MTPS>
-    <Soyuz.FlashPawns>Evidenzia i pawn dilatati</Soyuz.FlashPawns>
-    <Soyuz.AlwaysDilate>Simula il comportamento fuori dalla visione dello schermo</Soyuz.AlwaysDilate>
-
 
     <!-- Proton Proton.TabContent_Alerts -->
-
-
     <Proton.Tab>Controllo Avvisi</Proton.Tab>
     <Proton.Colored.ActiveNow>Attivo ora</Proton.Colored.ActiveNow>
     <Proton.Colored.IgnoredAndBad>Ignorato/Anomalia</Proton.Colored.IgnoredAndBad>
