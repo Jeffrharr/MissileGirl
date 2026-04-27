@@ -2,5 +2,12 @@
 <Configuration>
   <Excluded>
     <exclude>.git</exclude>
+    <exclude>Source\.idea</exclude>
+    <exclude>Source\Cosmodrome\obj</exclude>
+    <exclude>Source\Cosmodrome\Properties</exclude>
+    <exclude>Source\Gagarin\obj</exclude>
+    <exclude>Source\Proton\obj</exclude>
+    <exclude>Source\Soyuz\obj</exclude>
+    <exclude>Source\Soyuz\Soyuz.csproj</exclude>
   </Excluded>
 </Configuration>

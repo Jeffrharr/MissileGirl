@@ -130,7 +130,7 @@ namespace MissileGirl
             }
 
             Rect resetRect = new Rect(inRect.xMin + 200f, inRect.y + inRect.height + 5f, ResetButtonWidth, ResetButtonHeight);
-            if (Widgets.ButtonText(resetRect, "FantasyOverhaul_ResetDefault".Translate()))
+            if (Widgets.ButtonText(resetRect, "MissileGirl.ResetDefault".Translate()))
             {
                 ResetToDefaults();
                 SoundDefOf.Click.PlayOneShotOnCamera();

@@ -8,6 +8,7 @@
     <MissileGirl.Collapsible.Expand>[Expand]</MissileGirl.Collapsible.Expand>
     <MissileGirl.Collapsible.Hide>[Hide]</MissileGirl.Collapsible.Hide>
     <MissileGirl.Selection>Selection: {0}</MissileGirl.Selection>
+    <MissileGirl.ResetDefault>Reset to Default</MissileGirl.ResetDefault>
     <!-- MissileGirl -->
     <MissileGirl.Settings.PleaseUnpause>Please unpause the game... MissileGirl is warming up!
     </MissileGirl.Settings.PleaseUnpause>
