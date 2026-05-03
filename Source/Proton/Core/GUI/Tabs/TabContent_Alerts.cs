@@ -76,9 +76,9 @@ namespace Proton
             collapsible.Line(1);
             collapsible.Label(KeyedResources.Proton_DisalbeAllInfo);
             collapsible.Line(1);
-            if (collapsible.CheckboxLabeled(KeyedResources.Proton_AlertsDisabled, ref RocketPrefs.DisableAllAlert, disabled: !RocketPrefs.AlertThrottling)
-                    && RocketPrefs.DisableAllAlert)
+            if (collapsible.CheckboxLabeled(KeyedResources.Proton_AlertsDisabled, ref RocketPrefs.DisableAllAlert, disabled: !RocketPrefs.AlertThrottling) && RocketPrefs.DisableAllAlert)
             {
+                RocketMod.Instance.WriteSettings();
                 foreach (Alert alert in Context.Alerts)
                 {
                     alert.cachedActive = false;
