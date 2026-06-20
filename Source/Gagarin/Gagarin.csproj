@@ -86,6 +86,9 @@
         <None Remove="Krafs.Rimworld.Ref"/>
     </ItemGroup>
     <ItemGroup>
+        <!-- The provenance unit tests are a separate net8.0 project; keep their
+             sources out of the mod assembly's default compile glob. -->
+        <Compile Remove="Tests\**\*.cs"/>
         <Compile Remove="Core\Deprecated\Patches\GenerateImpliedDefs_Patch.cs"/>
         <Compile Remove="Core\Deprecated\Patches\GenGeneric_Patch.cs"/>
         <Compile Remove="Core\Deprecated\Context.cs"/>
