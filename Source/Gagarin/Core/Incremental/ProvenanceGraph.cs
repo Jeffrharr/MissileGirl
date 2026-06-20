@@ -90,6 +90,10 @@ namespace Gagarin
         public int NodeCount => nodes.Count;
         public int PatchEdgeCount => patchEdges.Count;
         public int InheritanceEdgeCount => inheritanceEdges.Count;
+        // How many times KeyForNode fell back to DocumentPath (NearestDefElement
+        // returned null). High values indicate nodes outside a <Defs> root or an
+        // unexpected document structure worth investigating.
+        public int DocumentPathFallbackCount { get; private set; }
 
         public void Reset()
         {
@@ -98,6 +102,7 @@ namespace Gagarin
             inheritanceEdges.Clear();
             defNameToNodeId.Clear();
             pendingInheritance.Clear();
+            DocumentPathFallbackCount = 0;
         }
 
         // Adds a def node. parentName (if any) is queued for resolution against
@@ -154,7 +159,7 @@ namespace Gagarin
                     AddNodeId(edge.modifiedNodeIds, node);
         }
 
-        private static void AddNodeId(HashSet<string> set, XmlNode node)
+        private void AddNodeId(HashSet<string> set, XmlNode node)
         {
             string id = KeyForNode(node);
             if (!string.IsNullOrEmpty(id))
@@ -164,7 +169,7 @@ namespace Gagarin
         // Resolves the stable node id for an arbitrary XML node. Walks up to the
         // nearest top-level def element (a direct child of <Defs>) and keys it as
         // "{defType}/{defName}"; falls back to a positional document path.
-        public static string KeyForNode(XmlNode node)
+        public string KeyForNode(XmlNode node)
         {
             XmlElement defElement = NearestDefElement(node);
             if (defElement != null)
@@ -173,6 +178,7 @@ namespace Gagarin
                 if (!string.IsNullOrEmpty(defName))
                     return $"{defElement.Name}/{defName}";
             }
+            DocumentPathFallbackCount++;
             return DocumentPath(node);
         }
 
@@ -298,6 +304,7 @@ namespace Gagarin
                 $"\"nodeCount\":{nodes.Count}," +
                 $"\"patchEdgeCount\":{patchEdges.Count}," +
                 $"\"inheritanceEdgeCount\":{inheritanceEdges.Count}," +
+                $"\"documentPathFallbacks\":{DocumentPathFallbackCount}," +
                 "\"serializedBytes\":";
             string after = $",\"captureOverheadMs\":{captureOverheadMs}}}}}";
 

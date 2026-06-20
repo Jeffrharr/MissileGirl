@@ -173,6 +173,7 @@ namespace Gagarin
                 Log.Warning($"GAGARIN: <color=white>Provenance captured</color> " +
                     $"nodes={graph.NodeCount} patchEdges={graph.PatchEdgeCount} " +
                     $"inheritanceEdges={graph.InheritanceEdgeCount} " +
+                    $"docPathFallbacks={graph.DocumentPathFallbackCount} " +
                     $"bytes={Encoding.UTF8.GetByteCount(json)} overheadMs={overhead.ElapsedMilliseconds}");
             }
             catch (Exception er)
