@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+        Offline replay harness for the incremental Unified.xml cache prototype.
+
+        This is deliberately a STANDALONE console app: it does not reference
+        Krafs.Rimworld.Ref because constructing real Verse.PatchOperation objects
+        requires game context (GenTypes.AllTypes, ModContentPacks, DirectXmlToObject)
+        that is not available headless. Instead we re-implement a faithful minimal
+        apply+inheritance model over a synthetic fixture (see ApplyModel.cs / DESIGN
+        notes). The only external dependency is XMLDiffPatch, which the mod already
+        ships, used as the canonical XML equality oracle proving "partial == full".
+    -->
+    <PropertyGroup>
+        <RootNamespace>Gagarin.IncrementalReplay</RootNamespace>
+        <AssemblyName>IncrementalReplay</AssemblyName>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net481</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <PlatformTarget>x64</PlatformTarget>
+        <!-- Keep build artifacts out of 1.6/: this is a dev-only harness, never shipped. -->
+        <OutputPath>bin\</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <Configurations>Release;Debug</Configurations>
+        <Nullable>disable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- Canonical XML diff oracle (same package the mod uses for cache validation). -->
+        <PackageReference Include="XMLDiffPatch" Version="1.0.8.28"/>
+        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+</Project>
