@@ -163,6 +163,25 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void Serialize_Metrics_ReportResolutionAndCounts()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddNode("ThingDef", null, "BuildingBase", "m", "B.xml", null);    // abstract
+            graph.AddNode("ThingDef", "Wall", null, "m", "W.xml", "BuildingBase");  // resolves
+            graph.AddNode("ThingDef", "Orphan", null, "m", "O.xml", "MissingBase"); // unresolved
+
+            JsonElement m = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("metrics");
+            Assert.That(m.GetProperty("abstractNodeCount").GetInt32(), Is.EqualTo(1));
+            Assert.That(m.GetProperty("inheritanceEdgeCount").GetInt32(), Is.EqualTo(2));
+            Assert.That(m.GetProperty("inheritanceResolvedCount").GetInt32(), Is.EqualTo(1));
+            // The additive timing / mod-count metrics are always present.
+            Assert.That(m.TryGetProperty("registerMs", out _), Is.True);
+            Assert.That(m.TryGetProperty("recordMs", out _), Is.True);
+            Assert.That(m.TryGetProperty("activeModCount", out _), Is.True);
+        }
+
+        [Test]
         public void InheritanceEdge_ResolvesParentNodeId_WhenParentKnown()
         {
             ProvenanceGraph graph = new ProvenanceGraph();

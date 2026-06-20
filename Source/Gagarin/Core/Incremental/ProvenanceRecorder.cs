@@ -240,7 +240,11 @@ namespace Gagarin
                 // Serializing is part of the capture cost, so it happens inside the
                 // overhead window; we stop the clock before writing to disk so the
                 // metric reflects in-memory work only.
-                string json = graph.Serialize(overhead.ElapsedMilliseconds);
+                int activeModCount = Context.RunningMods?.Count ?? 0;
+                // registerMs/recordMs are complete by now (load has finished); serializeMs
+                // is logged separately since it is still being measured here.
+                string json = graph.Serialize(overhead.ElapsedMilliseconds,
+                    registerSw.ElapsedMilliseconds, recordSw.ElapsedMilliseconds, activeModCount);
                 serializeSw.Stop();
                 overhead.Stop();
 
@@ -249,9 +253,13 @@ namespace Gagarin
                 string path = Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, DependencyGraphFileName);
                 File.WriteAllText(path, json);
 
+                int edges = graph.InheritanceEdgeCount;
+                int resolved = graph.InheritanceResolvedCount;
+                float resolvedPct = edges > 0 ? 100f * resolved / edges : 100f;
                 Log.Warning($"GAGARIN: <color=white>Provenance captured</color> " +
-                    $"nodes={graph.NodeCount} patchEdges={graph.PatchEdgeCount} " +
-                    $"inheritanceEdges={graph.InheritanceEdgeCount} " +
+                    $"mods={activeModCount} nodes={graph.NodeCount} (abstract={graph.AbstractNodeCount}) " +
+                    $"patchEdges={graph.PatchEdgeCount} " +
+                    $"inheritanceEdges={edges} (resolved={resolved}, {resolvedPct:F1}%) " +
                     $"docPathFallbacks={graph.DocumentPathFallbackCount} " +
                     $"bytes={Encoding.UTF8.GetByteCount(json)} overheadMs={overhead.ElapsedMilliseconds} " +
                     $"[registerMs={registerSw.ElapsedMilliseconds} " +

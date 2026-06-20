@@ -109,6 +109,34 @@ namespace Gagarin
         // unexpected document structure worth investigating.
         public int DocumentPathFallbackCount { get; private set; }
 
+        // Inheritance edges whose ParentName resolved to a parent node id. Compared to
+        // InheritanceEdgeCount this gives the resolution rate — a key correctness signal.
+        // Valid after Serialize/ResolveInheritance has run.
+        public int InheritanceResolvedCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (InheritanceEdge edge in inheritanceEdges)
+                    if (!string.IsNullOrEmpty(edge.parentNodeId))
+                        count++;
+                return count;
+            }
+        }
+
+        // Nodes with no defName: abstract / Name-based templates.
+        public int AbstractNodeCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (NodeRecord node in nodes.Values)
+                    if (string.IsNullOrEmpty(node.defName))
+                        count++;
+                return count;
+            }
+        }
+
         public void Reset()
         {
             nodes.Clear();
@@ -310,8 +338,12 @@ namespace Gagarin
         }
 
         // Hand-rolled JSON: the schema is small, fixed, and shared with other
-        // prototype pieces, so we avoid pulling in a serializer dependency.
-        public string Serialize(long captureOverheadMs)
+        // prototype pieces, so we avoid pulling in a serializer dependency. The extra
+        // metric arguments are optional and additive — consumers ignore unknown metrics
+        // fields — and exist so a capture self-reports the numbers a reviewer would want
+        // (resolution rate, per-phase timing, mod count) rather than relying on a script.
+        public string Serialize(long captureOverheadMs, long registerMs = 0,
+            long recordMs = 0, int activeModCount = 0)
         {
             ResolveInheritance();
 
@@ -371,9 +403,14 @@ namespace Gagarin
             // total's digit count is stable).
             string before = sb.ToString() + "\"metrics\":{" +
                 $"\"nodeCount\":{nodes.Count}," +
+                $"\"abstractNodeCount\":{AbstractNodeCount}," +
                 $"\"patchEdgeCount\":{patchEdges.Count}," +
                 $"\"inheritanceEdgeCount\":{inheritanceEdges.Count}," +
+                $"\"inheritanceResolvedCount\":{InheritanceResolvedCount}," +
                 $"\"documentPathFallbacks\":{DocumentPathFallbackCount}," +
+                $"\"activeModCount\":{activeModCount}," +
+                $"\"registerMs\":{registerMs}," +
+                $"\"recordMs\":{recordMs}," +
                 "\"serializedBytes\":";
             string after = $",\"captureOverheadMs\":{captureOverheadMs}}}}}";
 
