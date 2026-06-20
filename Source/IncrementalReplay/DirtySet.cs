@@ -74,6 +74,18 @@ namespace Gagarin.IncrementalReplay
             }
             SeedFromPatchChanges(baseline, mutated, changedMod, graph, dirty);
 
+            // Reorder seed: a single-mod content change leaves load order untouched, but
+            // moving a mod in the list (or adding/removing one) can change the ORDER in
+            // which patches hit a given node WITHOUT changing any def body or patch
+            // definition. A node's resolved value depends only on the ordered sequence of
+            // patches applied to it, so we dirty exactly the nodes whose per-node patch
+            // sequence differs between baseline and mutated. Independent reorders touch
+            // disjoint nodes, so this stays CLEAN on the no-overlap case (no over-invalidation)
+            // while still catching the overlap case. This is a global O(patches) scan, but it
+            // is gated behind a cheap load-order-equality check so the common single-mod
+            // content change pays nothing for it.
+            SeedFromReorder(baseline, mutated, dirty);
+
             var wildcards = new List<FixturePatch>();
             foreach (var p in mutatedState.Patches)
                 if (p.Kind == PatchKind.Wildcard) wildcards.Add(p);
@@ -189,6 +201,94 @@ namespace Gagarin.IncrementalReplay
                         foreach (var n in e.ModifiedNodeIds)
                             dirty.Add(n);
             }
+        }
+
+        // Seed nodes whose ORDERED patch sequence changed between baseline and mutated.
+        // This is what catches a reorder (or add/remove) that flips the order two patches
+        // hit a shared node: no def body and no patch definition changed, so the per-mod
+        // signature seeds above see nothing, yet the resolved value moves. We build, for
+        // each node, the load-order list of patch ids that modify it (identity by defName,
+        // wildcard by predicate against the RAW pre-patch body — a conservative membership
+        // that ignores cascade-induced matches, which is sound: any such cascade is itself
+        // driven by an ordered patch on the same node and is therefore already captured).
+        // A node is dirtied iff its sequence differs. Disjoint reorders => identical
+        // sequences => clean.
+        private static void SeedFromReorder(Fixture baseline, Fixture mutated, HashSet<string> dirty)
+        {
+            // Cheap gate: if no mod moved in load order and the mod set is unchanged, a
+            // reorder cannot have happened, so skip the global scan entirely.
+            if (LoadOrderUnchanged(baseline, mutated)) return;
+
+            var baseSeq = PatchSequencesByNode(baseline);
+            var mutSeq = PatchSequencesByNode(mutated);
+            foreach (var id in Union(baseSeq.Keys, mutSeq.Keys))
+            {
+                baseSeq.TryGetValue(id, out var b);
+                mutSeq.TryGetValue(id, out var m);
+                if (!SequenceEqual(b, m)) dirty.Add(id);
+            }
+        }
+
+        // Two fixtures share a load order iff the same package ids map to the same order.
+        private static bool LoadOrderUnchanged(Fixture a, Fixture b)
+        {
+            var ao = new Dictionary<string, int>();
+            foreach (var m in a.Mods) ao[m.PackageId] = m.LoadOrder;
+            var bo = new Dictionary<string, int>();
+            foreach (var m in b.Mods) bo[m.PackageId] = m.LoadOrder;
+            if (ao.Count != bo.Count) return false;
+            foreach (var kv in ao)
+                if (!bo.TryGetValue(kv.Key, out var o) || o != kv.Value) return false;
+            return true;
+        }
+
+        // node id -> ordered list of patch ids that modify it (load order, then declaration
+        // order). Wildcard membership is tested against the raw combined body, which is a
+        // sound conservative basis for detecting order changes (see SeedFromReorder note).
+        private static Dictionary<string, List<string>> PatchSequencesByNode(Fixture f)
+        {
+            // Raw bodies (pre-patch) so wildcard predicates can be tested for membership.
+            var raw = ApplyModel.BuildPatched(StripPatches(f));
+            var seqs = new Dictionary<string, List<string>>();
+            foreach (var mod in f.InLoadOrder())
+                foreach (var p in mod.Patches)
+                {
+                    if (p.Kind == PatchKind.Identity)
+                    {
+                        var id = p.DefType + "/" + p.TargetDefName;
+                        if (raw.ContainsKey(id)) Append(seqs, id, p.PatchId);
+                    }
+                    else
+                    {
+                        foreach (var d in raw.Values)
+                            if (ApplyModel.WildcardMatches(p, d))
+                                Append(seqs, d.NodeId, p.PatchId);
+                    }
+                }
+            return seqs;
+        }
+
+        private static Fixture StripPatches(Fixture f)
+        {
+            var c = f.DeepCopy();
+            foreach (var m in c.Mods) m.Patches.Clear();
+            return c;
+        }
+
+        private static void Append(Dictionary<string, List<string>> seqs, string id, string patchId)
+        {
+            if (!seqs.TryGetValue(id, out var list)) seqs[id] = list = new List<string>();
+            list.Add(patchId);
+        }
+
+        private static bool SequenceEqual(List<string> a, List<string> b)
+        {
+            if (a == null) return b == null || b.Count == 0;
+            if (b == null) return a.Count == 0;
+            if (a.Count != b.Count) return false;
+            for (int i = 0; i < a.Count; i++)
+                if (a[i] != b[i]) return false;
+            return true;
         }
 
         private static Dictionary<string, string> PatchSigs(Fixture f, string mod)
