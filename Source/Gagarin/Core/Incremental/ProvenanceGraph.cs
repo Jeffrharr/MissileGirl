@@ -250,12 +250,11 @@ namespace Gagarin
             {
                 if (!first) sb.Append(',');
                 first = false;
-                sb.Append('{');
-                sb.Append($"\"id\":{Q(node.id)},");
-                sb.Append($"\"defType\":{Q(node.defType)},");
-                sb.Append($"\"defName\":{Q(node.defName)},");
-                sb.Append($"\"sourceMod\":{Q(node.sourceMod)},");
-                sb.Append($"\"sourceFile\":{Q(node.sourceFile)}");
+                sb.Append("{\"id\":"); AppendQ(sb, node.id);
+                sb.Append(",\"defType\":"); AppendQ(sb, node.defType);
+                sb.Append(",\"defName\":"); AppendQ(sb, node.defName);
+                sb.Append(",\"sourceMod\":"); AppendQ(sb, node.sourceMod);
+                sb.Append(",\"sourceFile\":"); AppendQ(sb, node.sourceFile);
                 sb.Append('}');
             }
             sb.Append("],");
@@ -266,13 +265,12 @@ namespace Gagarin
             {
                 if (!first) sb.Append(',');
                 first = false;
-                sb.Append('{');
-                sb.Append($"\"patchId\":{Q(edge.patchId)},");
-                sb.Append($"\"sourceMod\":{Q(edge.sourceMod)},");
-                sb.Append($"\"operationType\":{Q(edge.operationType)},");
-                sb.Append($"\"xpath\":{Q(edge.xpath)},");
-                sb.Append($"\"matchedNodeIds\":{Arr(edge.matchedNodeIds)},");
-                sb.Append($"\"modifiedNodeIds\":{Arr(edge.modifiedNodeIds)}");
+                sb.Append("{\"patchId\":"); AppendQ(sb, edge.patchId);
+                sb.Append(",\"sourceMod\":"); AppendQ(sb, edge.sourceMod);
+                sb.Append(",\"operationType\":"); AppendQ(sb, edge.operationType);
+                sb.Append(",\"xpath\":"); AppendQ(sb, edge.xpath);
+                sb.Append(",\"matchedNodeIds\":"); AppendArr(sb, edge.matchedNodeIds);
+                sb.Append(",\"modifiedNodeIds\":"); AppendArr(sb, edge.modifiedNodeIds);
                 sb.Append('}');
             }
             sb.Append("],");
@@ -283,10 +281,9 @@ namespace Gagarin
             {
                 if (!first) sb.Append(',');
                 first = false;
-                sb.Append('{');
-                sb.Append($"\"childNodeId\":{Q(edge.childNodeId)},");
-                sb.Append($"\"parentName\":{Q(edge.parentName)},");
-                sb.Append($"\"parentNodeId\":{Q(edge.parentNodeId)}");
+                sb.Append("{\"childNodeId\":"); AppendQ(sb, edge.childNodeId);
+                sb.Append(",\"parentName\":"); AppendQ(sb, edge.parentName);
+                sb.Append(",\"parentNodeId\":"); AppendQ(sb, edge.parentNodeId);
                 sb.Append('}');
             }
             sb.Append("],");
@@ -316,28 +313,29 @@ namespace Gagarin
             return before + total + after;
         }
 
-        private static string Arr(HashSet<string> ids)
+        private static void AppendArr(StringBuilder sb, HashSet<string> ids)
         {
-            StringBuilder sb = new StringBuilder();
             sb.Append('[');
             bool first = true;
             foreach (string id in ids)
             {
                 if (!first) sb.Append(',');
                 first = false;
-                sb.Append(Q(id));
+                AppendQ(sb, id);
             }
             sb.Append(']');
-            return sb.ToString();
         }
 
-        // JSON string literal with escaping; null serializes as JSON null.
-        private static string Q(string value)
+        // Appends a JSON string literal (with escaping) directly into sb.
+        // Null serializes as JSON null.
+        private static void AppendQ(StringBuilder sb, string value)
         {
             if (value == null)
-                return "null";
+            {
+                sb.Append("null");
+                return;
+            }
 
-            StringBuilder sb = new StringBuilder(value.Length + 2);
             sb.Append('"');
             foreach (char c in value)
             {
@@ -359,7 +357,6 @@ namespace Gagarin
                 }
             }
             sb.Append('"');
-            return sb.ToString();
         }
     }
 }
