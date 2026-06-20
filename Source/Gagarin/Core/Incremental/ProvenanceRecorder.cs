@@ -52,6 +52,12 @@ namespace Gagarin
 
         private static readonly Stopwatch overhead = new Stopwatch();
 
+        // Per-phase breakdown of the total overhead, logged (not serialized) so we
+        // can attribute the capture cost without churning the shared JSON schema.
+        private static readonly Stopwatch registerSw = new Stopwatch();
+        private static readonly Stopwatch recordSw = new Stopwatch();
+        private static readonly Stopwatch serializeSw = new Stopwatch();
+
         public static bool Active => GagarinPrefs.CaptureProvenance && !Context.IsUsingCache;
 
         public static void Reset()
@@ -59,6 +65,9 @@ namespace Gagarin
             graph.Reset();
             patchIds.Clear();
             overhead.Reset();
+            registerSw.Reset();
+            recordSw.Reset();
+            serializeSw.Reset();
         }
 
         // Assigns deterministic patchIds to every top-level PatchOperation in
@@ -100,6 +109,7 @@ namespace Gagarin
                 return;
 
             overhead.Start();
+            registerSw.Start();
             try
             {
                 string parentName = (node as XmlElement)?.GetAttribute("ParentName");
@@ -112,6 +122,7 @@ namespace Gagarin
             }
             finally
             {
+                registerSw.Stop();
                 overhead.Stop();
             }
         }
@@ -126,6 +137,7 @@ namespace Gagarin
                 return;
 
             overhead.Start();
+            recordSw.Start();
             try
             {
                 if (!patchIds.TryGetValue(patch, out string patchId))
@@ -145,6 +157,7 @@ namespace Gagarin
             }
             finally
             {
+                recordSw.Stop();
                 overhead.Stop();
             }
         }
@@ -157,12 +170,14 @@ namespace Gagarin
                 return;
 
             overhead.Start();
+            serializeSw.Start();
             try
             {
                 // Serializing is part of the capture cost, so it happens inside the
                 // overhead window; we stop the clock before writing to disk so the
                 // metric reflects in-memory work only.
                 string json = graph.Serialize(overhead.ElapsedMilliseconds);
+                serializeSw.Stop();
                 overhead.Stop();
 
                 if (!Directory.Exists(GagarinEnvironmentInfo.CacheFolderPath))
@@ -174,10 +189,15 @@ namespace Gagarin
                     $"nodes={graph.NodeCount} patchEdges={graph.PatchEdgeCount} " +
                     $"inheritanceEdges={graph.InheritanceEdgeCount} " +
                     $"docPathFallbacks={graph.DocumentPathFallbackCount} " +
-                    $"bytes={Encoding.UTF8.GetByteCount(json)} overheadMs={overhead.ElapsedMilliseconds}");
+                    $"bytes={Encoding.UTF8.GetByteCount(json)} overheadMs={overhead.ElapsedMilliseconds} " +
+                    $"[registerMs={registerSw.ElapsedMilliseconds} " +
+                    $"recordMs={recordSw.ElapsedMilliseconds} " +
+                    $"serializeMs={serializeSw.ElapsedMilliseconds}]");
             }
             catch (Exception er)
             {
+                if (serializeSw.IsRunning)
+                    serializeSw.Stop();
                 if (overhead.IsRunning)
                     overhead.Stop();
                 Logger.Debug("GAGARIN: Failed to write provenance graph", exception: er);
