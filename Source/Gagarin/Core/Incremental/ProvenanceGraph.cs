@@ -87,6 +87,15 @@ namespace Gagarin
         private readonly List<KeyValuePair<string, string>> pendingInheritance =
             new List<KeyValuePair<string, string>>();
 
+        // Memoizes KeyForNode by node reference. The same nodes are matched by many
+        // patches during a load (popular base defs especially), and keying walks the
+        // ancestor chain + scans for <defName>; caching turns the repeat work into a
+        // dictionary lookup. Node identities are stable across a build, so this is
+        // safe; the rare defName/Name rename via a patch is acceptable for a dev-only
+        // provenance artifact.
+        private readonly Dictionary<XmlNode, string> keyCache =
+            new Dictionary<XmlNode, string>();
+
         public int NodeCount => nodes.Count;
         public int PatchEdgeCount => patchEdges.Count;
         public int InheritanceEdgeCount => inheritanceEdges.Count;
@@ -102,6 +111,7 @@ namespace Gagarin
             inheritanceEdges.Clear();
             defNameToNodeId.Clear();
             pendingInheritance.Clear();
+            keyCache.Clear();
             DocumentPathFallbackCount = 0;
         }
 
@@ -171,15 +181,49 @@ namespace Gagarin
         // "{defType}/{defName}"; falls back to a positional document path.
         public string KeyForNode(XmlNode node)
         {
+            if (node == null)
+                return null;
+            if (keyCache.TryGetValue(node, out string cached))
+                return cached;
+
+            string key;
             XmlElement defElement = NearestDefElement(node);
             if (defElement != null)
             {
+                // Concrete defs key by <defName>. Abstract / Name-based parent defs
+                // have no defName at patch time (inheritance is resolved later), so
+                // key them — and any node inside them — by the def's Name attribute.
+                // This is a stable identity (a positional document path is not, and
+                // it loses the inheritance hook needed to fan a base-def change out to
+                // its descendants during incremental recompute). The document path is
+                // only a last resort for nodes genuinely outside any def.
                 string defName = defElement["defName"]?.InnerText;
                 if (!string.IsNullOrEmpty(defName))
-                    return $"{defElement.Name}/{defName}";
+                {
+                    key = $"{defElement.Name}/{defName}";
+                }
+                else
+                {
+                    string nameAttr = defElement.GetAttribute("Name");
+                    if (!string.IsNullOrEmpty(nameAttr))
+                    {
+                        key = $"{defElement.Name}@{nameAttr}";
+                    }
+                    else
+                    {
+                        DocumentPathFallbackCount++;
+                        key = DocumentPath(node);
+                    }
+                }
             }
-            DocumentPathFallbackCount++;
-            return DocumentPath(node);
+            else
+            {
+                DocumentPathFallbackCount++;
+                key = DocumentPath(node);
+            }
+
+            keyCache[node] = key;
+            return key;
         }
 
         // The nearest ancestor (inclusive) that is a direct child of the document

@@ -59,7 +59,7 @@ namespace Gagarin.Tests
             XmlDocument doc = BuildDefsDoc("ThingDef:Steel");
             XmlElement def = (XmlElement)doc.DocumentElement.FirstChild;
 
-            Assert.That(ProvenanceGraph.KeyForNode(def), Is.EqualTo("ThingDef/Steel"));
+            Assert.That(new ProvenanceGraph().KeyForNode(def), Is.EqualTo("ThingDef/Steel"));
         }
 
         [Test]
@@ -71,7 +71,7 @@ namespace Gagarin.Tests
             def.AppendChild(statBases);
 
             // A node nested inside a def resolves to that def's id.
-            Assert.That(ProvenanceGraph.KeyForNode(statBases), Is.EqualTo("ThingDef/Steel"));
+            Assert.That(new ProvenanceGraph().KeyForNode(statBases), Is.EqualTo("ThingDef/Steel"));
         }
 
         [Test]
@@ -86,7 +86,32 @@ namespace Gagarin.Tests
             XmlElement second = doc.CreateElement("Child");
             root.AppendChild(second);
 
-            Assert.That(ProvenanceGraph.KeyForNode(second), Is.EqualTo("Root/Child[2]"));
+            Assert.That(new ProvenanceGraph().KeyForNode(second), Is.EqualTo("Root/Child[2]"));
+        }
+
+        [Test]
+        public void KeyForNode_AbstractDef_UsesNameAttribute()
+        {
+            // Abstract / Name-based parent defs carry no <defName> at patch time
+            // (inheritance is resolved later). They — and any node inside them — must
+            // key by the Name attribute so the identity is stable and ties to the
+            // inheritance graph, rather than falling back to a positional path.
+            XmlDocument doc = new XmlDocument();
+            XmlElement defs = doc.CreateElement("Defs");
+            doc.AppendChild(defs);
+            XmlElement abstractDef = doc.CreateElement("ThingDef");
+            abstractDef.SetAttribute("Name", "BuildingBase");
+            abstractDef.SetAttribute("Abstract", "True");
+            defs.AppendChild(abstractDef);
+            XmlElement comps = doc.CreateElement("comps");
+            abstractDef.AppendChild(comps);
+
+            ProvenanceGraph graph = new ProvenanceGraph();
+            Assert.That(graph.KeyForNode(abstractDef), Is.EqualTo("ThingDef@BuildingBase"));
+            // A node inside the abstract def keys to the same abstract identity.
+            Assert.That(graph.KeyForNode(comps), Is.EqualTo("ThingDef@BuildingBase"));
+            // And it must NOT have used the positional fallback.
+            Assert.That(graph.DocumentPathFallbackCount, Is.EqualTo(0));
         }
 
         [Test]
