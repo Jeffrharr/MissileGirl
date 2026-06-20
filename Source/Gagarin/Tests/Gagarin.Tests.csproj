@@ -29,6 +29,7 @@
   <!-- Compile the real pure logic, not a copy. -->
   <ItemGroup>
     <Compile Include="..\Core\Incremental\ProvenanceGraph.cs" Link="ProvenanceGraph.cs" />
+    <Compile Include="..\Core\Incremental\PatchIdWalker.cs" Link="PatchIdWalker.cs" />
   </ItemGroup>
 
   <ItemGroup>

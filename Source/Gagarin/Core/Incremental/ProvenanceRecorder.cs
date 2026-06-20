@@ -22,9 +22,12 @@
 // to recompute only the defs affected by a change instead of rebuilding all.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Xml;
 using MissileGirl;
@@ -45,10 +48,21 @@ namespace Gagarin
 
         private static readonly ProvenanceGraph graph = new ProvenanceGraph();
 
-        // Maps a top-level PatchOperation instance to the deterministic patchId
-        // "{sourceMod}#{index}" assigned when ApplyPatches enumerates them.
+        // Maps a PatchOperation instance to its deterministic patchId. Top-level
+        // operations get "{sourceMod}#{index}" (matching how ApplyPatches
+        // enumerates them); nested operations (the children of containers such as
+        // PatchOperationSequence / PatchOperationConditional / PatchOperationFindMod
+        // that RimWorld applies recursively) get a hierarchical suffix appended to
+        // their owning top-level id, e.g. "mod#3.operations[2]" or "mod#3.match".
+        // The suffix never contains '#', so RecordPatch can still split on the
+        // first '#' to recover sourceMod for every operation.
         private static readonly Dictionary<PatchOperation, string> patchIds =
             new Dictionary<PatchOperation, string>();
+
+        // Caches the deterministically-ordered PatchOperation-typed reflection
+        // surface of each operation type, so we don't re-sort fields per instance.
+        private static readonly Dictionary<Type, FieldInfo[]> patchFieldCache =
+            new Dictionary<Type, FieldInfo[]>();
 
         private static readonly Stopwatch overhead = new Stopwatch();
 
@@ -64,14 +78,22 @@ namespace Gagarin
         {
             graph.Reset();
             patchIds.Clear();
+            patchFieldCache.Clear();
             overhead.Reset();
             registerSw.Reset();
             recordSw.Reset();
             serializeSw.Reset();
         }
 
-        // Assigns deterministic patchIds to every top-level PatchOperation in
-        // active-mod load order, matching how ApplyPatches enumerates them.
+        // Assigns deterministic patchIds to every PatchOperation in active-mod
+        // load order. Each mod's top-level operations get "{sourceMod}#{index}"
+        // (matching how ApplyPatches enumerates them); their nested children get a
+        // hierarchical id derived from the top-level one. RimWorld applies the
+        // children of containers (PatchOperationSequence, PatchOperationConditional,
+        // PatchOperationFindMod, and any custom container) recursively, so without
+        // indexing them every nested op falls back to a single shared
+        // "unindexed#{type}" bucket in RecordPatch — collapsing distinct ops and
+        // losing their real source mod.
         public static void IndexPatches(IEnumerable<ModContentPack> mods)
         {
             if (!Active)
@@ -89,8 +111,14 @@ namespace Gagarin
                     int index = 0;
                     foreach (PatchOperation patch in mod.Patches)
                     {
-                        if (patch != null && !patchIds.ContainsKey(patch))
-                            patchIds[patch] = $"{sourceMod}#{index}";
+                        if (patch != null)
+                        {
+                            // Walk the whole subtree rooted at this top-level op,
+                            // assigning a stable hierarchical id to it and every
+                            // nested operation reachable through its fields.
+                            PatchIdWalker.AssignIds(
+                                patch, $"{sourceMod}#{index}", GetChildPatches, patchIds);
+                        }
                         index++;
                     }
                 }
@@ -99,6 +127,102 @@ namespace Gagarin
             {
                 overhead.Stop();
             }
+        }
+
+        // The RimWorld-specific half of the recursion: reflects over a
+        // PatchOperation's fields and yields its (label, child) pairs for the pure
+        // PatchIdWalker. A field whose value is a PatchOperation yields one pair
+        // labelled ".{fieldName}" (e.g. ".match"); a field whose value is an
+        // IEnumerable of PatchOperation yields one pair per element labelled
+        // ".{fieldName}[{i}]" (e.g. ".operations[2]"). Labels never contain '#', so
+        // RecordPatch's split on the first '#' still recovers sourceMod.
+        //
+        // This is validated in-game rather than by unit test (it needs real
+        // PatchOperation subclasses); the recursion/cycle/labelling logic it feeds
+        // is covered by PatchIdWalker's offline tests.
+        private static IEnumerable<(string label, PatchOperation child)> GetChildPatches(
+            PatchOperation op)
+        {
+            foreach (FieldInfo field in GetPatchFields(op.GetType()))
+            {
+                object value = field.GetValue(op);
+                if (value == null)
+                    continue;
+
+                if (value is PatchOperation child)
+                {
+                    yield return ($".{field.Name}", child);
+                }
+                else if (value is IEnumerable enumerable)
+                {
+                    // Index by position so reordering a list changes ids predictably
+                    // and two sibling ops in the same list never collide.
+                    int i = 0;
+                    foreach (object item in enumerable)
+                    {
+                        if (item is PatchOperation itemOp)
+                            yield return ($".{field.Name}[{i}]", itemOp);
+                        i++;
+                    }
+                }
+            }
+        }
+
+        // Returns the fields of a PatchOperation type that can hold nested
+        // operations (a PatchOperation or an enumerable of them), in a
+        // deterministic order. GetFields' order is not guaranteed across runs, so
+        // we sort by (declaring depth, MetadataToken) to keep ids stable. Results
+        // are cached per type. Value/string/primitive fields are excluded up front
+        // so the per-instance hot path only touches relevant fields.
+        private static FieldInfo[] GetPatchFields(Type type)
+        {
+            if (patchFieldCache.TryGetValue(type, out FieldInfo[] cached))
+                return cached;
+
+            var fields = new List<FieldInfo>();
+            // Walk the type hierarchy so private fields declared on base
+            // PatchOperation classes are included.
+            for (Type t = type; t != null && t != typeof(object); t = t.BaseType)
+            {
+                fields.AddRange(t.GetFields(
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
+                    | BindingFlags.DeclaredOnly));
+            }
+
+            FieldInfo[] result = fields
+                .Where(CanHoldPatchOperation)
+                // Deterministic, stable order: base-declared fields first (shallower
+                // declaring depth from object), then by metadata token within a
+                // type. This makes the generated ids identical across runs.
+                .OrderBy(DeclaringDepth)
+                .ThenBy(f => f.MetadataToken)
+                .ToArray();
+
+            patchFieldCache[type] = result;
+            return result;
+        }
+
+        // True if a field could reference nested operations: its type is a
+        // PatchOperation, or a non-string IEnumerable that might contain them.
+        // Value types and strings can never hold operations and are skipped.
+        private static bool CanHoldPatchOperation(FieldInfo field)
+        {
+            Type ft = field.FieldType;
+            if (typeof(PatchOperation).IsAssignableFrom(ft))
+                return true;
+            if (ft == typeof(string) || ft.IsValueType)
+                return false;
+            return typeof(IEnumerable).IsAssignableFrom(ft);
+        }
+
+        // Distance of a field's declaring type from object, used only to order
+        // base-class fields ahead of derived-class fields deterministically.
+        private static int DeclaringDepth(FieldInfo field)
+        {
+            int depth = 0;
+            for (Type t = field.DeclaringType; t != null; t = t.BaseType)
+                depth++;
+            return depth;
         }
 
         // Records one def node. node carries the raw XML element (used for the
