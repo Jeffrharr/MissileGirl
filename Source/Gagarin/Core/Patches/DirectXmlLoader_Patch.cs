@@ -25,6 +25,8 @@ namespace Gagarin
                     try
                     {
                         CachedDefHelper.Register(__result, node, loadingAsset);
+                        // Capture this def as a provenance node (dev-flag gated).
+                        ProvenanceRecorder.RegisterNode(__result, node, loadingAsset);
                     }
                     catch (Exception er)
                     {

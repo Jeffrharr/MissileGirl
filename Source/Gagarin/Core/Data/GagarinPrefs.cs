@@ -23,5 +23,11 @@ namespace Gagarin
 
         public static bool CacheExpires = true;
         public static int CacheRetentionTime = 3;
+
+        // Dev-only flag for Piece A of the incremental-cache prototype. When ON
+        // (and only on a cold/cache-miss load) Gagarin captures the def
+        // dependency graph to DependencyGraph.json. Default OFF so normal users
+        // and the shipped cache are unaffected. Not scribed to settings.
+        public static bool CaptureProvenance = false;
     }
 }
