@@ -117,6 +117,15 @@ namespace Gagarin
                 {
                     CachedDefHelper.Prepare();
 
+                    // Provenance capture (dev-flag gated, cold load only): start a
+                    // fresh graph and assign deterministic patchIds in the same
+                    // order ApplyPatches enumerates the operations.
+                    if (ProvenanceRecorder.Active)
+                    {
+                        ProvenanceRecorder.Reset();
+                        ProvenanceRecorder.IndexPatches(Context.RunningMods);
+                    }
+
                     return !Context.IsUsingCache;
                 }
                 catch (Exception er)
@@ -168,6 +177,11 @@ namespace Gagarin
                         GagarinSettings.WriteSettings();
 
                         CachedDefHelper.Save();
+
+                        // Defs are now registered and inheritance resolved: flush
+                        // the captured dependency graph (dev-flag gated, no-op
+                        // otherwise).
+                        ProvenanceRecorder.Save();
                     }
                     catch (Exception er)
                     {
