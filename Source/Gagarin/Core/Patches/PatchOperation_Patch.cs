@@ -49,25 +49,33 @@ namespace Gagarin
         // own sink rather than the parent's. A sink is present only between an
         // operation's Apply Prefix and Postfix, so the Select* hooks are inert at
         // all other times (including the entire load when capture is off).
-        private static readonly Stack<List<XmlNode>> sinks =
-            new Stack<List<XmlNode>>();
+        private static readonly Stack<List<string>> sinks =
+            new Stack<List<string>>();
 
-        // Append one selection result to the operation currently applying. Cheap and
+        // Append one selection result to the operation currently applying. The node is
+        // keyed to its stable id NOW, while still attached to the document, because a
+        // Replace/Remove operation detaches it before our Apply postfix runs. Cheap and
         // inert when no operation is active (sinks empty).
         internal static void Capture(XmlNode node)
         {
             if (node == null || sinks.Count == 0)
                 return;
-            sinks.Peek().Add(node);
+            string id = ProvenanceRecorder.KeyMatched(node);
+            if (!string.IsNullOrEmpty(id))
+                sinks.Peek().Add(id);
         }
 
         internal static void Capture(XmlNodeList nodes)
         {
             if (nodes == null || sinks.Count == 0)
                 return;
-            List<XmlNode> sink = sinks.Peek();
+            List<string> sink = sinks.Peek();
             foreach (XmlNode node in nodes)
-                sink.Add(node);
+            {
+                string id = ProvenanceRecorder.KeyMatched(node);
+                if (!string.IsNullOrEmpty(id))
+                    sink.Add(id);
+            }
         }
 
         // Installs the low-level XmlNode selection hooks. Only wired up when capture
@@ -121,9 +129,9 @@ namespace Gagarin
             {
                 if (!ProvenanceRecorder.Active)
                     return;
-                // Open a sink for this operation; the Select* hooks fill it with
-                // whatever RimWorld selects while Apply runs.
-                sinks.Push(new List<XmlNode>());
+                // Open a sink for this operation; the Select* hooks fill it with the ids
+                // of whatever RimWorld selects while Apply runs.
+                sinks.Push(new List<string>());
             }
 
             public static void Postfix(PatchOperation __instance, bool __result)
@@ -131,7 +139,7 @@ namespace Gagarin
                 if (!ProvenanceRecorder.Active)
                     return;
 
-                List<XmlNode> matched = sinks.Count > 0 ? sinks.Pop() : null;
+                List<string> matched = sinks.Count > 0 ? sinks.Pop() : null;
                 if (!(__instance is PatchOperationPathed))
                     return;
 
@@ -139,7 +147,7 @@ namespace Gagarin
                 // The matched nodes are also the modified ones when the operation
                 // succeeded: pathed operations act on (or relative to) their
                 // selection. A failed match modifies nothing.
-                IEnumerable<XmlNode> modified = __result ? matched : null;
+                IEnumerable<string> modified = __result ? matched : null;
                 ProvenanceRecorder.RecordPatch(__instance, xpath, matched, modified);
             }
         }

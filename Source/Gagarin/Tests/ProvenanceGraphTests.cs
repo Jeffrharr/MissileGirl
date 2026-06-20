@@ -117,15 +117,13 @@ namespace Gagarin.Tests
         [Test]
         public void Serialize_ProducesValidSchema_WithCorrectCounts()
         {
-            XmlDocument doc = BuildDefsDoc("ThingDef:Steel", "ThingDef:Plasteel");
-            XmlElement steel = (XmlElement)doc.DocumentElement.ChildNodes[0];
-
             ProvenanceGraph graph = new ProvenanceGraph();
             graph.AddNode("ThingDef", "Steel", null, "ludeon.rimworld", "Core/Steel.xml", null);
             graph.AddNode("ThingDef", "Plasteel", null, "ludeon.rimworld", "Core/Plasteel.xml", null);
+            // Node ids are pre-computed at selection time, so AddPatchEdge takes ids.
             graph.AddPatchEdge("cete.combatextended#42", "cete.combatextended",
                 "PatchOperationReplace", "Defs/ThingDef[defName=\"Steel\"]/statBases",
-                new[] { (XmlNode)steel }, new[] { (XmlNode)steel });
+                new[] { "ThingDef/Steel" }, new[] { "ThingDef/Steel" });
 
             string json = graph.Serialize(7);
             using JsonDocument parsed = JsonDocument.Parse(json);
@@ -275,17 +273,13 @@ namespace Gagarin.Tests
         [Test]
         public void PatchEdge_AccumulatesAcrossMultipleApplies()
         {
-            XmlDocument doc = BuildDefsDoc("ThingDef:Steel", "ThingDef:Plasteel");
-            XmlNode steel = doc.DocumentElement.ChildNodes[0];
-            XmlNode plasteel = doc.DocumentElement.ChildNodes[1];
-
             ProvenanceGraph graph = new ProvenanceGraph();
             // Same patchId observed twice (e.g. a wildcard that matched two defs
             // across separate Apply observations) collapses to one edge.
             graph.AddPatchEdge("mod#0", "mod", "PatchOperationAdd", "//comps",
-                new[] { steel }, new[] { steel });
+                new[] { "ThingDef/Steel" }, new[] { "ThingDef/Steel" });
             graph.AddPatchEdge("mod#0", "mod", "PatchOperationAdd", "//comps",
-                new[] { plasteel }, new[] { plasteel });
+                new[] { "ThingDef/Plasteel" }, new[] { "ThingDef/Plasteel" });
 
             JsonElement edges = JsonDocument.Parse(graph.Serialize(0))
                 .RootElement.GetProperty("patchEdges");

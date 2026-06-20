@@ -167,11 +167,35 @@ namespace Gagarin
             }
         }
 
-        // Records matched/modified nodes for a single PatchOperation.Apply.
-        // matchedNodes is the XPath selection before mutation; modifiedNodes the
-        // nodes touched. Only operations carrying an xpath produce an edge.
+        // Keys a matched node to its stable id at selection time — called from the XML
+        // selection hooks while the node is still attached to the document. Returns null
+        // when capture is inactive. Keying here, rather than in the Apply postfix, is what
+        // keeps Replace/Remove matches attributed to their def: those operations detach
+        // the matched node before the postfix runs.
+        public static string KeyMatched(XmlNode node)
+        {
+            if (!Active || node == null)
+                return null;
+
+            overhead.Start();
+            recordSw.Start();
+            try
+            {
+                return graph.KeyForNode(node);
+            }
+            finally
+            {
+                recordSw.Stop();
+                overhead.Stop();
+            }
+        }
+
+        // Records matched/modified node ids for a single PatchOperation.Apply. The ids
+        // were computed at selection time (see KeyMatched); modifiedNodeIds are the
+        // matched ids when the operation succeeded, else null. Only operations carrying
+        // an xpath produce an edge.
         public static void RecordPatch(PatchOperation patch, string xpath,
-            IEnumerable<XmlNode> matchedNodes, IEnumerable<XmlNode> modifiedNodes)
+            IEnumerable<string> matchedNodeIds, IEnumerable<string> modifiedNodeIds)
         {
             if (!Active || patch == null)
                 return;
@@ -193,7 +217,7 @@ namespace Gagarin
                     : null;
 
                 graph.AddPatchEdge(patchId, sourceMod, patch.GetType().Name, xpath,
-                    matchedNodes, modifiedNodes);
+                    matchedNodeIds, modifiedNodeIds);
             }
             finally
             {

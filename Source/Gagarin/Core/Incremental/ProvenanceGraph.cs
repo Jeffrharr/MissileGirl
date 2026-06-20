@@ -160,9 +160,13 @@ namespace Gagarin
                 pendingInheritance.Add(new KeyValuePair<string, string>(id, parentName));
         }
 
-        // Records matched/modified node ids for a single PatchOperation.
+        // Records matched/modified node ids for a single PatchOperation. The ids are
+        // computed by the caller at selection time (while the nodes are still attached
+        // to the document) via KeyForNode, NOT here: Replace/Remove operations detach
+        // their matched nodes before our postfix runs, so keying them afterwards would
+        // lose the def ancestry and collapse distinct defs onto a bare element name.
         public void AddPatchEdge(string patchId, string sourceMod, string operationType,
-            string xpath, IEnumerable<XmlNode> matchedNodes, IEnumerable<XmlNode> modifiedNodes)
+            string xpath, IEnumerable<string> matchedNodeIds, IEnumerable<string> modifiedNodeIds)
         {
             if (!patchEdges.TryGetValue(patchId, out PatchEdge edge))
             {
@@ -180,20 +184,17 @@ namespace Gagarin
                 edge.xpath = xpath;
             }
 
-            if (matchedNodes != null)
-                foreach (XmlNode node in matchedNodes)
-                    AddNodeId(edge.matchedNodeIds, node);
-
-            if (modifiedNodes != null)
-                foreach (XmlNode node in modifiedNodes)
-                    AddNodeId(edge.modifiedNodeIds, node);
+            AddIds(edge.matchedNodeIds, matchedNodeIds);
+            AddIds(edge.modifiedNodeIds, modifiedNodeIds);
         }
 
-        private void AddNodeId(HashSet<string> set, XmlNode node)
+        private static void AddIds(HashSet<string> set, IEnumerable<string> ids)
         {
-            string id = KeyForNode(node);
-            if (!string.IsNullOrEmpty(id))
-                set.Add(id);
+            if (ids == null)
+                return;
+            foreach (string id in ids)
+                if (!string.IsNullOrEmpty(id))
+                    set.Add(id);
         }
 
         // Resolves the stable node id for an arbitrary XML node. Walks up to the
