@@ -12,9 +12,14 @@ launches RimWorld.
 2. Derives the Piece A `DependencyGraph` and Piece B `PatchClassification` from that
    fixture and round-trips them through their documented JSON schemas, so the harness
    depends only on the contracts, not on Piece A/B code.
-3. Simulates a single-mod change, computes the **dirty set** (changed defs + everything
-   reachable via patch edges, wildcard re-tests, and inheritance, to a fixpoint),
-   recomputes only those defs, and splices them into the baseline document.
+3. Simulates a change, computes the **dirty set** (changed defs + everything reachable
+   via patch edges, wildcard re-tests, inheritance, and per-node patch-order changes, to
+   a fixpoint), recomputes only those defs, and splices them into the baseline document.
+   The change matrix covers content **update** (the case Gagarin's packageId-keyed cache
+   gets wrong), **reorder** (overlapping → nodes dirty; independent → nodes stay clean),
+   **add** (a new mod's wildcard reaching back into existing defs), **remove** (a mod's
+   patches un-applied), cross-mod inheritance, and the forward-wildcard hazard. Cases
+   assert both zero-diff AND explicit dirty/clean membership where order is what matters.
 4. **Diffs** the spliced result against a full from-scratch rebuild using `XMLDiffPatch`.
    Zero diff = correct.
 5. Reports the dirty-set size and partial-vs-full timing, and runs a **negative control**

@@ -26,6 +26,13 @@ namespace Gagarin.IncrementalReplay
             public string ChangedMod;
             public Mutator Mutate;
             public string Expectation;
+
+            // Optional membership assertions on the computed dirty set. ExpectDirty proves
+            // we DID invalidate a node whose value moved (no under-invalidation); ExpectClean
+            // proves we did NOT invalidate a node whose value is unchanged (no over-
+            // invalidation). Both are checked in addition to the zero-diff oracle.
+            public string[] ExpectDirty;
+            public string[] ExpectClean;
         }
 
         private static int Main()
@@ -130,6 +137,100 @@ namespace Gagarin.IncrementalReplay
                         return m;
                     }
                 },
+
+                // (f) UPDATE: a mod's content changes (same packageId, different body).
+                //     This is precisely the case Gagarin's current cache gets WRONG -- it
+                //     keys cache validity on packageId, not content, so an in-place mod
+                //     update (Steam auto-update, local edit) is NOT detected and the stale
+                //     Unified.xml is reused. Here Steelworks' SteelPlate beauty changes; the
+                //     dirty set must catch SteelPlate (and nothing structurally beyond it).
+                //     Doubles as the regression test for that packageId-keyed staleness bug.
+                new Case
+                {
+                    Name = "f) UPDATE: same packageId, changed content (Gagarin-cache regression)",
+                    ChangedMod = "steelworks",
+                    Expectation = "only SteelPlate dirty; stale-cache bug would miss it",
+                    ExpectDirty = new[] { "ThingDef/SteelPlate" },
+                    ExpectClean = new[] { "ThingDef/Gold", "ThingDef/Wood" },
+                    Mutate = f =>
+                    {
+                        var m = f.DeepCopy();
+                        foreach (var mod in m.Mods)
+                            if (mod.PackageId == "steelworks")
+                                foreach (var d in mod.Defs)
+                                    if (d.DefName == "SteelPlate")
+                                        d.Body = "<flammable>false</flammable><beauty>8</beauty><marketValue>3</marketValue>";
+                        return m;
+                    }
+                },
+
+                // (g) REORDER, OVERLAP: swap PaintRed/PaintBlue, which both set Steel's
+                //     <tint>. Patches apply in load order, so swapping flips the winner
+                //     (blue -> red). No def body and no patch DEFINITION changed -- only the
+                //     order -- so a content-diff would miss it. Steel MUST be dirty.
+                new Case
+                {
+                    Name = "g) REORDER (overlap): swap two mods that patch the SAME node",
+                    ChangedMod = "paintred",
+                    Expectation = "Steel result changes -> Steel MUST be dirty",
+                    ExpectDirty = new[] { "ThingDef/Steel" },
+                    Mutate = f => SwapLoadOrder(f, "paintred", "paintblue")
+                },
+
+                // (h) REORDER, INDEPENDENT: swap HoneTail/HoneWood, which patch DIFFERENT
+                //     defs (Gold's beauty vs Wood's marketValue). Order cannot matter on
+                //     disjoint targets, so the result is identical and those nodes must stay
+                //     CLEAN -- proving the dirty set does not over-invalidate on reorder.
+                new Case
+                {
+                    Name = "h) REORDER (independent): swap two mods with disjoint patches",
+                    ChangedMod = "honetail",
+                    Expectation = "result identical -> Gold/Wood stay CLEAN",
+                    ExpectClean = new[] { "ThingDef/Gold", "ThingDef/Wood" },
+                    Mutate = f => SwapLoadOrder(f, "honetail", "honewood")
+                },
+
+                // (i) ADD: a brand-new mod whose WILDCARD patch reaches BACK into existing
+                //     defs. NewGloss adds <polish> to every ThingDef with <beauty>, so many
+                //     existing nodes must be dirtied even though none of THEIR bodies changed.
+                new Case
+                {
+                    Name = "i) ADD: new mod whose wildcard reaches back into existing defs",
+                    ChangedMod = "newgloss",
+                    Expectation = "every <beauty> def gains <polish> -> all dirtied",
+                    ExpectDirty = new[] { "ThingDef/Steel", "ThingDef/Gold" },
+                    Mutate = f =>
+                    {
+                        var m = f.DeepCopy();
+                        var gloss = new FixtureMod { PackageId = "newgloss", LoadOrder = 11 };
+                        gloss.Patches.Add(new FixturePatch
+                        {
+                            PatchId = "newgloss#polish", SourceMod = "newgloss",
+                            Kind = PatchKind.Wildcard, DefType = "ThingDef",
+                            PredicateElement = "beauty", SetElement = "polish", SetValue = "matte"
+                        });
+                        m.Mods.Add(gloss);
+                        return m;
+                    }
+                },
+
+                // (j) REMOVE: drop Steelworks entirely. Its identity patch on Steel
+                //     (marketValue=2) and wildcard on <beauty> (polished=yes) must be
+                //     UN-APPLIED, and its own def SteelPlate must disappear. Tests that
+                //     removal correctly rolls patches back rather than leaving their effects.
+                new Case
+                {
+                    Name = "j) REMOVE: drop a mod -> its patches un-applied, its defs gone",
+                    ChangedMod = "steelworks",
+                    Expectation = "SteelPlate removed; Steel/beauty-defs lose Steelworks' edits",
+                    ExpectDirty = new[] { "ThingDef/SteelPlate", "ThingDef/Steel" },
+                    Mutate = f =>
+                    {
+                        var m = f.DeepCopy();
+                        m.Mods.RemoveAll(mod => mod.PackageId == "steelworks");
+                        return m;
+                    }
+                },
             };
 
             var baseline = SyntheticFixture.Build();
@@ -158,6 +259,26 @@ namespace Gagarin.IncrementalReplay
                 Console.WriteLine($"  zero-diff   : {(best.ZeroDiff ? "YES (correct)" : "NO  <-- FAIL")}");
                 Console.WriteLine($"  timing      : full={best.FullRebuildMs:F3}ms  "
                     + $"incremental={best.IncrementalMs:F3}ms  speedup={best.Speedup:F2}x");
+
+                // Membership assertions: zero-diff alone proves the SPLICED result matches,
+                // but the reorder cases hinge on WHICH nodes were (or weren't) invalidated,
+                // so we check those explicitly too -- a node can stay clean and still match
+                // only because nothing else touched it, which we must not rely on silently.
+                if (c.ExpectDirty != null)
+                    foreach (var id in c.ExpectDirty)
+                    {
+                        bool ok = best.DirtyNodes.Contains(id);
+                        allPass &= ok;
+                        Console.WriteLine($"  expect dirty: {id} -> {(ok ? "YES" : "NO  <-- FAIL (under-invalidated)")}");
+                    }
+                if (c.ExpectClean != null)
+                    foreach (var id in c.ExpectClean)
+                    {
+                        bool ok = !best.DirtyNodes.Contains(id);
+                        allPass &= ok;
+                        Console.WriteLine($"  expect clean: {id} -> {(ok ? "YES" : "NO  <-- FAIL (over-invalidated)")}");
+                    }
+
                 if (!best.ZeroDiff)
                 {
                     Console.WriteLine("  --- diffgram ---");
@@ -221,6 +342,25 @@ namespace Gagarin.IncrementalReplay
             }
 
             return allPass ? 0 : 1;
+        }
+
+        // Swap the load order of two mods, leaving every def body and patch definition
+        // untouched. This is a pure REORDER: nothing a content-diff can see has changed,
+        // only the order patches are applied in -- which the dirty set must still account
+        // for whenever two reordered patches overlap on a node.
+        private static Fixture SwapLoadOrder(Fixture f, string modA, string modB)
+        {
+            var m = f.DeepCopy();
+            FixtureMod a = null, b = null;
+            foreach (var mod in m.Mods)
+            {
+                if (mod.PackageId == modA) a = mod;
+                else if (mod.PackageId == modB) b = mod;
+            }
+            int tmp = a.LoadOrder;
+            a.LoadOrder = b.LoadOrder;
+            b.LoadOrder = tmp;
+            return m;
         }
     }
 }

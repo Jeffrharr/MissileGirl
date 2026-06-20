@@ -27,6 +27,7 @@ namespace Gagarin.IncrementalReplay
         public int TotalNodes;
         public int Iterations;
         public bool ZeroDiff;
+        public HashSet<string> DirtyNodes; // the computed dirty set (for membership asserts)
         public string DiffGram;            // populated only on failure, for debugging
         public double FullRebuildMs;
         public double IncrementalMs;       // dirty-set + recompute + splice
@@ -68,6 +69,7 @@ namespace Gagarin.IncrementalReplay
             outcome.IncrementalMs = swInc.Elapsed.TotalMilliseconds;
             outcome.DirtyCount = dirty.Nodes.Count;
             outcome.Iterations = dirty.Iterations;
+            outcome.DirtyNodes = dirty.Nodes;
 
             // --- Correctness oracle: canonical XML diff ---
             outcome.ZeroDiff = XmlEqual(spliced, fullUnified, out var diffgram);

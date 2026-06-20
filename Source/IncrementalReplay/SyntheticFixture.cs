@@ -128,6 +128,49 @@ namespace Gagarin.IncrementalReplay
             });
             f.Mods.Add(tail);
 
+            // --- Reorder pair: two mods whose patches OVERLAP on the same node/element ---
+            // PaintRed (7) and PaintBlue (8) both set Steel's <tint>. Patches apply in load
+            // order, so whichever loads LAST wins -> swapping them changes the result, and
+            // those nodes MUST land in the dirty set on a reorder.
+            var red = new FixtureMod { PackageId = "paintred", LoadOrder = 7 };
+            red.Patches.Add(new FixturePatch
+            {
+                PatchId = "paintred#tint", SourceMod = "paintred",
+                Kind = PatchKind.Identity, DefType = "ThingDef", TargetDefName = "Steel",
+                SetElement = "tint", SetValue = "red"
+            });
+            f.Mods.Add(red);
+
+            var blue = new FixtureMod { PackageId = "paintblue", LoadOrder = 8 };
+            blue.Patches.Add(new FixturePatch
+            {
+                PatchId = "paintblue#tint", SourceMod = "paintblue",
+                Kind = PatchKind.Identity, DefType = "ThingDef", TargetDefName = "Steel",
+                SetElement = "tint", SetValue = "blue"   // loads after red -> blue wins
+            });
+            f.Mods.Add(blue);
+
+            // --- Independent pair: two mods whose patches DO NOT overlap ---
+            // HoneTail (9) and HoneWood (10) tune different defs/elements, so swapping them
+            // leaves the result identical: their nodes must stay CLEAN (no over-invalidation).
+            var honeTail = new FixtureMod { PackageId = "honetail", LoadOrder = 9 };
+            honeTail.Patches.Add(new FixturePatch
+            {
+                PatchId = "honetail#beauty", SourceMod = "honetail",
+                Kind = PatchKind.Identity, DefType = "ThingDef", TargetDefName = "Gold",
+                SetElement = "beauty", SetValue = "7"
+            });
+            f.Mods.Add(honeTail);
+
+            var honeWood = new FixtureMod { PackageId = "honewood", LoadOrder = 10 };
+            honeWood.Patches.Add(new FixturePatch
+            {
+                PatchId = "honewood#value", SourceMod = "honewood",
+                Kind = PatchKind.Identity, DefType = "ThingDef", TargetDefName = "Wood",
+                SetElement = "marketValue", SetValue = "4"
+            });
+            f.Mods.Add(honeWood);
+
             return f;
         }
     }
