@@ -85,6 +85,13 @@ namespace Gagarin
             Finder.Harmony.Patch(
                 AccessTools.Method(typeof(XmlNode), "SelectSingleNode", new[] { typeof(string) }),
                 postfix: new HarmonyMethod(typeof(XmlSelect_Patch), nameof(XmlSelect_Patch.SelectSingleNode_Postfix)));
+
+            // Register abstract / Name-based parent defs, which never become Def objects
+            // and so are missed by the per-def RegisterNode hook. Without them, ParentName
+            // references resolve to nothing and inheritance fan-out is broken.
+            Finder.Harmony.Patch(
+                AccessTools.Method(typeof(XmlInheritance), nameof(XmlInheritance.TryRegister)),
+                postfix: new HarmonyMethod(typeof(XmlInheritance_Patch), nameof(XmlInheritance_Patch.TryRegister_Postfix)));
         }
 
         // Postfix bodies for the BCL selection methods. Kept as a separate type so
@@ -94,6 +101,14 @@ namespace Gagarin
             public static void SelectNodes_Postfix(XmlNodeList __result) => Capture(__result);
 
             public static void SelectSingleNode_Postfix(XmlNode __result) => Capture(__result);
+        }
+
+        // Postfix on XmlInheritance.TryRegister: registers abstract / Name-based parent
+        // defs so inheritance edges can resolve their ParentName. Inert unless capturing.
+        public static class XmlInheritance_Patch
+        {
+            public static void TryRegister_Postfix(XmlNode node, ModContentPack mod)
+                => ProvenanceRecorder.RegisterAbstract(node, mod);
         }
 
         // Captures per-PatchOperation match provenance. Wraps PatchOperation.Apply so

@@ -112,13 +112,53 @@ namespace Gagarin
             registerSw.Start();
             try
             {
-                string parentName = (node as XmlElement)?.GetAttribute("ParentName");
+                XmlElement element = node as XmlElement;
+                string parentName = element?.GetAttribute("ParentName");
+                // A concrete def can also be an inheritance template (Name attribute);
+                // pass it so children referencing it by ParentName resolve here.
+                string nameAttr = element?.GetAttribute("Name");
                 graph.AddNode(
                     def.GetType().Name,
                     def.defName,
+                    nameAttr,
                     asset?.mod?.PackageId,
                     asset?.FullFilePath,
                     parentName);
+            }
+            finally
+            {
+                registerSw.Stop();
+                overhead.Stop();
+            }
+        }
+
+        // Registers an abstract / Name-based parent def (e.g. <ThingDef Name="BuildingBase"
+        // Abstract="True">). These never become Def objects, so RegisterNode never sees
+        // them; without this, the ~most ParentName references resolve to nothing and
+        // inheritance fan-out breaks. Driven by a postfix on XmlInheritance.TryRegister,
+        // which fires for every node carrying a Name or ParentName. Concrete defs (those
+        // with a defName) are skipped here — RegisterNode already handles them, including
+        // their Name attribute.
+        public static void RegisterAbstract(XmlNode node, ModContentPack mod)
+        {
+            if (!Active)
+                return;
+
+            XmlElement element = node as XmlElement;
+            if (element == null)
+                return;
+            string nameAttr = element.GetAttribute("Name");
+            if (string.IsNullOrEmpty(nameAttr))
+                return; // no Name => not an inheritance base we need to register here
+            if (!string.IsNullOrEmpty(element["defName"]?.InnerText))
+                return; // concrete def: RegisterNode owns it
+
+            overhead.Start();
+            registerSw.Start();
+            try
+            {
+                string parentName = element.GetAttribute("ParentName");
+                graph.AddNode(element.Name, null, nameAttr, mod?.PackageId, null, parentName);
             }
             finally
             {

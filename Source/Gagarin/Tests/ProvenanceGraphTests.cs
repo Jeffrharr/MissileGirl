@@ -121,8 +121,8 @@ namespace Gagarin.Tests
             XmlElement steel = (XmlElement)doc.DocumentElement.ChildNodes[0];
 
             ProvenanceGraph graph = new ProvenanceGraph();
-            graph.AddNode("ThingDef", "Steel", "ludeon.rimworld", "Core/Steel.xml", null);
-            graph.AddNode("ThingDef", "Plasteel", "ludeon.rimworld", "Core/Plasteel.xml", null);
+            graph.AddNode("ThingDef", "Steel", null, "ludeon.rimworld", "Core/Steel.xml", null);
+            graph.AddNode("ThingDef", "Plasteel", null, "ludeon.rimworld", "Core/Plasteel.xml", null);
             graph.AddPatchEdge("cete.combatextended#42", "cete.combatextended",
                 "PatchOperationReplace", "Defs/ThingDef[defName=\"Steel\"]/statBases",
                 new[] { (XmlNode)steel }, new[] { (XmlNode)steel });
@@ -153,7 +153,7 @@ namespace Gagarin.Tests
         public void Serialize_SerializedBytes_MatchesUtf8Length()
         {
             ProvenanceGraph graph = new ProvenanceGraph();
-            graph.AddNode("ThingDef", "Steel", "ludeon.rimworld", "Core/Steel.xml", null);
+            graph.AddNode("ThingDef", "Steel", null, "ludeon.rimworld", "Core/Steel.xml", null);
 
             string json = graph.Serialize(0);
             long reported = JsonDocument.Parse(json).RootElement
@@ -169,8 +169,8 @@ namespace Gagarin.Tests
         {
             ProvenanceGraph graph = new ProvenanceGraph();
             // Child registered before parent: resolution must still find it.
-            graph.AddNode("ThingDef", "Foo", "mod.a", "A/Foo.xml", "BaseApparel");
-            graph.AddNode("ThingDef", "BaseApparel", "ludeon.rimworld", "Core/Base.xml", null);
+            graph.AddNode("ThingDef", "Foo", null, "mod.a", "A/Foo.xml", "BaseApparel");
+            graph.AddNode("ThingDef", "BaseApparel", null, "ludeon.rimworld", "Core/Base.xml", null);
 
             JsonElement edges = JsonDocument.Parse(graph.Serialize(0))
                 .RootElement.GetProperty("inheritanceEdges");
@@ -186,12 +186,90 @@ namespace Gagarin.Tests
         public void InheritanceEdge_UnknownParent_SerializesNullParentNodeId()
         {
             ProvenanceGraph graph = new ProvenanceGraph();
-            graph.AddNode("ThingDef", "Foo", "mod.a", "A/Foo.xml", "MissingBase");
+            graph.AddNode("ThingDef", "Foo", null, "mod.a", "A/Foo.xml", "MissingBase");
 
             JsonElement edge = JsonDocument.Parse(graph.Serialize(0))
                 .RootElement.GetProperty("inheritanceEdges")[0];
 
             Assert.That(edge.GetProperty("parentNodeId").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        }
+
+        [Test]
+        public void InheritanceEdge_ResolvesAbstractParent_ByNameAttribute()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // Abstract base: a Name attribute and no defName. The concrete child
+            // references it by ParentName. Most ParentName targets are abstract bases
+            // like this, so resolving them is what makes inheritance fan-out work.
+            graph.AddNode("ThingDef", null, "BuildingBase", "ludeon.rimworld", "Core/Buildings.xml", null);
+            graph.AddNode("ThingDef", "Wall", null, "ludeon.rimworld", "Core/Wall.xml", "BuildingBase");
+
+            JsonElement edge = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("inheritanceEdges").EnumerateArray()
+                .Single(e => e.GetProperty("childNodeId").GetString() == "ThingDef/Wall");
+            Assert.That(edge.GetProperty("parentName").GetString(), Is.EqualTo("BuildingBase"));
+            Assert.That(edge.GetProperty("parentNodeId").GetString(), Is.EqualTo("ThingDef@BuildingBase"));
+        }
+
+        [Test]
+        public void InheritanceEdge_AbstractParent_ResolvesRegardlessOfOrder()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // Child registered before the abstract parent: resolution is deferred to
+            // serialization, so order must not matter.
+            graph.AddNode("ThingDef", "Wall", null, "m", "Wall.xml", "BuildingBase");
+            graph.AddNode("ThingDef", null, "BuildingBase", "m", "Base.xml", null);
+
+            JsonElement edge = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("inheritanceEdges")[0];
+            Assert.That(edge.GetProperty("parentNodeId").GetString(), Is.EqualTo("ThingDef@BuildingBase"));
+        }
+
+        [Test]
+        public void InheritanceEdge_MultiLevelAbstract_Resolves()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // Wall -> BuildingBase (abstract) -> ThingBase (abstract). Abstract bases can
+            // themselves inherit, so each link must resolve.
+            graph.AddNode("ThingDef", null, "ThingBase", "m", "T.xml", null);
+            graph.AddNode("ThingDef", null, "BuildingBase", "m", "B.xml", "ThingBase");
+            graph.AddNode("ThingDef", "Wall", null, "m", "W.xml", "BuildingBase");
+
+            var byChild = JsonDocument.Parse(graph.Serialize(0)).RootElement
+                .GetProperty("inheritanceEdges").EnumerateArray()
+                .ToDictionary(e => e.GetProperty("childNodeId").GetString(),
+                              e => e.GetProperty("parentNodeId").GetString());
+            Assert.That(byChild["ThingDef/Wall"], Is.EqualTo("ThingDef@BuildingBase"));
+            Assert.That(byChild["ThingDef@BuildingBase"], Is.EqualTo("ThingDef@ThingBase"));
+        }
+
+        [Test]
+        public void AbstractNode_RegisteredInNodes_KeyedByName()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddNode("ThingDef", null, "BuildingBase", "ludeon.rimworld", "Core/B.xml", null);
+
+            JsonElement node = JsonDocument.Parse(graph.Serialize(0)).RootElement
+                .GetProperty("nodes").EnumerateArray()
+                .Single(n => n.GetProperty("id").GetString() == "ThingDef@BuildingBase");
+            Assert.That(node.GetProperty("defType").GetString(), Is.EqualTo("ThingDef"));
+            Assert.That(node.GetProperty("defName").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        }
+
+        [Test]
+        public void InheritanceEdge_ConcreteParentWithNameAttr_ResolvesToConcreteId()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // A concrete def can also be an inheritance template (both defName and Name).
+            // A child referencing it by Name must resolve to the concrete node id, not a
+            // separate abstract one.
+            graph.AddNode("ThingDef", "Steel", "ResourceBase", "ludeon.rimworld", "Core/Steel.xml", null);
+            graph.AddNode("ThingDef", "Plasteel", null, "ludeon.rimworld", "Core/Plasteel.xml", "ResourceBase");
+
+            JsonElement edge = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("inheritanceEdges").EnumerateArray()
+                .Single(e => e.GetProperty("childNodeId").GetString() == "ThingDef/Plasteel");
+            Assert.That(edge.GetProperty("parentNodeId").GetString(), Is.EqualTo("ThingDef/Steel"));
         }
 
         [Test]

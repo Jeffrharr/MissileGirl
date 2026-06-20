@@ -83,6 +83,11 @@ namespace Gagarin
         private readonly Dictionary<string, string> defNameToNodeId =
             new Dictionary<string, string>();
 
+        // Name attribute -> node id. Most ParentName references target abstract bases
+        // (a Name attribute and no defName), which resolve here rather than via defName.
+        private readonly Dictionary<string, string> nameAttrToNodeId =
+            new Dictionary<string, string>();
+
         // Pending (childNodeId, parentName) pairs awaiting parent resolution.
         private readonly List<KeyValuePair<string, string>> pendingInheritance =
             new List<KeyValuePair<string, string>>();
@@ -110,6 +115,7 @@ namespace Gagarin
             patchEdges.Clear();
             inheritanceEdges.Clear();
             defNameToNodeId.Clear();
+            nameAttrToNodeId.Clear();
             pendingInheritance.Clear();
             keyCache.Clear();
             DocumentPathFallbackCount = 0;
@@ -117,10 +123,19 @@ namespace Gagarin
 
         // Adds a def node. parentName (if any) is queued for resolution against
         // the parent's node id once all nodes are known.
-        public void AddNode(string defType, string defName, string sourceMod,
-            string sourceFile, string parentName)
+        public void AddNode(string defType, string defName, string nameAttr,
+            string sourceMod, string sourceFile, string parentName)
         {
-            string id = $"{defType}/{defName}";
+            // Concrete defs key by defName; abstract / Name-based templates (which have
+            // no defName at patch time) key by their Name attribute, matching how
+            // matched nodes are keyed in patch edges. A node with neither has nothing
+            // stable to key on and is skipped.
+            string id = !string.IsNullOrEmpty(defName)
+                ? $"{defType}/{defName}"
+                : (!string.IsNullOrEmpty(nameAttr) ? $"{defType}@{nameAttr}" : null);
+            if (id == null)
+                return;
+
             if (!nodes.ContainsKey(id))
             {
                 nodes[id] = new NodeRecord
@@ -135,6 +150,11 @@ namespace Gagarin
 
             if (!string.IsNullOrEmpty(defName))
                 defNameToNodeId[defName] = id;
+            // A node may carry both a defName and a Name (a concrete inheritance
+            // template); mapping the Name to the same id lets children that reference it
+            // by ParentName resolve to the concrete node.
+            if (!string.IsNullOrEmpty(nameAttr))
+                nameAttrToNodeId[nameAttr] = id;
 
             if (!string.IsNullOrEmpty(parentName))
                 pendingInheritance.Add(new KeyValuePair<string, string>(id, parentName));
@@ -274,7 +294,11 @@ namespace Gagarin
             inheritanceEdges.Clear();
             foreach (KeyValuePair<string, string> pending in pendingInheritance)
             {
-                defNameToNodeId.TryGetValue(pending.Value, out string parentNodeId);
+                // ParentName may name a concrete parent (defName) or, far more often,
+                // an abstract base (Name attribute). Try the concrete map first, then
+                // the Name map.
+                if (!defNameToNodeId.TryGetValue(pending.Value, out string parentNodeId))
+                    nameAttrToNodeId.TryGetValue(pending.Value, out parentNodeId);
                 inheritanceEdges.Add(new InheritanceEdge
                 {
                     childNodeId = pending.Key,
