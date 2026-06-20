@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "nodes": [
+    {"id": "ThingDef/Steel", "defType": "ThingDef", "defName": "Steel", "sourceMod": "Ludeon.RimWorld", "sourceFile": "Core/Defs/Steel.xml"},
+    {"id": "ThingDef/Plasteel", "defType": "ThingDef", "defName": "Plasteel", "sourceMod": "Ludeon.RimWorld", "sourceFile": "Core/Defs/Plasteel.xml"},
+    {"id": "ThingDef/Gun_Autopistol", "defType": "ThingDef", "defName": "Gun_Autopistol", "sourceMod": "Ludeon.RimWorld", "sourceFile": "Core/Defs/Autopistol.xml"}
+  ],
+  "patchEdges": [
+    {
+      "patchId": "cete.combatextended#1",
+      "sourceMod": "cete.combatextended",
+      "operationType": "PatchOperationReplace",
+      "xpath": "Defs/ThingDef[defName=\"Steel\"]/statBases/MarketValue",
+      "matchedNodeIds": ["ThingDef/Steel"],
+      "modifiedNodeIds": ["ThingDef/Steel"]
+    },
+    {
+      "patchId": "cete.combatextended#2",
+      "sourceMod": "cete.combatextended",
+      "operationType": "PatchOperationAdd",
+      "xpath": "Defs/ThingDef[defName='Plasteel']/statBases",
+      "matchedNodeIds": ["ThingDef/Plasteel"],
+      "modifiedNodeIds": ["ThingDef/Plasteel"]
+    },
+    {
+      "patchId": "somemod.balance#1",
+      "sourceMod": "somemod.balance",
+      "operationType": "PatchOperationReplace",
+      "xpath": "Defs/ThingDef[statBases/Mass]/statBases/Mass",
+      "matchedNodeIds": ["ThingDef/Steel", "ThingDef/Plasteel", "ThingDef/Gun_Autopistol"],
+      "modifiedNodeIds": ["ThingDef/Steel", "ThingDef/Plasteel", "ThingDef/Gun_Autopistol"]
+    },
+    {
+      "patchId": "somemod.balance#2",
+      "sourceMod": "somemod.balance",
+      "operationType": "PatchOperationRemove",
+      "xpath": "//li[text()=\"OldTag\"]",
+      "matchedNodeIds": [],
+      "modifiedNodeIds": []
+    },
+    {
+      "patchId": "somemod.balance#3",
+      "sourceMod": "somemod.balance",
+      "operationType": "PatchOperationReplace",
+      "xpath": "Defs/ThingDef[defName=\"Steel\"]//li[text()=\"Flammable\"]",
+      "matchedNodeIds": ["ThingDef/Steel"],
+      "modifiedNodeIds": ["ThingDef/Steel"]
+    },
+    {
+      "patchId": "weirdmod.quirky#1",
+      "sourceMod": "weirdmod.quirky",
+      "operationType": "PatchOperationReplace",
+      "xpath": "Defs/ThingDef[label=\"autopistol\"]/description",
+      "matchedNodeIds": ["ThingDef/Gun_Autopistol"],
+      "modifiedNodeIds": ["ThingDef/Gun_Autopistol"]
+    },
+    {
+      "patchId": "seqmod.sequence#1",
+      "sourceMod": "seqmod.sequence",
+      "operationType": "PatchOperationSequence",
+      "xpath": "Defs/ThingDef[defName=\"Steel\"]/statBases | Defs/ThingDef[defName=\"Plasteel\"]/statBases",
+      "matchedNodeIds": ["ThingDef/Steel", "ThingDef/Plasteel"],
+      "modifiedNodeIds": ["ThingDef/Steel", "ThingDef/Plasteel"]
+    },
+    {
+      "patchId": "findmod.conditional#1",
+      "sourceMod": "findmod.conditional",
+      "operationType": "PatchOperationFindMod",
+      "xpath": "",
+      "matchedNodeIds": [],
+      "modifiedNodeIds": []
+    }
+  ],
+  "inheritanceEdges": [],
+  "metrics": {"nodeCount": 3, "patchEdgeCount": 8}
+}
