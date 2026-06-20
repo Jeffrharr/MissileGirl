@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Harness.cs (Piece C — replay harness)
+//
+// Contains: the experiment orchestrator — ReplayOutcome plus Run (one replay with
+// correctness diff), RunNaive (the unsound prefix-reuse negative control),
+// RunBenchmark (cached-input timing), the Splice step, and the XMLDiffPatch oracle.
+//
+// Used for: tying the pieces together — build inputs, mutate, compute the dirty
+// set, recompute and splice, then prove correctness (zero canonical diff vs a full
+// rebuild) and measure the speedup.
+//
+// Why: zero-diff against a full rebuild is the go/no-go proof that incremental
+// recompute is correct; the naive negative control proves the harness genuinely
+// exercises the cross-mod hazard rather than passing trivially.
+
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;

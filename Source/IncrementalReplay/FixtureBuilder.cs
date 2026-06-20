@@ -6,6 +6,19 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// FixtureBuilder.cs (Piece C — replay harness)
+//
+// Contains: BuildGraph and BuildClassification — they replay a fixture through the
+// apply model to discover real patch matches and inheritance edges, emitting the
+// Piece A DependencyGraph and Piece B PatchClassification objects.
+//
+// Used for: synthesizing real-shaped Piece A/B inputs for the harness so the
+// dirty-set algorithm consumes contract data rather than fabricated stubs.
+//
+// Why: Pieces A and B may not be merged when this harness runs, so it stands in
+// for them; building the graph by actually replaying patches (rather than guessing
+// matches) ensures the cross-mod match sets are exactly what Piece A would record.
+
 using System.Collections.Generic;
 
 namespace Gagarin.IncrementalReplay

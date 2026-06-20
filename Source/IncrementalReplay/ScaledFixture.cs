@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// ScaledFixture.cs (Piece C — replay harness)
+//
+// Contains: ScaledFixture.Build — a parametric generator producing a large
+// synthetic load order (modCount x defsPerMod) with a deterministic RNG, an early
+// forward wildcard, and a cross-mod inheritance template.
+//
+// Used for: the scaled speedup benchmark, where a realistic def count is needed to
+// time the incremental path against a full rebuild meaningfully.
+//
+// Why: the 7-mod correctness fixture is too small to time (fixed overhead
+// dominates). This generator grows the load order while still embedding the
+// cross-mod hazards, so the measured speedup reflects real work, not a trivial
+// best case.
+
 using System;
 
 namespace Gagarin.IncrementalReplay

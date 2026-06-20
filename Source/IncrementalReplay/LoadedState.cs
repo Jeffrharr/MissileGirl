@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// LoadedState.cs (Piece C — replay harness)
+//
+// Contains: LoadedState — the "already-loaded" indices (raw def map, patch list,
+// Name index for inheritance, baseline wildcard hit sets) plus per-def Patched and
+// Resolve helpers that compute a single def's body on demand.
+//
+// Used for: modelling the cache state production Gagarin would read at launch, so
+// the incremental recompute reuses it and touches only the changed slice plus its
+// transitive closure.
+//
+// Why: the whole value of the incremental design rests on these indices being
+// built ONCE. Timing per-change work that reuses them — against a from-scratch full
+// rebuild — is the apples-to-apples comparison where the sub-linear speedup shows.
+
 using System.Collections.Generic;
 
 namespace Gagarin.IncrementalReplay

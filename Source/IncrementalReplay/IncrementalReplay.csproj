@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <!--
-        Offline replay harness for the incremental Unified.xml cache prototype.
+        Offline replay harness for the incremental Unified.xml cache prototype
+        (Piece C). Builds the executable that simulates a single-mod change,
+        computes the dirty set, recomputes only those defs, and diffs the result
+        against a full rebuild (zero diff = correct) while measuring the speedup —
+        the go/no-go proof that incremental recompute is sound and worthwhile.
 
         This is deliberately a STANDALONE console app: it does not reference
         Krafs.Rimworld.Ref because constructing real Verse.PatchOperation objects

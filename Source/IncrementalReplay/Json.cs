@@ -6,6 +6,19 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Json.cs (Piece C — replay harness)
+//
+// Contains: a tiny dependency-free JSON value tree (object/array/string/number/
+// null) with an emitter, a recursive-descent parser, and typed-field accessor
+// extensions.
+//
+// Used for: round-tripping the Piece A DependencyGraph and Piece B
+// PatchClassification documents through their JSON schemas inside the harness.
+//
+// Why: keeping the harness's only real dependency as XMLDiffPatch means we avoid
+// pulling in System.Text.Json/Newtonsoft for two simple, well-known schemas; this
+// is just enough JSON to serialize and parse those contracts, nothing more.
+
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;

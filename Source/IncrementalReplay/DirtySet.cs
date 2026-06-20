@@ -6,6 +6,21 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// DirtySet.cs (Piece C — replay harness)
+//
+// Contains: the dirty-set algorithm — ComputeWithState plus the seeding
+// (def deltas, patch-definition changes, load-order/reorder changes), the
+// inheritance-closure frontier walk, and changed-wildcard re-testing.
+//
+// Used for: the core of the incremental proof — given a single-mod change, it
+// names exactly the defs that must be recomputed, reusing the precomputed Piece A
+// edges and loaded indices so work scales with the change, not the load order.
+//
+// Why: this is the load-bearing correctness piece. RimWorld matches by XPath, not
+// identity, so a change can flip an unrelated earlier mod's wildcard or cross a
+// mod inheritance boundary. The algorithm is deliberately superset-safe (a subset
+// would be silently wrong) and iterates to a fixpoint to catch patch cascades.
+
 using System.Collections.Generic;
 
 namespace Gagarin.IncrementalReplay

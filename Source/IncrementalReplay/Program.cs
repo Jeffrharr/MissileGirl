@@ -6,6 +6,21 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Program.cs (Piece C — replay harness)
+//
+// Contains: the console entry point and the automated change-case matrix —
+// update, reorder (overlap/independent), add, remove, cross-mod inheritance, and
+// forward-wildcard hazard cases — plus the scaled benchmark and naive negative
+// control.
+//
+// Used for: running every case, asserting zero-diff and explicit dirty/clean
+// membership, printing timings, and returning a non-zero exit code on any failure
+// so the harness doubles as a CI gate.
+//
+// Why: this is where the incremental-cache project gets its go/no-go answer; the
+// cases are engineered to cover exactly the hazards (including the packageId-keyed
+// staleness bug Gagarin's current cache gets wrong) that make naive reuse unsafe.
+
 using System;
 using System.Collections.Generic;
 

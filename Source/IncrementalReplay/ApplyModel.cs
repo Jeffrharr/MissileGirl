@@ -6,6 +6,22 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// ApplyModel.cs (Piece C — replay harness)
+//
+// Contains: the headless apply model — WorkingDef plus the patch-application,
+// cross-mod ParentName inheritance resolution, Unified-style serialization,
+// FullRebuild (the ground-truth from-scratch path), and the state-reusing
+// targeted RecomputeDirtyWithState.
+//
+// Used for: standing in for Verse.PatchOperation.Apply so the replay harness can
+// run entirely offline; it produces both the full-rebuild oracle and the
+// incremental recompute the dirty-set algorithm drives.
+//
+// Why: constructing real PatchOperation objects needs a booted game, so we model
+// the two semantics the dirty-set algorithm must respect — patches matching by
+// structure across mods, and load-order/child-over-parent inheritance — faithfully
+// but minimally, clearly labelled as the documented fallback from the task brief.
+
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;

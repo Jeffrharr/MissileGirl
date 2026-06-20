@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Fixture.cs (Piece C — replay harness)
+//
+// Contains: the fixture data model — FixtureMod, FixtureDef, the PatchKind enum,
+// FixturePatch, and the Fixture aggregate with load-order enumeration and a
+// DeepCopy used to derive mutated variants.
+//
+// Used for: describing a synthetic load order (mods, defs, patches) that is both
+// the harness's input and its ground truth, with no dependency on the real game.
+//
+// Why: a hand-authored universe lets us deliberately encode the three hazards that
+// break naive prefix-reuse — a forward-reaching wildcard, cross-mod inheritance,
+// and a patch depending on another patch's output — so the dirty-set algorithm is
+// tested against the cases that actually matter.
+
 using System.Collections.Generic;
 
 namespace Gagarin.IncrementalReplay

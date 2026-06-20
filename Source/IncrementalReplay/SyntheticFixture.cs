@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// SyntheticFixture.cs (Piece C — replay harness)
+//
+// Contains: SyntheticFixture.Build — the hand-authored baseline load order, with
+// mods engineered to embed every correctness hazard (forward-reaching wildcard,
+// cross-mod inheritance, patch-depends-on-patch-output, and overlapping vs
+// independent reorder pairs).
+//
+// Used for: the deterministic baseline that the Program change-case matrix mutates
+// and asserts against.
+//
+// Why: a curated fixture makes the hazards explicit and reproducible, so each test
+// case targets a known failure mode of naive prefix-reuse rather than relying on
+// incidental structure to surface bugs.
+
 namespace Gagarin.IncrementalReplay
 {
     // The standalone universe the harness reasons about. Seven "mods" in load order,

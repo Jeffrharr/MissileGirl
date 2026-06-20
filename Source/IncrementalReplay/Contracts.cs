@@ -6,6 +6,19 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Contracts.cs (Piece C — replay harness)
+//
+// Contains: in-memory mirrors of the Piece A and Piece B JSON contracts —
+// DependencyGraph (nodes, patch edges, inheritance edges) and PatchClassification
+// (classified patches + identity index), each with FromJson/ToJson round-trips.
+//
+// Used for: feeding the harness real-shaped graph/classification data and proving
+// it depends only on the documented schemas, not on Piece A/B code.
+//
+// Why: Pieces A and B may not be merged yet, so the harness reconstructs their
+// outputs from a fixture; modelling only the documented fields keeps the harness
+// honest about the contract surface it actually consumes.
+
 using System.Collections.Generic;
 
 namespace Gagarin.IncrementalReplay
