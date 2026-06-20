@@ -6,6 +6,19 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Models.cs (Piece B — patch classification)
+//
+// Contains: the plain data types shared across the classifier — PatchEdge (the
+// subset of a Piece A patchEdge we read), the Classification enum, the
+// PatchClassificationResult verdict, and the per-mod ModBreakdown tally.
+//
+// Used for: carrying patch data from the parsed DependencyGraph.json through the
+// classifier and into the PatchClassification.json output.
+//
+// Why: keeping the contract's shape in one small, dependency-free file makes the
+// classifier easy to read and keeps us forward-compatible — we model only the
+// fields we consume, so extra metadata Piece A adds later is ignored harmlessly.
+
 using System.Collections.Generic;
 
 namespace Gagarin.IncrementalCache.Classification

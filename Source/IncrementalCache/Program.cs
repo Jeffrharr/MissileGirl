@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Program.cs (Piece B — patch classification)
+//
+// Contains: the console entry point and CLI argument handling for the classifier
+// tool, with two modes — `classify <DependencyGraph.json> [-o out]` and
+// `--selftest`.
+//
+// Used for: driving the tool from the command line; it parses the input graph,
+// builds a ClassificationReport, writes/prints PatchClassification.json, and
+// reports the headline identity:wildcard ratio to stderr.
+//
+// Why: Piece B is a standalone, offline CLI (no RimWorld, no live PatchOperation
+// objects) so it can be run by hand over a captured graph and its output fed to
+// Piece C without a game install.
+
 using System;
 using System.IO;
 using Gagarin.IncrementalCache.Classification;

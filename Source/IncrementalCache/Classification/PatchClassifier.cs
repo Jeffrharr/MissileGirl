@@ -6,6 +6,21 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// PatchClassifier.cs (Piece B — patch classification)
+//
+// Contains: the static PatchClassifier — the heuristic that labels each
+// patchEdge "identity" (anchored on a specific defName, cheaply indexable) or
+// "wildcard" (structural/attribute match that must be re-tested), plus the
+// defName-predicate and structural-signal regexes that drive the decision.
+//
+// Used for: the per-patch verdict that ClassificationReport tallies and indexes.
+//
+// Why: the identity:wildcard ratio decides whether incremental recompute is
+// worth building at all. The heuristic is deliberately conservative — when in
+// doubt it returns wildcard, because mislabelling a wildcard as identity would
+// silently drop patches during recompute (a correctness bug), whereas the
+// reverse only costs a little extra re-testing.
+
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;

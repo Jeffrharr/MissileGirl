@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// Json.cs (Piece B — patch classification)
+//
+// Contains: a tiny, dependency-free JSON value model (JsonObject/Array/String/
+// Number/Bool/Null) plus a recursive-descent parser and a deterministic,
+// insertion-order-preserving serializer.
+//
+// Used for: reading Piece A's DependencyGraph.json and writing this tool's
+// PatchClassification.json output, plus all the in-memory JSON the self-tests
+// build.
+//
+// Why: this tool must build on the repo's net481/mono toolchain with zero NuGet
+// restore, so we hand-roll the small JSON subset the contract needs instead of
+// pulling in Newtonsoft or System.Text.Json. Stable ordering keeps diffs clean.
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;

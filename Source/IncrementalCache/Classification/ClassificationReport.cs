@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// ClassificationReport.cs (Piece B — patch classification)
+//
+// Contains: the ClassificationReport type — reads a DependencyGraph.json, runs
+// each patchEdge through PatchClassifier, accumulates the identity/wildcard
+// tallies and per-mod breakdown, builds the identityIndex (nodeId -> patchIds),
+// and serializes the PatchClassification.json document.
+//
+// Used for: turning Piece A's raw graph into the classified report and cheap
+// lookup index that Piece C (the replay harness) consumes.
+//
+// Why: the incremental cache must answer "this def changed -> which patches are
+// keyed to it?" on every edit. Indexing identity patches by node id makes that
+// an O(1) lookup; the IdentityRatio quantifies how much of the work is cheap.
+
 using System;
 using System.Collections.Generic;
 using Gagarin.IncrementalCache.Json;

@@ -6,6 +6,19 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// SelfTests.cs (Piece B — patch classification)
+//
+// Contains: the SelfTests harness — a dependency-free set of Check* cases that
+// exercise PatchClassifier and ClassificationReport, including an end-to-end run
+// against the committed DependencyGraph.sample.json that pins the headline ratio.
+//
+// Used for: the `--selftest` mode of the tool; collects all failures and reports
+// them together so one run surfaces every regression.
+//
+// Why: this project deliberately takes no NuGet/test-framework dependency so it
+// builds and runs offline on the repo's mono toolchain. A hand-rolled self-test
+// guards the classifier heuristic and the fixture against silent drift.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
