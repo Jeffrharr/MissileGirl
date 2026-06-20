@@ -6,6 +6,21 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// PatchOperation_Patch.cs (Piece A — provenance capture)
+//
+// Contains: the Harmony patch wrapping PatchOperation.Apply (Prefix/Postfix)
+// that snapshots each operation's pre-mutation XPath selection and reports the
+// matched/modified nodes to ProvenanceRecorder.
+//
+// Used for: capturing per-PatchOperation match provenance during a cold load,
+// including children of PatchOperationSequence which drive Apply recursively.
+//
+// Why: PatchOperations match by XPath, not identity, so an early mod's wildcard
+// patch can match a later, changed mod's defs. We must record exactly which
+// nodes each operation matched and modified to compute the dirty set correctly.
+// The hook is inert unless ProvenanceRecorder.Active, so it never touches the
+// shipped fast path.
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;

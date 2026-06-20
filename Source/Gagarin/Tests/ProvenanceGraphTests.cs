@@ -6,6 +6,19 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// ProvenanceGraphTests.cs (Piece A — provenance capture)
+//
+// Contains: NUnit fixture exercising ProvenanceGraph's pure logic — node keying
+// (KeyForNode), inheritance resolution, patch-edge accumulation, and the
+// self-referential serializedBytes metric — against synthetic XmlDocuments.
+//
+// Used for: offline verification of the load-bearing keying and serialization
+// code without launching RimWorld; runs under a plain net8.0 NUnit host.
+//
+// Why: ProvenanceGraph is deliberately RimWorld-free precisely so it can be
+// tested here. The RimWorld plumbing in ProvenanceRecorder stays unverified
+// until a real cold load, so these tests guard the parts we can prove offline.
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;

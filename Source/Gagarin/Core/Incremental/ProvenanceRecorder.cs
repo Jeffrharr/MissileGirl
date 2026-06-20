@@ -6,6 +6,21 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// ProvenanceRecorder.cs (Piece A — provenance capture)
+//
+// Contains: the static ProvenanceRecorder — the RimWorld-facing instrumentation
+// layer that indexes patches, registers def nodes, records patch matches, and
+// writes DependencyGraph.json to the cache folder.
+//
+// Used for: driving ProvenanceGraph from inside a single cold load (called by
+// the DirectXmlLoader/LoadedModManager/PatchOperation patches), and measuring
+// the capture overhead so we know the instrumentation's cost.
+//
+// Why: it is pure instrumentation, gated behind GagarinPrefs.CaptureProvenance
+// (dev-only, default OFF), that never alters cache validity or load behaviour.
+// It exists to produce the dependency graph the incremental cache will later use
+// to recompute only the defs affected by a change instead of rebuilding all.
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

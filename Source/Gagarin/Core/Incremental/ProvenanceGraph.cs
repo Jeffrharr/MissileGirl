@@ -6,6 +6,20 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
+// ProvenanceGraph.cs (Piece A — provenance capture)
+//
+// Contains: the ProvenanceGraph type — the dependency-graph data model (def
+// nodes, patch edges, inheritance edges), the node-keying / inheritance-
+// resolution logic, and a hand-rolled JSON serializer for DependencyGraph.json.
+//
+// Used for: holding the provenance recorded during a cold load so it can be
+// persisted; ProvenanceRecorder is the RimWorld-facing layer that feeds it.
+//
+// Why: the incremental cache needs to know which patches and inheritance edges
+// touched which defs in order to recompute only the affected ones. This type is
+// deliberately free of any RimWorld dependency so the load-bearing keying and
+// serialization logic can be unit-tested offline against synthetic XmlDocuments.
+
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
