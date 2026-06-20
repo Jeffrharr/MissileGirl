@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Patch classification tool (Piece B of the incremental-XML-cache prototype).
+
+  Deliberately standalone and offline: it operates purely on the JSON contract
+  produced by Piece A (DependencyGraph.json) and emits PatchClassification.json
+  for Piece C. It therefore takes NO dependency on RimWorld assemblies, Harmony,
+  or the other RocketMan modules, so it builds and runs without a RimWorld install.
+
+  Kept out of RocketMan.sln on purpose: that solution is wired to the publicised
+  RimWorld reference assemblies, and we don't want this analysis tool to drag those
+  in. Build it directly instead (see DESIGN.md / README in this folder).
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Gagarin.IncrementalCache</RootNamespace>
+        <AssemblyName>Gagarin.IncrementalCache</AssemblyName>
+        <!-- net481 to match the rest of the repo's toolchain (mono 4.8-api). -->
+        <TargetFramework>net481</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Configurations>Release;Debug</Configurations>
+        <!-- Self-contained tool: keep build artifacts out of the mod's 1.6/ payload. -->
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- The committed sample graph must travel with the build so the self-test runs offline. -->
+        <None Include="Fixtures\DependencyGraph.sample.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+</Project>
