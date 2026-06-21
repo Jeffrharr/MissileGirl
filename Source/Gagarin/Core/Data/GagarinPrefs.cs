@@ -29,5 +29,11 @@ namespace Gagarin
         // dependency graph to DependencyGraph.json. Default OFF so normal users
         // and the shipped cache are unaffected. Not scribed to settings.
         public static bool CaptureProvenance = false;
+
+        // Dev-only flag for Piece D Milestone 1. When ON, and a prior DependencyGraph.json
+        // (from a CaptureProvenance run) + asset hashes exist, Gagarin computes — alongside
+        // its normal rebuild — which defs WOULD need recomputing given what changed, and
+        // writes DirtySet.json. Pure diagnostic: it changes no cache behaviour. Default OFF.
+        public static bool DirtySetDiagnostic = false;
     }
 }

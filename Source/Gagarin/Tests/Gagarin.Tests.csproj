@@ -30,6 +30,8 @@
   <ItemGroup>
     <Compile Include="..\Core\Incremental\ProvenanceGraph.cs" Link="ProvenanceGraph.cs" />
     <Compile Include="..\Core\Incremental\PatchIdWalker.cs" Link="PatchIdWalker.cs" />
+    <Compile Include="..\Core\Incremental\DependencyGraphModel.cs" Link="DependencyGraphModel.cs" />
+    <Compile Include="..\Core\Incremental\DirtySetComputer.cs" Link="DirtySetComputer.cs" />
   </ItemGroup>
 
   <ItemGroup>
