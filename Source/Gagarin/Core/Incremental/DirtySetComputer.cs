@@ -17,14 +17,15 @@
 // RimWorld dependency so it can be unit-tested offline against the C change-case matrix.
 //
 // Why / scope: this is the production re-implementation of the algorithm Piece C proved on
-// synthetic fixtures. M1 computes the STRUCTURAL dirty set — changed defs, the nodes a
+// synthetic fixtures. It computes the STRUCTURAL dirty set — changed defs, the nodes a
 // changed mod's patches modify, nodes whose ordered patch sequence moved (reorder/remove),
-// and the transitive inheritance closure of all of those. It deliberately does NOT do the
-// precise wildcard-membership-flip re-test (the XPath-not-identity hazard: a changed def
-// newly matching an unchanged mod's wildcard). That needs the actual def bodies and arrives
-// with the real recompute in M2. So the M1 dirty set is a sound LOWER bound used to size the
-// prize and validate the seeding/closure mechanics — not yet the superset-safe set a
-// recompute requires.
+// and the transitive inheritance closure of all of those. The one part it cannot do alone is
+// the wildcard-membership-flip re-test (the XPath-not-identity hazard: a changed mod's patch
+// predicate newly matching an otherwise-unchanged def), because that needs the actual def
+// bodies and this computer is deliberately RimWorld/XML-free. M2a closes that gap by having
+// the driver compute those flips with WildcardRematch and pass them in as wildcardFlipSeeds,
+// which are folded in before the closure. With them the result is the SUPERSET a recompute
+// requires; without them (the M1 path) it is a sound LOWER bound for sizing the prize.
 
 using System.Collections.Generic;
 
@@ -54,13 +55,21 @@ namespace Gagarin
         public int SeedChangedDefs;     // nodes seeded by a changed def file
         public int SeedPatchModified;   // nodes seeded by a changed mod's patches
         public int SeedReorder;         // nodes seeded by an order change
+        public int SeedWildcardFlip;    // nodes seeded by a wildcard membership flip (M2a)
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int Iterations;          // inheritance-closure frontier steps
     }
 
     public static class DirtySetComputer
     {
-        public static DirtyResult Compute(DependencyGraphData graph, GraphChange change)
+        // wildcardFlipSeeds (M2a): def ids a changed mod's patch NEWLY matches against the
+        // current raw def bodies, which the structural seeds below cannot see (they need the
+        // actual def XML; this computer is deliberately RimWorld/XML-free). The driver
+        // computes them via WildcardRematch and passes them here so they are folded in BEFORE
+        // the inheritance closure — a newly-matched abstract parent must still fan out to its
+        // descendants. Null/empty for the pure-structural M1 path and its tests.
+        public static DirtyResult Compute(DependencyGraphData graph, GraphChange change,
+            IEnumerable<string> wildcardFlipSeeds = null)
         {
             var result = new DirtyResult();
             var dirty = result.Nodes;
@@ -104,8 +113,21 @@ namespace Gagarin
                 }
             }
 
+            // Seed 4 — wildcard membership flips (M2a). Supplied by the driver from a re-test
+            // of changed mods' patch xpaths against the current raw def bodies: defs a changed
+            // predicate now matches that it did not before. These are otherwise-unchanged defs,
+            // so none of seeds 1-3 reach them — this is the one gap that keeps M1 a lower bound
+            // rather than the superset a recompute requires. See WildcardRematch.
+            if (wildcardFlipSeeds != null)
+            {
+                foreach (var id in wildcardFlipSeeds)
+                    if (id != null && dirty.Add(id))
+                        result.SeedWildcardFlip++;
+            }
+
             // Propagation — inheritance closure to a fixpoint: dirtying a parent dirties its
-            // children transitively. (Wildcard-flip propagation is M2; see file header.)
+            // children transitively. Runs over ALL seeds above (including the wildcard flips),
+            // so a newly-matched abstract base still fans out to its descendants.
             var children = BuildInheritanceChildren(graph);
             var frontier = new Queue<string>(dirty);
             var queued = new HashSet<string>(dirty);

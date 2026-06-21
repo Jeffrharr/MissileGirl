@@ -32,6 +32,7 @@
     <Compile Include="..\Core\Incremental\PatchIdWalker.cs" Link="PatchIdWalker.cs" />
     <Compile Include="..\Core\Incremental\DependencyGraphModel.cs" Link="DependencyGraphModel.cs" />
     <Compile Include="..\Core\Incremental\DirtySetComputer.cs" Link="DirtySetComputer.cs" />
+    <Compile Include="..\Core\Incremental\WildcardRematch.cs" Link="WildcardRematch.cs" />
   </ItemGroup>
 
   <ItemGroup>
