@@ -91,12 +91,21 @@ namespace Gagarin
             try
             {
                 var sw = Stopwatch.StartNew();
-                Dictionary<string, string> baseline = UnifiedCacheDiff.IndexById(LoadCache(snapshot));
+                XmlDocument baselineDoc = LoadCache(snapshot);
+                Dictionary<string, string> baseline = UnifiedCacheDiff.IndexById(baselineDoc);
                 Dictionary<string, string> rebuild = UnifiedCacheDiff.IndexById(LoadCache(rebuilt));
                 List<string> mismatches = UnifiedCacheDiff.NonDirtyMismatches(baseline, rebuild, dirty);
                 sw.Stop();
 
                 Emit(baseline.Count, rebuild.Count, dirty.Count, mismatches, sw.ElapsedMilliseconds);
+
+                // M2b-2b — real-engine recompute proof: recompute the dirty defs, splice them
+                // onto the prior cache, and require the spliced doc to byte-match the full
+                // rebuild over EVERY def (empty dirty set => all defs compared). Non-dirty defs
+                // are reused verbatim and already proven equal by the gate above, so any mismatch
+                // here is a recompute fidelity gap.
+                if (GagarinPrefs.DirtySetRecompute)
+                    RunRecompute(baselineDoc, rebuild, dirty);
             }
             catch (Exception e)
             {
@@ -106,6 +115,78 @@ namespace Gagarin
             {
                 try { if (File.Exists(snapshot)) File.Delete(snapshot); } catch { /* best effort */ }
             }
+        }
+
+        // Recompute the dirty defs through the real engine, splice onto the prior cache, and diff
+        // the spliced result against the full rebuild over ALL defs. Mismatches here = recompute
+        // fidelity gaps (the splice is offline-proven and non-dirty reuse is gate-proven).
+        private static void RunRecompute(XmlDocument baselineDoc,
+            Dictionary<string, string> rebuild, HashSet<string> dirty)
+        {
+            var sw = Stopwatch.StartNew();
+            Dictionary<string, string> recomputed = DefRecompute.Recompute(dirty, out List<string> removed);
+            XmlDocument spliced = UnifiedCacheSplice.Splice(baselineDoc, recomputed, removed);
+            // Normalize through the same whitespace-insensitive parse the rebuild went through, so
+            // OuterXml comparison is not tripped by formatting differences.
+            Dictionary<string, string> splicedIdx = UnifiedCacheDiff.IndexById(Reparse(spliced));
+            // Empty dirty set => every def is compared (nothing exempted).
+            List<string> miss = UnifiedCacheDiff.NonDirtyMismatches(splicedIdx, rebuild, NoneDirty);
+            sw.Stop();
+
+            string verdict = miss.Count == 0 ? "<color=green>PASS</color>" : "<color=red>FAIL</color>";
+            Log.Warning($"GAGARIN: <color=white>Recompute gate</color> {verdict} " +
+                $"recomputeMismatches={miss.Count} (recomputed={recomputed.Count} removed={removed.Count} " +
+                $"splicedDefs={splicedIdx.Count} rebuildDefs={rebuild.Count}) recomputeMs={sw.ElapsedMilliseconds}");
+            if (miss.Count > 0)
+            {
+                Log.Warning("GAGARIN: recompute mismatches (recompute != rebuild): " +
+                    string.Join(", ", miss.GetRange(0, Math.Min(20, miss.Count))));
+                DumpMismatches(miss, splicedIdx, rebuild);
+            }
+        }
+
+        // Writes the recomputed-vs-rebuild XML for each mismatch to RecomputeMismatch.json so the
+        // exact byte difference can be diagnosed offline. Temporary debug aid for M2b bring-up.
+        private static void DumpMismatches(List<string> miss,
+            Dictionary<string, string> spliced, Dictionary<string, string> rebuild)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.Append('{');
+                for (int i = 0; i < miss.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    spliced.TryGetValue(miss[i], out string got);
+                    rebuild.TryGetValue(miss[i], out string want);
+                    AppendQuoted(sb, miss[i]); sb.Append(":{");
+                    sb.Append("\"recomputed\":"); AppendQuoted(sb, got ?? "<absent>"); sb.Append(',');
+                    sb.Append("\"rebuild\":"); AppendQuoted(sb, want ?? "<absent>"); sb.Append('}');
+                }
+                sb.Append('}');
+                File.WriteAllText(Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, "RecomputeMismatch.json"),
+                    sb.ToString());
+            }
+            catch (Exception e) { Logger.Debug("GAGARIN: failed writing RecomputeMismatch.json", exception: e); }
+        }
+
+        private static readonly HashSet<string> NoneDirty = new HashSet<string>();
+
+        // Round-trips a document through a whitespace-insensitive parse so its node OuterXml
+        // matches the cache loaded by LoadCache (which drops insignificant whitespace).
+        private static XmlDocument Reparse(XmlDocument doc)
+        {
+            var settings = new XmlReaderSettings
+            {
+                IgnoreComments = true,
+                IgnoreWhitespace = true,
+                CheckCharacters = false
+            };
+            var result = new XmlDocument();
+            using StringReader input = new StringReader(doc.OuterXml);
+            using XmlReader reader = XmlReader.Create(input, settings);
+            result.Load(reader);
+            return result;
         }
 
         // Loads a DefXmlStorage cache the same way CachedDefHelper does (whitespace-insensitive,

@@ -44,5 +44,13 @@ namespace Gagarin
         // Heavier than the diagnostic (re-reads two full unified caches), so it is its own flag.
         // Pure diagnostic: changes no cache behaviour. Default OFF.
         public static bool DirtySetGate = false;
+
+        // Dev-only flag for Piece D Milestone 2b. When ON (alongside DirtySetGate), Gagarin
+        // RECOMPUTES the dirty defs through the real engine (DefRecompute), splices them onto the
+        // prior cache (UnifiedCacheSplice), and proves the spliced result byte-matches the full
+        // rebuild over EVERY def — the real incremental zero-diff proof. Still a diagnostic: it
+        // builds the spliced doc in memory and diffs it, but does not replace the real cache.
+        // Default OFF.
+        public static bool DirtySetRecompute = false;
     }
 }
