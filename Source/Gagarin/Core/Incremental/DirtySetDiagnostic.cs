@@ -46,8 +46,14 @@ namespace Gagarin
         private static Dictionary<string, string> s_priorHashes;
         private static List<string> s_priorOrder;
 
+        // The dirty set computed on this load, published for the M2b real-engine gate
+        // (DirtySetGate runs later, after the rebuild writes the new Unified.xml). Null until
+        // computed; reset each load so a stale set can't leak into a later gate.
+        public static HashSet<string> LastDirtySet;
+
         public static void Prefix()
         {
+            LastDirtySet = null; // clear last load's set before anything can read it
             if (!GagarinPrefs.DirtySetDiagnostic)
                 return;
             try
@@ -96,6 +102,7 @@ namespace Gagarin
                 HashSet<string> wildcardFlips = ComputeWildcardFlips(graph, change.ChangedMods, __result);
 
                 DirtyResult result = DirtySetComputer.Compute(graph, change, wildcardFlips);
+                LastDirtySet = result.Nodes; // publish for the M2b gate
                 sw.Stop();
 
                 Emit(graph, change, result, changedAssets.Count, sw.ElapsedMilliseconds);

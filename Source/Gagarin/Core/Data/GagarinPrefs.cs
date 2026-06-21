@@ -35,5 +35,14 @@ namespace Gagarin
         // its normal rebuild — which defs WOULD need recomputing given what changed, and
         // writes DirtySet.json. Pure diagnostic: it changes no cache behaviour. Default OFF.
         public static bool DirtySetDiagnostic = false;
+
+        // Dev-only flag for Piece D Milestone 2b. When ON (alongside DirtySetDiagnostic, whose
+        // dirty set it consumes), Gagarin snapshots the prior Unified.xml before the load
+        // deletes it, lets the normal rebuild produce the new one, then proves against the REAL
+        // engine that every def NOT in the dirty set is byte-identical between the two —
+        // writing GateReport.json. A non-dirty mismatch is a subset error (silent staleness).
+        // Heavier than the diagnostic (re-reads two full unified caches), so it is its own flag.
+        // Pure diagnostic: changes no cache behaviour. Default OFF.
+        public static bool DirtySetGate = false;
     }
 }
