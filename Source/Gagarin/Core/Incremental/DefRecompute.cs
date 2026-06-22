@@ -129,7 +129,21 @@ namespace Gagarin
                 foreach (PatchOperation patch in mod.Patches)
                 {
                     try { patch.Apply(subDoc); }
-                    catch (Exception e) { Logger.Debug("GAGARIN: recompute patch.Apply failed", exception: e); }
+                    catch (Exception e)
+                    {
+                        Logger.Debug("GAGARIN: recompute patch.Apply failed", exception: e);
+                        // Patches routinely no-op or throw on a sub-doc missing their target; this
+                        // is the expected sub-doc fidelity hazard the gate exists to quantify, so
+                        // we record it as an error only under the metrics flag for the evidence
+                        // base. Each record names the stage so it is filterable from real crashes.
+                        if (GagarinPrefs.Metrics)
+                            MetricsLog.Append(MetricsLog.BuildError(
+                                MetricsLog.NewEnvelope(
+                                    cold: !Context.IsUsingCache,
+                                    packageIds: System.Linq.Enumerable.Select(
+                                        LoadedModManager.RunningMods, m => m.PackageId)),
+                                "recompute.patchApply", e.GetType().Name, e.Message));
+                    }
                 }
             }
 
