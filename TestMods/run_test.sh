@@ -136,10 +136,15 @@ teardown() {
 }
 
 # Launch RimWorldLinux with sandbox disabled, capture PID.
-# Retries up to MAX_RETRIES times on the Boehm-GC SIGSEGV crash
-# (signature: GC_mark_from in Player.log before any GAGARIN line).
+# Retries up to MAX_RETRIES times on the known intermittent early-startup SIGSEGV
+# (the Boehm-GC crash in Prepatcher's prestarter GUI, ~1 in 4 launches). The crash
+# signature is "Caught fatal signal - signo:11" landing in Player.log BEFORE any
+# "GAGARIN:" line — i.e. the process died during native init, before our mod loaded.
+# (The "GC_mark_from" backtrace prints on stderr, which we send to /dev/null, so it is
+# NOT a reliable Player.log signature — an earlier version grepped for it there and never
+# matched, turning every flaky crash into a hard fail.)
 launch_rimworld() {
-    local max_retries=3
+    local max_retries=5
     local attempt=0
 
     while true; do
@@ -160,16 +165,19 @@ launch_rimworld() {
         RIMWORLD_PID=$!
         log "RimWorldLinux PID: $RIMWORLD_PID"
 
-        # Wait a bit and then check: did it crash immediately (GC_mark_from before
-        # any GAGARIN output = the known Boehm crash)?
+        # Wait a bit and then check: did it crash during native init (a fatal signal in
+        # Player.log before any GAGARIN output = the known flaky prestarter crash)?
         sleep 60
         if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
-            # Process already dead.
-            if grep -q "GC_mark_from" "$PLAYER_LOG" 2>/dev/null && \
-               ! grep -q "GAGARIN:" "$PLAYER_LOG" 2>/dev/null; then
-                log "Detected Boehm-GC SIGSEGV crash (attempt $attempt). Retrying..."
+            # Process already dead. If it died before our mod loaded AND the log shows a
+            # fatal signal, it's the flaky early-startup crash — retry. If "GAGARIN:" is
+            # present, the mod loaded and this is a REAL crash we must surface (not retry).
+            if ! grep -q "GAGARIN:" "$PLAYER_LOG" 2>/dev/null && \
+               { grep -q "Caught fatal signal" "$PLAYER_LOG" 2>/dev/null || \
+                 grep -q "GC_mark_from" "$PLAYER_LOG" 2>/dev/null; }; then
+                log "Detected flaky early-startup SIGSEGV (attempt $attempt). Retrying..."
                 if [[ $attempt -ge $max_retries ]]; then
-                    fail "RimWorld crashed with Boehm-GC SIGSEGV $max_retries times in a row. Giving up."
+                    fail "RimWorld crashed at startup $max_retries times in a row. Giving up."
                 fi
                 continue
             else
