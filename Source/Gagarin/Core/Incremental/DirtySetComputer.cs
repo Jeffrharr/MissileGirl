@@ -71,6 +71,7 @@ namespace Gagarin
         public int SeedAddedDefs;       // nodes seeded as newly-added defs absent from baseline (P2)
         public int SeedMayRequire;      // nodes seeded by a MayRequire flip on a mod add/remove (P4)
         public int InheritanceAdded;    // nodes added by the inheritance closure
+        public int SeedUnresolvedFanout; // children fanned out via the unresolved-edge safety net (Change C)
         public int Iterations;          // inheritance-closure frontier steps
     }
 
@@ -186,22 +187,102 @@ namespace Gagarin
             var children = BuildInheritanceChildren(graph);
             var frontier = new Queue<string>(dirty);
             var queued = new HashSet<string>(dirty);
+            PropagateClosure(children, dirty, frontier, queued, ref result.Iterations,
+                ref result.InheritanceAdded);
+
+            // Change C — conservative over-dirty safety net for UNRESOLVED edges only. Defects
+            // A/B should resolve every real inheritance edge, but if any ParentName still has
+            // no parentNodeId (e.g. a base whose node we never recorded), the resolved-edge
+            // closure above cannot reach its children — they'd be silently dropped from the
+            // dirty set, the exact subset error this fix targets. As a fail-safe, we match a
+            // dirtied node's NAME (the segment after '@' or '/' in its id) against the
+            // parentName of unresolved edges and dirty those children. This is strictly gated
+            // to unresolved edges (resolved-edge propagation is untouched), so it can only
+            // over-dirty in the unresolved-name-collision case, never under-dirty.
+            var unresolvedByParentName = BuildUnresolvedChildrenByParentName(graph);
+            if (unresolvedByParentName.Count > 0)
+            {
+                // Snapshot the currently-dirty ids: only EXISTING dirty nodes seed the
+                // fan-out, and we re-feed any additions through the resolved closure below.
+                foreach (var id in new List<string>(dirty))
+                {
+                    string name = NameFromId(id);
+                    if (name == null || !unresolvedByParentName.TryGetValue(name, out var kids))
+                        continue;
+                    foreach (var child in kids)
+                    {
+                        if (dirty.Add(child))
+                            result.SeedUnresolvedFanout++;
+                        if (queued.Add(child))
+                            frontier.Enqueue(child);
+                    }
+                }
+
+                // A child fanned out here may itself be a resolved parent of further nodes,
+                // so push the additions back through the resolved closure to a fixpoint.
+                PropagateClosure(children, dirty, frontier, queued, ref result.Iterations,
+                    ref result.InheritanceAdded);
+            }
+
+            return result;
+        }
+
+        // BFS the resolved-edge inheritance closure to a fixpoint, draining frontier. Shared
+        // by the main propagation and the Change C re-propagation so both use identical logic.
+        private static void PropagateClosure(Dictionary<string, List<string>> children,
+            HashSet<string> dirty, Queue<string> frontier, HashSet<string> queued,
+            ref int iterations, ref int inheritanceAdded)
+        {
             while (frontier.Count > 0)
             {
-                result.Iterations++;
+                iterations++;
                 var id = frontier.Dequeue();
                 if (!children.TryGetValue(id, out var kids))
                     continue;
                 foreach (var child in kids)
                 {
                     if (dirty.Add(child))
-                        result.InheritanceAdded++;
+                        inheritanceAdded++;
                     if (queued.Add(child))
                         frontier.Enqueue(child);
                 }
             }
+        }
 
-            return result;
+        // Change C: parentName -> child node ids, built ONLY from UNRESOLVED edges (null
+        // parentNodeId). These are edges the resolved-edge closure cannot follow; the safety
+        // net keys them by the bare parentName so a dirtied node whose Name matches can still
+        // reach them.
+        private static Dictionary<string, List<string>> BuildUnresolvedChildrenByParentName(
+            DependencyGraphData graph)
+        {
+            var map = new Dictionary<string, List<string>>();
+            foreach (var e in graph.InheritanceEdges)
+            {
+                if (e.ParentNodeId != null || e.ChildNodeId == null || string.IsNullOrEmpty(e.ParentName))
+                    continue;
+                if (!map.TryGetValue(e.ParentName, out var list))
+                    map[e.ParentName] = list = new List<string>();
+                list.Add(e.ChildNodeId);
+            }
+            return map;
+        }
+
+        // The bare Name of a node from its id: the segment after '@' for an abstract node
+        // ("{DefType}@{Name}") or after '/' for a concrete node ("{DefType}/{defName}").
+        // Returns null for an id with neither separator. This is the value a child's
+        // ParentName would name, so it is what the unresolved-edge map is keyed by.
+        private static string NameFromId(string id)
+        {
+            if (id == null)
+                return null;
+            int at = id.IndexOf('@');
+            if (at >= 0)
+                return id.Substring(at + 1);
+            int slash = id.IndexOf('/');
+            if (slash >= 0)
+                return id.Substring(slash + 1);
+            return null;
         }
 
         // ParentNodeId -> child node ids, from the resolved inheritance edges.

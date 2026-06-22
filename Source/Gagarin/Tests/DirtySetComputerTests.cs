@@ -328,6 +328,77 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void Closure_ReachesGrandchild_ThroughIntermediateAbstractBase()
+        {
+            // Chain: top abstract base -> intermediate abstract base (the defect-1 shape) ->
+            // concrete leaf, all resolved edges. Dirtying the TOP base must fan out through the
+            // intermediate abstract node to the leaf.
+            var g = new DependencyGraphData { Version = 1 };
+            foreach (var id in new[] { "TerrainDef@NaturalTerrainBase",
+                                       "TerrainDef@MF_VoidTerrainBase", "TerrainDef/MF_SpaceVoid" })
+                g.Nodes.Add(new GraphNode { Id = id, DefType = "TerrainDef" });
+            g.InheritanceEdges.Add(Inh("TerrainDef@MF_VoidTerrainBase", "TerrainDef@NaturalTerrainBase"));
+            g.InheritanceEdges.Add(Inh("TerrainDef/MF_SpaceVoid", "TerrainDef@MF_VoidTerrainBase"));
+
+            var change = new GraphChange { ChangedNodeIds = { "TerrainDef@NaturalTerrainBase" } };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.Nodes, Is.EquivalentTo(new[]
+            {
+                "TerrainDef@NaturalTerrainBase", "TerrainDef@MF_VoidTerrainBase", "TerrainDef/MF_SpaceVoid"
+            }));
+            Assert.That(r.SeedUnresolvedFanout, Is.EqualTo(0)); // all edges resolved: net does not fire
+        }
+
+        [Test]
+        public void ChangeC_UnresolvedEdge_FansOutByName_ResolvedEdgesUnaffected()
+        {
+            // The safety net: an UNRESOLVED edge (parentNodeId null) whose parentName matches a
+            // dirtied node's Name must still dirty its children. Here the base node exists and
+            // is dirtied, but the inheritance edge to it was never resolved (e.g. the recorder
+            // missed wiring it). The bare-name match on "MF_VoidTerrainBase" must reach the leaf.
+            var g = new DependencyGraphData { Version = 1 };
+            foreach (var id in new[] { "TerrainDef@MF_VoidTerrainBase", "TerrainDef/MF_SpaceVoid",
+                                       "ThingDef/Wall", "ThingDef@BuildingBase" })
+                g.Nodes.Add(new GraphNode { Id = id, DefType = id.StartsWith("Terrain") ? "TerrainDef" : "ThingDef" });
+
+            // Unresolved edge: child points at "MF_VoidTerrainBase" but parentNodeId is null.
+            g.InheritanceEdges.Add(new GraphInheritanceEdge
+            {
+                ChildNodeId = "TerrainDef/MF_SpaceVoid",
+                ParentName = "MF_VoidTerrainBase",
+                ParentNodeId = null
+            });
+            // A RESOLVED edge in the same graph that must NOT be disturbed.
+            g.InheritanceEdges.Add(Inh("ThingDef/Wall", "ThingDef@BuildingBase"));
+
+            // Dirty the abstract base by its node id; its Name is "MF_VoidTerrainBase".
+            var change = new GraphChange { ChangedNodeIds = { "TerrainDef@MF_VoidTerrainBase" } };
+            var r = DirtySetComputer.Compute(g, change);
+
+            Assert.That(r.Nodes, Contains.Item("TerrainDef/MF_SpaceVoid")); // reached via the net
+            Assert.That(r.SeedUnresolvedFanout, Is.EqualTo(1));
+            // The unrelated resolved edge's nodes stay clean (the base was not dirtied).
+            Assert.That(r.Nodes, Does.Not.Contain("ThingDef/Wall"));
+            Assert.That(r.Nodes, Does.Not.Contain("ThingDef@BuildingBase"));
+        }
+
+        [Test]
+        public void ChangeC_DoesNotFire_WhenEdgeResolved()
+        {
+            // Same shape as above but the edge IS resolved; the resolved-edge closure handles
+            // it and the safety net must stay dormant (no double counting, no reliance on it).
+            var g = new DependencyGraphData { Version = 1 };
+            foreach (var id in new[] { "TerrainDef@MF_VoidTerrainBase", "TerrainDef/MF_SpaceVoid" })
+                g.Nodes.Add(new GraphNode { Id = id, DefType = "TerrainDef" });
+            g.InheritanceEdges.Add(Inh("TerrainDef/MF_SpaceVoid", "TerrainDef@MF_VoidTerrainBase"));
+
+            var change = new GraphChange { ChangedNodeIds = { "TerrainDef@MF_VoidTerrainBase" } };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.Nodes, Contains.Item("TerrainDef/MF_SpaceVoid"));
+            Assert.That(r.SeedUnresolvedFanout, Is.EqualTo(0)); // resolved closure did the work
+        }
+
+        [Test]
         public void DependencyGraphData_Parse_ReadsSchema()
         {
             const string json =

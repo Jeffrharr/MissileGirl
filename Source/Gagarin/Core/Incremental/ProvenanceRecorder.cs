@@ -274,9 +274,20 @@ namespace Gagarin
         // Abstract="True">). These never become Def objects, so RegisterNode never sees
         // them; without this, the ~most ParentName references resolve to nothing and
         // inheritance fan-out breaks. Driven by a postfix on XmlInheritance.TryRegister,
-        // which fires for every node carrying a Name or ParentName. Concrete defs (those
-        // with a defName) are skipped here — RegisterNode already handles them, including
-        // their Name attribute.
+        // which fires for every node carrying a Name or ParentName.
+        //
+        // Ownership split with RegisterNode (the defName guard): a node that declares a
+        // <defName> normally becomes a real Def, so RegisterNode owns it (including any Name
+        // attribute it also carries as a concrete template). BUT an *abstract* def can ALSO
+        // declare a <defName> (e.g. <TerrainDef Name="MF_VoidTerrainBase" Abstract="True">
+        // <defName>MF_VoidTerrainBase</defName>). Such a node never produces a Def — so
+        // RegisterNode never sees it either — and the old "has defName => skip" rule dropped
+        // it entirely, severing every chain that passed through it (concrete grandchild →
+        // abstract-with-defName base → real base). We therefore skip on defName ONLY when the
+        // element is NOT Abstract="True"; an abstract node is registered here regardless of
+        // its defName so its identity stays the abstract "{DefType}@{Name}" shape. The strict
+        // Abstract="True" guard keeps a genuine concrete template (defName + Name, not
+        // abstract) owned by RegisterNode, so the two paths never double-register one node.
         public static void RegisterAbstract(XmlNode node, ModContentPack mod)
         {
             if (!Active)
@@ -288,14 +299,28 @@ namespace Gagarin
             string nameAttr = element.GetAttribute("Name");
             if (string.IsNullOrEmpty(nameAttr))
                 return; // no Name => not an inheritance base we need to register here
-            if (!string.IsNullOrEmpty(element["defName"]?.InnerText))
-                return; // concrete def: RegisterNode owns it
+
+            // RimWorld marks abstract bases with the Abstract="True" attribute on the def
+            // element (not an <Abstract> child element); treat "True"/"true" as abstract.
+            string abstractAttr = element.GetAttribute("Abstract");
+            bool isAbstract = string.Equals(abstractAttr, "True", System.StringComparison.OrdinalIgnoreCase);
+
+            // A concrete (non-abstract) def with a defName is owned by RegisterNode. An
+            // abstract def is owned here even if it also declares a defName, because it never
+            // becomes a Def and RegisterNode would never see it.
+            if (!isAbstract && !string.IsNullOrEmpty(element["defName"]?.InnerText))
+                return;
 
             overhead.Start();
             registerSw.Start();
             try
             {
                 string parentName = element.GetAttribute("ParentName");
+                // defName is passed as null so the node id stays the abstract "{DefType}@{Name}"
+                // shape even when an abstract base also declares a <defName>; mixing in the
+                // defName would key it as a concrete "{DefType}/{defName}" node, which both
+                // changes its identity (DefRecompute.IsConcrete keys off '/') and would let a
+                // ParentName reference resolve to the wrong shape.
                 graph.AddNode(element.Name, null, nameAttr, mod?.PackageId, null, parentName);
             }
             finally

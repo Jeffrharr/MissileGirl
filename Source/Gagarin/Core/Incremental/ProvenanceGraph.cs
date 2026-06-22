@@ -90,20 +90,45 @@ namespace Gagarin
         private readonly Dictionary<string, HashSet<string>> mayRequire =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
-        // defName -> node id, so inheritance edges can resolve a ParentName to a
-        // concrete parent node id during serialization (the parent def may be
-        // registered after the child).
+        // ParentName resolution is keyed by a composite "{defType}:{name}" rather than a
+        // bare name. RimWorld's inheritance is defType-scoped: a TerrainDef with
+        // ParentName="HotSpring" inherits the TerrainDef named HotSpring, NOT a ThoughtDef
+        // that happens to share the name. The old bare-name maps had no defType, so a
+        // same-name node in a different defType could win the lookup, mis-wiring ~8% of
+        // edges across defTypes. We resolve same-defType first via these composite maps and
+        // only fall back to a bare-name/any-defType lookup below when no same-type match
+        // exists (which preserves the rare legitimate cross-defType template reference).
+
+        // "{defType}:{defName}" -> node id, so inheritance edges can resolve a same-defType
+        // ParentName to a concrete parent node id during serialization (the parent def may
+        // be registered after the child).
         private readonly Dictionary<string, string> defNameToNodeId =
             new Dictionary<string, string>();
 
-        // Name attribute -> node id. Most ParentName references target abstract bases
+        // "{defType}:{Name}" -> node id. Most ParentName references target abstract bases
         // (a Name attribute and no defName), which resolve here rather than via defName.
         private readonly Dictionary<string, string> nameAttrToNodeId =
             new Dictionary<string, string>();
 
-        // Pending (childNodeId, parentName) pairs awaiting parent resolution.
-        private readonly List<KeyValuePair<string, string>> pendingInheritance =
-            new List<KeyValuePair<string, string>>();
+        // Bare-name fallback maps (no defType), used only when no same-defType match exists.
+        // First-writer-wins is acceptable: these only decide cross-defType template
+        // references, which are rare and non-deterministic by nature; the common,
+        // correctness-critical case is the same-defType resolution above.
+        private readonly Dictionary<string, string> defNameToNodeIdAny =
+            new Dictionary<string, string>();
+        private readonly Dictionary<string, string> nameAttrToNodeIdAny =
+            new Dictionary<string, string>();
+
+        // Pending (childNodeId, childDefType, parentName) triples awaiting parent
+        // resolution. childDefType lets ResolveInheritance try a same-defType match first.
+        private readonly List<PendingEdge> pendingInheritance = new List<PendingEdge>();
+
+        private struct PendingEdge
+        {
+            public string childNodeId;
+            public string childDefType;
+            public string parentName;
+        }
 
         // Memoizes KeyForNode by node reference. The same nodes are matched by many
         // patches during a load (popular base defs especially), and keying walks the
@@ -170,6 +195,8 @@ namespace Gagarin
             inheritanceEdges.Clear();
             defNameToNodeId.Clear();
             nameAttrToNodeId.Clear();
+            defNameToNodeIdAny.Clear();
+            nameAttrToNodeIdAny.Clear();
             pendingInheritance.Clear();
             mayRequire.Clear();
             keyCache.Clear();
@@ -203,16 +230,33 @@ namespace Gagarin
                 };
             }
 
+            // Populate the resolution maps keyed by defType so a same-defType ParentName
+            // lookup wins over an unrelated same-name node in a different defType. The
+            // bare-name maps are kept purely as a fallback for legitimate cross-defType
+            // template references (first writer wins).
             if (!string.IsNullOrEmpty(defName))
-                defNameToNodeId[defName] = id;
+            {
+                defNameToNodeId[$"{defType}:{defName}"] = id;
+                if (!defNameToNodeIdAny.ContainsKey(defName))
+                    defNameToNodeIdAny[defName] = id;
+            }
             // A node may carry both a defName and a Name (a concrete inheritance
             // template); mapping the Name to the same id lets children that reference it
             // by ParentName resolve to the concrete node.
             if (!string.IsNullOrEmpty(nameAttr))
-                nameAttrToNodeId[nameAttr] = id;
+            {
+                nameAttrToNodeId[$"{defType}:{nameAttr}"] = id;
+                if (!nameAttrToNodeIdAny.ContainsKey(nameAttr))
+                    nameAttrToNodeIdAny[nameAttr] = id;
+            }
 
             if (!string.IsNullOrEmpty(parentName))
-                pendingInheritance.Add(new KeyValuePair<string, string>(id, parentName));
+                pendingInheritance.Add(new PendingEdge
+                {
+                    childNodeId = id,
+                    childDefType = defType,
+                    parentName = parentName
+                });
         }
 
         // Indexes one MayRequire / MayRequireAnyOf dependency: def node nodeId carries
@@ -366,20 +410,41 @@ namespace Gagarin
         private void ResolveInheritance()
         {
             inheritanceEdges.Clear();
-            foreach (KeyValuePair<string, string> pending in pendingInheritance)
+            foreach (PendingEdge pending in pendingInheritance)
             {
-                // ParentName may name a concrete parent (defName) or, far more often,
-                // an abstract base (Name attribute). Try the concrete map first, then
-                // the Name map.
-                if (!defNameToNodeId.TryGetValue(pending.Value, out string parentNodeId))
-                    nameAttrToNodeId.TryGetValue(pending.Value, out parentNodeId);
+                string parentNodeId = ResolveParent(pending.childDefType, pending.parentName);
                 inheritanceEdges.Add(new InheritanceEdge
                 {
-                    childNodeId = pending.Key,
-                    parentName = pending.Value,
+                    childNodeId = pending.childNodeId,
+                    parentName = pending.parentName,
                     parentNodeId = parentNodeId
                 });
             }
+        }
+
+        // Resolves a child's ParentName to a parent node id. RimWorld inheritance is
+        // defType-scoped, so we resolve SAME-DEFTYPE FIRST: try the same-defType concrete
+        // (defName) map, then the same-defType abstract (Name) map. Only when neither has a
+        // same-type match do we fall back to a bare-name/any-defType lookup (concrete first,
+        // then Name), which preserves the rare legitimate cross-defType template reference
+        // without letting an unrelated same-name node hijack a same-type parent. Returns null
+        // when nothing matches (the edge is then recorded unresolved).
+        private string ResolveParent(string childDefType, string parentName)
+        {
+            if (!string.IsNullOrEmpty(childDefType))
+            {
+                if (defNameToNodeId.TryGetValue($"{childDefType}:{parentName}", out string sameType))
+                    return sameType;
+                if (nameAttrToNodeId.TryGetValue($"{childDefType}:{parentName}", out sameType))
+                    return sameType;
+            }
+
+            if (defNameToNodeIdAny.TryGetValue(parentName, out string anyType))
+                return anyType;
+            if (nameAttrToNodeIdAny.TryGetValue(parentName, out anyType))
+                return anyType;
+
+            return null;
         }
 
         // Hand-rolled JSON: the schema is small, fixed, and shared with other
