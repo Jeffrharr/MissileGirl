@@ -156,8 +156,9 @@ what proves we got it right.
   given the baseline DefXmlStorage + recomputed defs (by id) + removed ids, produces the new cache
   (replace/add/remove `<Item>`s, reuse the rest verbatim). Round-trip test proves splicing the
   rebuild's values for the dirty defs reproduces the full rebuild byte-for-byte.
-- **M2b-2b — recompute-from-raw-in-a-sub-doc — IMPLEMENTED, GATE FAILS, approach hit a
-  fundamental wall (2026-06-21). UNCOMMITTED.** `DefRecompute.cs` (new) builds a `<Defs>` sub-doc
+- **M2b-2b (first attempt) — recompute-from-raw in a DIRTY-ONLY sub-doc — DEAD END
+  (`dead-end/m2b-2b-subdoc`, 2026-06-21). Superseded by the sibling-expansion fix below.**
+  `DefRecompute.cs` (new) builds a `<Defs>` sub-doc
   of the dirty defs + inheritance ancestors (raw bodies from `Context.XmlAssets`), applies every
   running mod's patches via `patch.Apply(subDoc)`, resolves inheritance via `XmlInheritance`
   (Clear/TryRegister/Resolve, restored after), and `Massage`-extracts each resolved node
@@ -190,32 +191,45 @@ what proves we got it right.
     recompute method on the very first real run. The dirty-set side is still proven
     (superset-safe, M2b-1 PASS); only *recompute-from-raw-in-a-sub-doc* is broken.
 
-#### M2b-2b design fork (decide in plan mode)
-The from-raw sub-doc approach is out for sequence-bundled defs. Options, with the leading
-candidate first:
-  - **(A) Delta-from-baseline recompute (recommended).** The baseline cache's *resolved* defs
-    already have every **unchanged** sequence correctly baked in. So don't re-run all patches
-    from raw — start from the baseline resolved dirty def and apply only the **changed** mod's
-    patch delta. For the probe: take baseline `Apparel_TribalHeaddress` (already carries
-    `researchPrerequisite`) and just add `gagarinM2aProbe`. Sidesteps the giant unchanged
-    sequences entirely. **Clean for the add/widen case; hard for removals/reorders** — there is
-    no clean "un-apply" of a removed patch from a resolved def, and a reordered sequence makes the
-    baseline resolved value wrong, so those cases still need a from-raw path (or a forced full
-    rebuild). Likely shape: delta-recompute when the change set is purely additive/widening;
-    fall back to full rebuild otherwise (and measure how often each happens on real mod updates).
-  - **(B) Expand the sub-doc to all sequence siblings.** Include every def any
-    dirty-touching sequence targets. Faithful but the transitive closure can approach the whole
-    DB → kills the incremental win. Rejected unless closures turn out small in practice.
-  - **(C) Recompute with non-aborting sequences.** Re-implement the apply loop so a sequence
-    doesn't break on a no-match sub-op. **Unsafe in general:** changes `PatchOperationConditional`/
-    `FindMod` branch semantics and any sequence that is intentionally all-or-nothing → can
-    introduce *different* silent errors. Rejected.
-  - Decision needed: commit to (A) with a full-rebuild fallback for non-additive changes, and
-    define precisely which change classes qualify for delta-recompute. The error-logging metrics
-    and the live test-harness matrix are what would prove it across cases before trusting it.
-  - Cleanup still pending from the bring-up runs: source flags are back to `false` but the
-    **deployed `Gagarin.dll` is the dump build**; the `M2aProbe.xml` probe is left WIDE in
-    `PerformanceSearch/1.6/Patches/`; cache holds `RecomputeMismatch.json`/`GateReport.json`.
+#### M2b-2b design fork — RESOLVED: Path 2 (bounded sibling expansion + fallback)
+Three options were on the table; the chosen path is a **bounded** form of (B) plus an
+(A)-style fallback. For the record:
+  - **(A) Delta-from-baseline recompute.** Start from the baseline *resolved* dirty def and
+    apply only the changed mod's delta. Clean for add/widen; no clean "un-apply" for
+    removals/reorders → still needs a from-raw path or a forced full rebuild.
+  - **(B) Expand the sub-doc to all sequence siblings.** Faithful; feared to approach the whole
+    DB. **Rejected "unless closures turn out small in practice" — they ARE small** (see below).
+  - **(C) Non-aborting sequences.** Rejected: changes Conditional/FindMod branch semantics, can
+    introduce *different* silent errors.
+
+**The fix (Path 2, branch `feat/subdoc-sibling-expansion`, in-game PASS 2026-06-21):**
+`scripts/closure.py` measured the transitive closure offline on the apparel-probe change:
+**245 dirty → 337 sub-doc total = 1.17% of 28,682 defs** (dominated by two large sequences in
+`als.gravtech` and `oskarpotocki.vfe.tribals`). Option (B) is bounded in practice, so we take it
+— with a conservative fallback for the one case it can't trust.
+  - **`SubDocExpander.cs` (pure, offline-tested, mirrors `closure.py`):** for each dirty def,
+    find the `PatchOperationSequence`s it belongs to (patch edges whose id ends `.operations[N]`,
+    stripped to the parent key) and union in the defs the sequence's *sibling* child ops modify —
+    the **context** set. Those defs populate the sub-doc so the sequence reaches all its targets
+    and runs to completion; their recomputed values are discarded (the baseline cache already
+    holds them). It also flags **`needsFullRebuild`** when the **changed** mod itself owns a
+    container op (Sequence/Conditional): the baseline graph's execution path for that op is stale,
+    so the caller falls back to the full rebuild (always faithful) rather than risk an unfaithful
+    recompute.
+  - **`DefRecompute.cs`** gains a `contextIds` parameter; the sub-doc is `dirty ∪ context`
+    (+ inheritance ancestors of both); only dirty concrete defs are extracted.
+  - **`DirtySetGate.RunRecompute`** loads the prior `DependencyGraph.json`, expands the sub-doc,
+    falls back or recomputes → splices → diffs vs the full rebuild, and writes the machine-
+    readable **`RecomputeReport.json`** (`pass`/`fallback`/`recomputeMismatches`/`contextCount`/
+    `subDocSize`/…). `DirtySetDiagnostic` publishes `LastChangedMods` for the fallback check.
+  - **Live result (test-harness mods, 2026-06-21):** dirty-set gate `nonDirtyMismatches=0`;
+    recompute gate **`pass=true fallback=false recomputeMismatches=0`**, `dirtyCount=6
+    contextCount=1 subDocSize=7` over 27,581 defs. `contextCount=1` is `TC_SeqSibling` pulled in
+    by the expansion (CASE 3) — exactly the def whose absence caused the dead-end's sequence
+    abort. The earlier dirty-only build produced `recomputeMismatches=12` here.
+  - **Flags are now runtime-overridable** (`GagarinPrefs` static ctor reads `GAGARIN_*` env
+    vars), so the live harness enables the pipeline at launch without a bespoke flag-edited build.
+    See `TestMods/README.md` for the runner.
 - **M2b-3 / E:** wire the three-way decision (full hit / incremental / full miss) into the cache
   path behind a default-OFF setting with a force-full-rebuild escape hatch.
 
