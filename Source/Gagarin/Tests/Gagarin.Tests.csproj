@@ -36,6 +36,7 @@
     <Compile Include="..\Core\Incremental\WildcardRematch.cs" Link="WildcardRematch.cs" />
     <Compile Include="..\Core\Incremental\UnifiedCacheDiff.cs" Link="UnifiedCacheDiff.cs" />
     <Compile Include="..\Core\Incremental\UnifiedCacheSplice.cs" Link="UnifiedCacheSplice.cs" />
+    <Compile Include="..\Core\Incremental\MetricsLog.cs" Link="MetricsLog.cs" />
   </ItemGroup>
 
   <ItemGroup>

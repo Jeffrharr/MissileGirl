@@ -53,6 +53,20 @@ namespace Gagarin
         // Default OFF.
         public static bool DirtySetRecompute = false;
 
+        // Dev-only flag for the week-long real-world evidence base. When ON, the incremental-cache
+        // pipeline PERSISTS metrics to an append-only JSON-Lines log (MetricsLog) that survives
+        // cache clears, so a human can run the cache during normal play for a week and accumulate
+        // a real failure record without a live harness. ERROR records are the priority signal.
+        //
+        // Scope note — this flag governs PERSISTENCE, not what each stage computes. ERROR records
+        // are captured whenever Metrics is ON and the corresponding stage runs (so a crash in the
+        // diagnostic/gate/recompute is always logged). But load_summary and inconsistency records
+        // only have data to write when the stages that produce them actually run, which is gated
+        // by the other diagnostic flags. To populate a FULL evidence base, the human should enable
+        // GAGARIN_DIRTYSET_DIAGNOSTIC + _GATE + _RECOMPUTE alongside GAGARIN_METRICS. Default OFF
+        // (production never sets it, so the log is never written). Not scribed to settings.
+        public static bool Metrics = false;
+
         // Dev-only: let the live test harness flip the four incremental-cache diagnostic flags
         // at launch via environment variables, instead of requiring a bespoke build with the
         // defaults edited. The static ctor runs on first access to any field (i.e. before the
@@ -66,12 +80,14 @@ namespace Gagarin
         //   GAGARIN_DIRTYSET_DIAGNOSTIC  -> DirtySetDiagnostic
         //   GAGARIN_DIRTYSET_GATE        -> DirtySetGate
         //   GAGARIN_DIRTYSET_RECOMPUTE   -> DirtySetRecompute
+        //   GAGARIN_METRICS              -> Metrics
         static GagarinPrefs()
         {
             CaptureProvenance  = EnvFlag("GAGARIN_CAPTURE_PROVENANCE",  CaptureProvenance);
             DirtySetDiagnostic = EnvFlag("GAGARIN_DIRTYSET_DIAGNOSTIC", DirtySetDiagnostic);
             DirtySetGate       = EnvFlag("GAGARIN_DIRTYSET_GATE",       DirtySetGate);
             DirtySetRecompute  = EnvFlag("GAGARIN_DIRTYSET_RECOMPUTE",  DirtySetRecompute);
+            Metrics            = EnvFlag("GAGARIN_METRICS",             Metrics);
         }
 
         // Returns the env-var override for a flag, or the current value when the var is unset.
