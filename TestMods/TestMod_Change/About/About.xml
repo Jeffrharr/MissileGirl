@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Change Vehicle</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.change</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>The mod that changes between test run A and run B. The run script (TestMods/run_test.sh)
+copies Change_RunA.xml or Change_RunB.xml into Patches/Change.xml before each game launch.
+No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Must load after base defs so the defs exist when patches are applied -->
+    <li>joof.testharness.defs</li>
+    <!-- Load after static patches so change ops layer on top predictably -->
+    <li>joof.testharness.static</li>
+  </loadAfter>
+</ModMetaData>
