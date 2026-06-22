@@ -140,7 +140,10 @@ namespace Gagarin
         // This is validated in-game rather than by unit test (it needs real
         // PatchOperation subclasses); the recursion/cycle/labelling logic it feeds
         // is covered by PatchIdWalker's offline tests.
-        private static IEnumerable<(string label, PatchOperation child)> GetChildPatches(
+        // internal so the dirty-set diagnostic (M2a) can reuse the exact same child
+        // enumeration to re-derive a changed mod's CURRENT patch ids and pair them to the
+        // baseline graph edges by id.
+        internal static IEnumerable<(string label, PatchOperation child)> GetChildPatches(
             PatchOperation op)
         {
             foreach (FieldInfo field in GetPatchFields(op.GetType()))

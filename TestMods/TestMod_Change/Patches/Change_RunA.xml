@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run A — the narrow/baseline version of TestMod_Change's patches.
+       Run B (Change_RunB.xml) changes these operations; the run script copies the
+       appropriate file to Patches/Change.xml before each game launch.
+
+       What this run covers:
+         CASE 1: adds <changeTag>run-a</changeTag> to TC_Identity via exact defName xpath.
+         CASE 3: adds <changeTag>run-a</changeTag> to TC_SeqTarget (makes it dirty in run B
+                 when the value changes to "run-b").
+         CASE 2: NARROW — targets only TC_Wildcard_A by exact defName. Run B widens this to
+                 @ParentName="TC_WildcardBase", triggering the M2a wildcard-flip seed for
+                 TC_Wildcard_B and TC_Wildcard_C.
+         CASE 5: does NOT add conditionalTrigger to TC_Conditional → static mod's conditional
+                 takes the nomatch branch in this run. -->
+
+  <!-- CASE 1 (run A): exact defName xpath; only TC_Identity should be seeded -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_Identity"]</xpath>
+    <value>
+      <changeTag>run-a</changeTag>
+    </value>
+  </Operation>
+
+  <!-- CASE 3 (run A): exact defName xpath targeting TC_SeqTarget.
+       In run B this becomes a Replace on the value — the same def, but a changed op
+       and value, making TC_SeqTarget dirty via seedDefs (its source file changed). -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_SeqTarget"]</xpath>
+    <value>
+      <changeTag>run-a</changeTag>
+    </value>
+  </Operation>
+
+  <!-- CASE 2 (run A, NARROW): targets only TC_Wildcard_A.
+       In run B this xpath widens to @ParentName="TC_WildcardBase", newly matching
+       TC_Wildcard_B and TC_Wildcard_C → M2a wildcard-flip seeds those two. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_Wildcard_A"]</xpath>
+    <value>
+      <wildcardTag>run-a</wildcardTag>
+    </value>
+  </Operation>
+</Patch>

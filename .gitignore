@@ -12,3 +12,7 @@ Source/.mfractor/
 *.vs
 .DS_Store
 *.dds
+metrics/
+
+# Live test harness generates this from Change_RunA/B.xml per run.
+TestMods/TestMod_Change/Patches/Change.xml

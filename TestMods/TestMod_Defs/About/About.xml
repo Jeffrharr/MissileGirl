@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Base Defs</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.defs</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Defines the minimal base ThingDefs used by the incremental-cache live test harness.
+No game content — dev/QA use only. Load first among the three test-harness mods.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+</ModMetaData>

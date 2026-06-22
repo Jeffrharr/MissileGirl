@@ -182,6 +182,12 @@ namespace Gagarin
                         // the captured dependency graph (dev-flag gated, no-op
                         // otherwise).
                         ProvenanceRecorder.Save();
+
+                        // M2b real-engine gate (dev-flag gated, no-op otherwise): the
+                        // rebuilt Unified.xml now exists on disk, so prove the dirty set
+                        // is a superset against it. Called here, right after Save, so the
+                        // ordering is deterministic.
+                        DirtySetGate.Run();
                     }
                     catch (Exception er)
                     {
