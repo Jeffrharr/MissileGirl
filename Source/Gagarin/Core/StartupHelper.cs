@@ -24,6 +24,14 @@ namespace Gagarin
             Context.RunningMods = LoadedModManager.RunningMods.ToList();
             Context.Core = LoadedModManager.RunningMods.First(m => m.IsCoreMod);
 
+            // Point the metrics log at the PARENT of the Cache folder (CustomConfigFolderPath),
+            // which survives cache clears (the Cache subfolder is deleted recursively on a cold
+            // rebuild). Set unconditionally — MetricsLog only writes when GagarinPrefs.Metrics is
+            // on, and an unused resolver is harmless. Resolved lazily so it picks up the path even
+            // before the directory exists (MetricsLog creates it on first write).
+            MetricsLog.ResolveLogPath = () => Path.Combine(
+                RocketEnvironmentInfo.CustomConfigFolderPath, MetricsLog.LogFileName);
+
             if (!Directory.Exists(GagarinEnvironmentInfo.CacheFolderPath))
             {
                 Directory.CreateDirectory(GagarinEnvironmentInfo.CacheFolderPath);

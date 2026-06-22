@@ -31,6 +31,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Xml;
 using MissileGirl;
@@ -46,6 +47,24 @@ namespace Gagarin
 
         private static string SnapshotPath =>
             Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, SnapshotFileName);
+
+        // Recompute verdict for this load, set by RunRecompute and read by the combined metrics
+        // load_summary in Run. Null recomputePass means the recompute did not run (flag off /
+        // skipped); fallback true means it declined and the full rebuild stands. Reset each Run.
+        private static bool? s_recomputePass;
+        private static bool s_recomputeFallback;
+        private static int s_recomputeMismatches;
+        private static int s_subDocSize;
+        private static long s_recomputeMs;
+
+        // The shared metrics envelope for this load (cold == full rebuild). Mirrors
+        // DirtySetDiagnostic.CurrentEnvelope; rebuilt per record (cheap).
+        private static MetricsLog.Envelope CurrentEnvelope()
+        {
+            return MetricsLog.NewEnvelope(
+                cold: !Context.IsUsingCache,
+                packageIds: LoadedModManager.RunningMods.Select(m => m.PackageId));
+        }
 
         // Copy the prior Unified.xml aside before the load deletes it (cache miss) or overwrites
         // it. Runs as a LoadModXML prefix, so it is guaranteed ahead of the deleting postfix.
@@ -64,6 +83,9 @@ namespace Gagarin
             catch (Exception e)
             {
                 Logger.Debug("GAGARIN: dirty-set gate snapshot failed", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "gate.snapshot", e.GetType().Name, e.Message));
             }
         }
 
@@ -88,6 +110,13 @@ namespace Gagarin
                 return;
             }
 
+            // Reset this load's recompute verdict; RunRecompute fills it in if it runs.
+            s_recomputePass = null;
+            s_recomputeFallback = false;
+            s_recomputeMismatches = 0;
+            s_subDocSize = 0;
+            s_recomputeMs = 0;
+
             try
             {
                 var sw = Stopwatch.StartNew();
@@ -106,15 +135,62 @@ namespace Gagarin
                 // here is a recompute fidelity gap.
                 if (GagarinPrefs.DirtySetRecompute)
                     RunRecompute(baselineDoc, rebuild, dirty);
+
+                // Metrics: one combined load_summary for this load (diagnostic figures + this
+                // gate's verdict + any recompute verdict), plus inconsistency records for the
+                // high-value anomalies (gate FAIL = silent staleness; recompute FAIL = fidelity
+                // gap). Errors are logged at the catch below regardless of these flags.
+                if (GagarinPrefs.Metrics)
+                {
+                    EmitLoadSummary(dirty.Count, mismatches.Count, sw.ElapsedMilliseconds);
+                    if (mismatches.Count > 0)
+                        MetricsLog.Append(MetricsLog.BuildInconsistency(
+                            CurrentEnvelope(), "gate", mismatches.Count,
+                            mismatches.GetRange(0, Math.Min(20, mismatches.Count))));
+                }
             }
             catch (Exception e)
             {
                 Logger.Debug("GAGARIN: dirty-set gate failed", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "gate", e.GetType().Name, e.Message));
             }
             finally
             {
                 try { if (File.Exists(snapshot)) File.Delete(snapshot); } catch { /* best effort */ }
             }
+        }
+
+        // Emits the combined per-load metrics row: the diagnostic's seed/dirty figures (published
+        // on DirtySetDiagnostic) joined with this gate's verdict and any recompute verdict. The
+        // diagnostic always runs before the gate (the gate consumes its dirty set), so its fields
+        // are normally valid; if they aren't (e.g. an exception in the diagnostic), the seed
+        // counts fall back to zero rather than skip the row, so the gate verdict is still recorded.
+        private static void EmitLoadSummary(int dirtyCount, int nonDirtyMismatches, long gateMs)
+        {
+            DirtyResult r = DirtySetDiagnostic.LastResult;
+            bool haveDiag = DirtySetDiagnostic.LastDiagnosticValid && r != null;
+            MetricsLog.Append(MetricsLog.BuildLoadSummary(
+                CurrentEnvelope(),
+                haveDiag ? DirtySetDiagnostic.LastChangedAssets : 0,
+                DirtySetDiagnostic.LastChangedMods?.Count ?? 0,
+                haveDiag ? r.Nodes.Count : dirtyCount,
+                haveDiag ? DirtySetDiagnostic.LastTotalNodes : 0,
+                haveDiag ? r.SeedChangedDefs : 0,
+                haveDiag ? r.SeedPatchModified : 0,
+                haveDiag ? r.SeedReorder : 0,
+                haveDiag ? r.SeedWildcardFlip : 0,
+                haveDiag ? r.InheritanceAdded : 0,
+                haveDiag ? DirtySetDiagnostic.LastComputeMs : 0,
+                gatePass: nonDirtyMismatches == 0,
+                nonDirtyMismatches: nonDirtyMismatches,
+                gateMs: gateMs,
+                recomputePass: s_recomputePass,
+                recomputeFallback: s_recomputeFallback,
+                recomputeMismatches: s_recomputeMismatches,
+                subDocSize: s_subDocSize,
+                recomputeMs: s_recomputeMs));
         }
 
         private const string GraphFileName = "DependencyGraph.json";
@@ -157,6 +233,13 @@ namespace Gagarin
                 EmitRecomputeReport(fallback: true, fallbackReason: fallbackReason, miss: NoEmptyList,
                     contextCount: 0, dirtyCount: dirty.Count, recomputed: 0, removed: 0,
                     splicedDefs: 0, rebuildDefs: rebuild.Count, recomputeMs: 0);
+                // Publish a fallback verdict for the metrics summary: pass (the authoritative full
+                // rebuild stands) but flagged fallback so it is not counted as a real recompute.
+                s_recomputePass = true;
+                s_recomputeFallback = true;
+                s_recomputeMismatches = 0;
+                s_subDocSize = 0;
+                s_recomputeMs = 0;
                 return;
             }
 
@@ -187,6 +270,20 @@ namespace Gagarin
                     string.Join(", ", miss.GetRange(0, Math.Min(20, miss.Count))));
                 DumpMismatches(miss, splicedIdx, rebuild);
             }
+
+            // Publish this recompute's verdict for the metrics summary, and record a high-value
+            // inconsistency on FAIL (recomputed defs diverged from the full rebuild). The full
+            // mismatch list is in RecomputeReport.json (which a cache clear may wipe); the sample
+            // here survives in the rolling log.
+            s_recomputePass = miss.Count == 0;
+            s_recomputeFallback = false;
+            s_recomputeMismatches = miss.Count;
+            s_subDocSize = dirty.Count + context.Count;
+            s_recomputeMs = sw.ElapsedMilliseconds;
+            if (GagarinPrefs.Metrics && miss.Count > 0)
+                MetricsLog.Append(MetricsLog.BuildInconsistency(
+                    CurrentEnvelope(), "recompute", miss.Count,
+                    miss.GetRange(0, Math.Min(20, miss.Count))));
         }
 
         private static readonly List<string> NoEmptyList = new List<string>();
@@ -232,6 +329,9 @@ namespace Gagarin
             catch (Exception e)
             {
                 Logger.Debug("GAGARIN: failed writing RecomputeReport.json", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "recompute.write", e.GetType().Name, e.Message));
             }
         }
 
@@ -257,7 +357,13 @@ namespace Gagarin
                 File.WriteAllText(Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, "RecomputeMismatch.json"),
                     sb.ToString());
             }
-            catch (Exception e) { Logger.Debug("GAGARIN: failed writing RecomputeMismatch.json", exception: e); }
+            catch (Exception e)
+            {
+                Logger.Debug("GAGARIN: failed writing RecomputeMismatch.json", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "recompute.dumpMismatches", e.GetType().Name, e.Message));
+            }
         }
 
         private static readonly HashSet<string> NoneDirty = new HashSet<string>();
@@ -330,6 +436,9 @@ namespace Gagarin
             catch (Exception e)
             {
                 Logger.Debug("GAGARIN: failed writing GateReport.json", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "gate.write", e.GetType().Name, e.Message));
             }
         }
 
