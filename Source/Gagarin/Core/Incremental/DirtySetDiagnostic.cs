@@ -51,9 +51,16 @@ namespace Gagarin
         // computed; reset each load so a stale set can't leak into a later gate.
         public static HashSet<string> LastDirtySet;
 
+        // The packageIds of mods whose patch files changed this load, published alongside the
+        // dirty set for the M2b-2b sub-doc gate. SubDocExpander uses it to fall back to a full
+        // rebuild when a CHANGED mod owns a container op (its baseline execution path is stale).
+        // Null until computed; reset each load so a stale set can't leak into a later gate.
+        public static ICollection<string> LastChangedMods;
+
         public static void Prefix()
         {
             LastDirtySet = null; // clear last load's set before anything can read it
+            LastChangedMods = null;
             if (!GagarinPrefs.DirtySetDiagnostic)
                 return;
             try
@@ -94,6 +101,7 @@ namespace Gagarin
 
                 HashSet<string> changedAssets = ChangedAssets(s_priorHashes);
                 GraphChange change = BuildChange(graph, changedAssets);
+                LastChangedMods = change.ChangedMods; // publish for the M2b-2b sub-doc gate
 
                 // M2a — superset-safe wildcard re-test. A changed mod's patch predicate can
                 // newly match otherwise-unchanged defs, which none of the structural seeds

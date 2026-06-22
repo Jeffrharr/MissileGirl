@@ -117,14 +117,52 @@ namespace Gagarin
             }
         }
 
+        private const string GraphFileName = "DependencyGraph.json";
+        private const string RecomputeReportFileName = "RecomputeReport.json";
+
         // Recompute the dirty defs through the real engine, splice onto the prior cache, and diff
         // the spliced result against the full rebuild over ALL defs. Mismatches here = recompute
         // fidelity gaps (the splice is offline-proven and non-dirty reuse is gate-proven).
+        //
+        // The sub-doc the recompute runs over is the dirty set PLUS the CONTEXT set
+        // SubDocExpander derives (sibling defs of any PatchOperationSequence a dirty def is part
+        // of), so a sequence does not abort on absent targets and silently leave the dirty def
+        // un-patched. When the CHANGED mod itself owns a container op the baseline execution path
+        // is stale, so we fall back to the full rebuild for this load rather than risk an
+        // unfaithful recompute.
         private static void RunRecompute(XmlDocument baselineDoc,
             Dictionary<string, string> rebuild, HashSet<string> dirty)
         {
+            // The graph is the prior run's DependencyGraph.json — snapshotted execution paths we
+            // trust for UNCHANGED mods' sequences. (Same file DirtySetDiagnostic just consumed.)
+            string graphPath = Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, GraphFileName);
+            if (!File.Exists(graphPath))
+            {
+                Log.Warning("GAGARIN: <color=white>Recompute gate</color> skipped — no " +
+                    GraphFileName + " to expand the sub-doc against.");
+                return;
+            }
+            DependencyGraphData graph = DependencyGraphData.Load(graphPath);
+            ICollection<string> changedMods = DirtySetDiagnostic.LastChangedMods ?? new HashSet<string>();
+
+            HashSet<string> context = SubDocExpander.Expand(
+                graph, dirty, changedMods, out bool needsFullRebuild, out string fallbackReason);
+            if (needsFullRebuild)
+            {
+                // Not a failure: the full rebuild already ran and is authoritative. The sub-doc
+                // recompute simply cannot faithfully reproduce a changed container op, so we
+                // decline to recompute this load. No mismatches to report.
+                Log.Warning($"GAGARIN: <color=white>Recompute gate</color> " +
+                    $"<color=yellow>FALLBACK</color> — {fallbackReason}");
+                EmitRecomputeReport(fallback: true, fallbackReason: fallbackReason, miss: NoEmptyList,
+                    contextCount: 0, dirtyCount: dirty.Count, recomputed: 0, removed: 0,
+                    splicedDefs: 0, rebuildDefs: rebuild.Count, recomputeMs: 0);
+                return;
+            }
+
             var sw = Stopwatch.StartNew();
-            Dictionary<string, string> recomputed = DefRecompute.Recompute(dirty, out List<string> removed);
+            Dictionary<string, string> recomputed =
+                DefRecompute.Recompute(dirty, context, out List<string> removed);
             XmlDocument spliced = UnifiedCacheSplice.Splice(baselineDoc, recomputed, removed);
             // Normalize through the same whitespace-insensitive parse the rebuild went through, so
             // OuterXml comparison is not tripped by formatting differences.
@@ -135,13 +173,65 @@ namespace Gagarin
 
             string verdict = miss.Count == 0 ? "<color=green>PASS</color>" : "<color=red>FAIL</color>";
             Log.Warning($"GAGARIN: <color=white>Recompute gate</color> {verdict} " +
-                $"recomputeMismatches={miss.Count} (recomputed={recomputed.Count} removed={removed.Count} " +
+                $"recomputeMismatches={miss.Count} contextCount={context.Count} " +
+                $"subDocSize={dirty.Count + context.Count} " +
+                $"(recomputed={recomputed.Count} removed={removed.Count} " +
                 $"splicedDefs={splicedIdx.Count} rebuildDefs={rebuild.Count}) recomputeMs={sw.ElapsedMilliseconds}");
+            EmitRecomputeReport(fallback: false, fallbackReason: null, miss: miss,
+                contextCount: context.Count, dirtyCount: dirty.Count, recomputed: recomputed.Count,
+                removed: removed.Count, splicedDefs: splicedIdx.Count, rebuildDefs: rebuild.Count,
+                recomputeMs: sw.ElapsedMilliseconds);
             if (miss.Count > 0)
             {
                 Log.Warning("GAGARIN: recompute mismatches (recompute != rebuild): " +
                     string.Join(", ", miss.GetRange(0, Math.Min(20, miss.Count))));
                 DumpMismatches(miss, splicedIdx, rebuild);
+            }
+        }
+
+        private static readonly List<string> NoEmptyList = new List<string>();
+
+        // Writes RecomputeReport.json — the machine-readable verdict the live test harness asserts
+        // on (it greps the "Recompute gate" log line, then parses this for the exact numbers).
+        // A FALLBACK is reported as pass=true (the authoritative full rebuild ran) with
+        // fallback=true so the harness can distinguish a real recompute from a declined one.
+        private static void EmitRecomputeReport(bool fallback, string fallbackReason,
+            List<string> miss, int contextCount, int dirtyCount, int recomputed, int removed,
+            int splicedDefs, int rebuildDefs, long recomputeMs)
+        {
+            try
+            {
+                bool pass = fallback || miss.Count == 0;
+                var sb = new StringBuilder();
+                sb.Append('{');
+                sb.Append($"\"pass\":{(pass ? "true" : "false")},");
+                sb.Append($"\"fallback\":{(fallback ? "true" : "false")},");
+                sb.Append("\"fallbackReason\":");
+                if (fallbackReason == null) sb.Append("null"); else AppendQuoted(sb, fallbackReason);
+                sb.Append(',');
+                sb.Append($"\"recomputeMismatches\":{miss.Count},");
+                sb.Append($"\"contextCount\":{contextCount},");
+                sb.Append($"\"subDocSize\":{dirtyCount + contextCount},");
+                sb.Append($"\"dirtyCount\":{dirtyCount},");
+                sb.Append($"\"recomputed\":{recomputed},");
+                sb.Append($"\"removed\":{removed},");
+                sb.Append($"\"splicedDefs\":{splicedDefs},");
+                sb.Append($"\"rebuildDefs\":{rebuildDefs},");
+                sb.Append($"\"recomputeMs\":{recomputeMs},");
+                sb.Append("\"mismatchIds\":[");
+                for (int i = 0; i < miss.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    AppendQuoted(sb, miss[i]);
+                }
+                sb.Append("]}");
+                File.WriteAllText(
+                    Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, RecomputeReportFileName),
+                    sb.ToString());
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("GAGARIN: failed writing RecomputeReport.json", exception: e);
             }
         }
 
