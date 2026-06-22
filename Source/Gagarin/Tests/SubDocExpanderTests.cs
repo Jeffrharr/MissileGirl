@@ -134,18 +134,36 @@ namespace Gagarin.Tests
         }
 
         // The changed mod owns a Sequence child op: its baseline path is stale -> full rebuild.
+        // Mirrors the --expect-fallback live fixture (Change_Run{A,B}_Fallback.xml): the change
+        // mod joof.testharness.change owns a 2-op PatchOperationSequence whose children patch
+        // TC_SeqTarget/TC_Identity, so the baseline graph carries ".operations[N]" edges with
+        // that mod as SourceMod. The graph also contains an UNCHANGED mod's sequence whose
+        // sibling expansion WOULD otherwise contribute context for the dirty def — proving the
+        // fallback short-circuits before any expansion (returned context must be empty, not the
+        // expanded set). The reason must name the container op type and the exact offending
+        // patchId so the live RecomputeReport.json's fallbackReason is diagnosable.
         [Test]
         public void ChangedModSequenceOp_TriggersFallback()
         {
-            var g = Graph(Edge("joof.testharness.change#0.operations[0]", "joof.testharness.change", "ThingDef/A"));
+            var g = Graph(
+                // The change mod's own sequence (captured on Run A; edited on Run B).
+                Edge("joof.testharness.change#0.operations[0]", "joof.testharness.change", "ThingDef/TC_SeqTarget"),
+                Edge("joof.testharness.change#0.operations[1]", "joof.testharness.change", "ThingDef/TC_Identity"),
+                // An unchanged static mod's sequence touching the same dirty def plus a sibling:
+                // if the fallback did NOT fire, TC_SeqSibling would be pulled in as context.
+                Edge("joof.testharness.static#0.operations[0]", "joof.testharness.static", "ThingDef/TC_SeqSibling"),
+                Edge("joof.testharness.static#0.operations[1]", "joof.testharness.static", "ThingDef/TC_SeqTarget"));
 
-            var context = SubDocExpander.Expand(g, Set("ThingDef/A"),
+            var context = SubDocExpander.Expand(g, Set("ThingDef/TC_SeqTarget"),
                 Set("joof.testharness.change"), out bool fullRebuild, out string reason);
 
             Assert.That(fullRebuild, Is.True);
+            // Fallback short-circuits expansion: even though the static mod's sequence would
+            // otherwise contribute TC_SeqSibling, the context is empty when falling back.
             Assert.That(context, Is.Empty);
             Assert.That(reason, Does.Contain("PatchOperationSequence"));
-            Assert.That(reason, Does.Contain("joof.testharness.change#0.operations[0]"));
+            Assert.That(reason, Does.Contain("joof.testharness.change"));
+            Assert.That(reason, Does.Contain(".operations["));
         }
 
         // The changed mod owns a Conditional branch op -> full rebuild, named as a Conditional.

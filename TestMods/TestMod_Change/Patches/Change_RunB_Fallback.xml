@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B — FALLBACK variant of TestMod_Change's patches.
+       Selected by `run_test.sh --expect-fallback`; copied to Patches/Change.xml before
+       the Run B launch. See Change_RunA_Fallback.xml for the full rationale.
+
+       What changes vs Run A:
+         The same PatchOperationSequence is kept (so its edges remain attributable to the
+         change mod in the baseline graph captured on Run A), but the value written by its
+         first child is EDITED from "run-a" to "run-b". That edit changes this patch file's
+         content hash, so DirtySetDiagnostic flags joof.testharness.change as a changed mod
+         (it lands in LastChangedMods). Combined with the container-child edges captured on
+         Run A, SubDocExpander.Expand now sees changedModIds.Contains("joof.testharness.change")
+         AND a "...operations[N]" edge owned by it, so it returns needsFullRebuild=true.
+
+       Expected outcome (RecomputeReport.json): fallback=true, pass=true (the authoritative
+       full rebuild already ran), recomputeMismatches=0 (no recompute was attempted). The
+       --expect-fallback runner asserts exactly that. -->
+
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_SeqTarget"]</xpath>
+        <value>
+          <!-- run-a -> run-b: the edit that marks the change mod's patch file dirty. -->
+          <changeSeqTag>run-b</changeSeqTag>
+        </value>
+      </li>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_Identity"]</xpath>
+        <value>
+          <changeSeqTag>run-a</changeSeqTag>
+        </value>
+      </li>
+    </operations>
+  </Operation>
+</Patch>
