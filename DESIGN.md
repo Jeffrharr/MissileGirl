@@ -230,6 +230,26 @@ Three options were on the table; the chosen path is a **bounded** form of (B) pl
   - **Flags are now runtime-overridable** (`GagarinPrefs` static ctor reads `GAGARIN_*` env
     vars), so the live harness enables the pipeline at launch without a bespoke flag-edited build.
     See `TestMods/README.md` for the runner.
+
+**Next steps (handoff — branch `feat/subdoc-sibling-expansion`, 14 commits ahead of `origin/main`,
+NOT pushed):**
+  1. **Scale-up proof — the important one.** The live PASS so far is on the tiny test-mod set
+     (dirty=6, context=1, 27,581 defs). Re-run the recompute gate on the **real apparel-probe
+     change** (134-mod modlist) where `closure.py` predicts dirty=245 → **context≈92, subDoc≈337**
+     of 28,682. Expect `recomputeMismatches=0`; this is the load the dirty-only dead-end failed
+     (12 mismatches). That probe (`PerformanceSearch/1.6/Patches/M2aProbe.xml`, widen to
+     `Defs/ThingDef[apparel]`) is the existing real-change vehicle — the test mods don't reproduce
+     the `als.gravtech`/`vfe.tribals` mega-sequences.
+  2. **Fallback path live test.** Add a `PatchOperationSequence`/`Conditional` to `TestMod_Change`
+     and assert `RecomputeReport.fallback==true` (the runner currently asserts `fallback==false`;
+     gate that on a flag/arg). Confirms the changed-mod-container-op escape hatch fires.
+  3. **Content-hash keying** (not packageId) for the changed-mod detection — the blind spot
+     Gagarin + FGL share; required before the real cache path.
+  4. **Error-logging metrics** (user-wanted, pre-share): auto-log recompute exceptions / gate
+     FAILs / dirty-set or hash inconsistencies during normal play — see
+     `[[project-incremental-cache]]` and the pushback-on-premature-sharing note.
+  5. **Then Piece E / M2b-3:** wire the three-way decision (full hit / incremental / full miss)
+     into the real cache path behind a default-OFF flag with a force-full-rebuild escape hatch.
 - **M2b-3 / E:** wire the three-way decision (full hit / incremental / full miss) into the cache
   path behind a default-OFF setting with a force-full-rebuild escape hatch.
 
