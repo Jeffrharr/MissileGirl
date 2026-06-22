@@ -1,0 +1,220 @@
+// // Copyright (c) 2026 ViralReaction
+// //
+// // This program and the accompanying materials are made available under the
+// // terms of the Eclipse Public License 2.0 which is available at
+// // http://www.eclipse.org/legal/epl-2.0.
+// //
+// // SPDX-License-Identifier: EPL-2.0
+
+// SubDocExpanderTests.cs (Piece D — Milestone 2b-2b)
+//
+// Contains: the offline correctness gate for SubDocExpander — the pure sibling-expansion and
+// changed-mod container-op fallback that grows the recompute sub-doc just enough that
+// PatchOperationSequences don't abort on absent targets. Drives synthetic GraphPatchEdges with
+// the real "{mod}#{i}.operations[N]" / ".match" id scheme ProvenanceRecorder emits.
+//
+// Why: this is the load-bearing decision for M2b-2b correctness — too little context and a
+// sequence aborts (the 12-mismatch dead-end); a wrong fallback and we either recompute a stale
+// container op or needlessly fall back to a full rebuild. Both halves are asserted here so the
+// in-game gate only has to confirm engine fidelity, not the set algebra.
+
+using System.Collections.Generic;
+using System.Linq;
+using Gagarin;
+
+namespace Gagarin.Tests
+{
+    [TestFixture]
+    public class SubDocExpanderTests
+    {
+        private static GraphPatchEdge Edge(string patchId, string sourceMod, params string[] modified)
+        {
+            var e = new GraphPatchEdge { PatchId = patchId, SourceMod = sourceMod };
+            e.ModifiedNodeIds.AddRange(modified);
+            e.MatchedNodeIds.AddRange(modified);
+            return e;
+        }
+
+        private static DependencyGraphData Graph(params GraphPatchEdge[] edges)
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.PatchEdges.AddRange(edges);
+            return g;
+        }
+
+        private static HashSet<string> Set(params string[] ids) => new HashSet<string>(ids);
+
+        // A 3-op sequence touching three distinct defs; one def dirty pulls in the other two.
+        [Test]
+        public void SequenceSiblings_PulledInAsContext()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"),
+                Edge("vendor.seq#0.operations[2]", "vendor.seq", "ThingDef/C"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(),
+                out bool fullRebuild, out string reason);
+
+            Assert.That(fullRebuild, Is.False);
+            Assert.That(reason, Is.Null);
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/B", "ThingDef/C" }));
+        }
+
+        // Sibling defs that are themselves dirty are not "context" — context is the EXTRA defs
+        // the sub-doc needs beyond the dirty set.
+        [Test]
+        public void DirtySiblings_ExcludedFromContext()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"),
+                Edge("vendor.seq#0.operations[2]", "vendor.seq", "ThingDef/C"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A", "ThingDef/B"), Set(),
+                out _, out _);
+
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/C" }));
+        }
+
+        // Two dirty defs in the same sequence expand it once; the result is still just the
+        // remaining sibling (no duplication, no missing sibling).
+        [Test]
+        public void SameSequenceTwiceDirty_ExpandedOnce()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"),
+                Edge("vendor.seq#0.operations[2]", "vendor.seq", "ThingDef/C"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A", "ThingDef/C"), Set(),
+                out _, out _);
+
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/B" }));
+        }
+
+        // A top-level op (no ".operations[N]" suffix) is not a sequence child — nothing to expand.
+        [Test]
+        public void TopLevelOp_NoExpansion()
+        {
+            var g = Graph(Edge("vendor.simple#0", "vendor.simple", "ThingDef/A"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(), out _, out _);
+
+            Assert.That(context, Is.Empty);
+        }
+
+        // A conditional branch (".match") is NOT a list sibling: its ops don't share a sequence
+        // parent, so no sibling expansion happens for an unchanged mod's conditional.
+        [Test]
+        public void ConditionalBranch_NotExpandedAsSibling()
+        {
+            var g = Graph(Edge("vendor.cond#0.match", "vendor.cond", "ThingDef/A"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(), out bool fullRebuild, out _);
+
+            Assert.That(fullRebuild, Is.False);
+            Assert.That(context, Is.Empty);
+        }
+
+        // Only sequence siblings under the SAME parent are pulled in; an unrelated sequence's
+        // children are left out.
+        [Test]
+        public void UnrelatedSequence_NotPulledIn()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"),
+                Edge("vendor.seq#1.operations[0]", "vendor.seq", "ThingDef/X"),
+                Edge("vendor.seq#1.operations[1]", "vendor.seq", "ThingDef/Y"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(), out _, out _);
+
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/B" }));
+        }
+
+        // The changed mod owns a Sequence child op: its baseline path is stale -> full rebuild.
+        [Test]
+        public void ChangedModSequenceOp_TriggersFallback()
+        {
+            var g = Graph(Edge("joof.testharness.change#0.operations[0]", "joof.testharness.change", "ThingDef/A"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"),
+                Set("joof.testharness.change"), out bool fullRebuild, out string reason);
+
+            Assert.That(fullRebuild, Is.True);
+            Assert.That(context, Is.Empty);
+            Assert.That(reason, Does.Contain("PatchOperationSequence"));
+            Assert.That(reason, Does.Contain("joof.testharness.change#0.operations[0]"));
+        }
+
+        // The changed mod owns a Conditional branch op -> full rebuild, named as a Conditional.
+        [Test]
+        public void ChangedModConditionalOp_TriggersFallback()
+        {
+            var g = Graph(Edge("joof.testharness.change#0.match", "joof.testharness.change", "ThingDef/A"));
+
+            SubDocExpander.Expand(g, Set("ThingDef/A"), Set("joof.testharness.change"),
+                out bool fullRebuild, out string reason);
+
+            Assert.That(fullRebuild, Is.True);
+            Assert.That(reason, Does.Contain("PatchOperationConditional"));
+        }
+
+        // The changed mod's op is top-level (not in a container): the M2a wildcard re-test covers
+        // re-matching, so no fallback is needed.
+        [Test]
+        public void ChangedModTopLevelOp_NoFallback()
+        {
+            var g = Graph(Edge("joof.testharness.change#0", "joof.testharness.change", "ThingDef/A"));
+
+            SubDocExpander.Expand(g, Set("ThingDef/A"), Set("joof.testharness.change"),
+                out bool fullRebuild, out string reason);
+
+            Assert.That(fullRebuild, Is.False);
+            Assert.That(reason, Is.Null);
+        }
+
+        // A container op owned by an UNCHANGED mod is exactly what sibling expansion handles —
+        // it must NOT trigger the fallback (the snapshot path for it is trustworthy).
+        [Test]
+        public void UnchangedModContainerOp_NoFallback()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"));
+
+            // The changed mod is a DIFFERENT mod with no container op in the graph.
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set("other.mod"),
+                out bool fullRebuild, out _);
+
+            Assert.That(fullRebuild, Is.False);
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/B" }));
+        }
+
+        // An op nested inside a conditional inside a sequence: the parent key strips only the
+        // trailing ".operations[N]", so siblings are the conditional's list-level peers.
+        [Test]
+        public void NestedSequenceChild_ParentIsImmediateList()
+        {
+            var g = Graph(
+                Edge("vendor.x#0.match.operations[0]", "vendor.x", "ThingDef/A"),
+                Edge("vendor.x#0.match.operations[1]", "vendor.x", "ThingDef/B"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(), out _, out _);
+
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/B" }));
+        }
+
+        [Test]
+        public void NoDirty_EmptyContextNoFallback()
+        {
+            var g = Graph(Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"));
+
+            var context = SubDocExpander.Expand(g, Set(), Set(), out bool fullRebuild, out _);
+
+            Assert.That(context, Is.Empty);
+            Assert.That(fullRebuild, Is.False);
+        }
+    }
+}
