@@ -290,6 +290,77 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void InheritanceEdge_SameNameDifferentDefType_ResolvesToOwnDefType()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // Two unrelated defs share the bare name "HotSpring": a ThoughtDef abstract base
+            // and a concrete TerrainDef. A TerrainDef child with ParentName="HotSpring" must
+            // resolve to the TerrainDef parent, never the ThoughtDef — RimWorld inheritance is
+            // defType-scoped. The old bare-name resolver could hand it the ThoughtDef.
+            graph.AddNode("ThoughtDef", null, "HotSpring", "m", "T.xml", null);          // abstract ThoughtDef
+            graph.AddNode("TerrainDef", "HotSpring", null, "m", "Te.xml", null);         // concrete TerrainDef
+            graph.AddNode("TerrainDef", "SpringFlood", null, "m", "S.xml", "HotSpring"); // child
+
+            JsonElement edge = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("inheritanceEdges").EnumerateArray()
+                .Single(e => e.GetProperty("childNodeId").GetString() == "TerrainDef/SpringFlood");
+            Assert.That(edge.GetProperty("parentNodeId").GetString(), Is.EqualTo("TerrainDef/HotSpring"));
+        }
+
+        [Test]
+        public void InheritanceEdge_CrossDefTypeTemplate_ResolvesWhenNoSameTypeMatch()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // A legitimate cross-defType template reference: the only node named "SharedBase"
+            // is a ThingDef abstract base, and a TerrainDef child points at it by ParentName.
+            // With no same-defType match, the bare-name fallback must still resolve it so we
+            // don't regress the rare-but-valid cross-type case.
+            graph.AddNode("ThingDef", null, "SharedBase", "m", "B.xml", null);
+            graph.AddNode("TerrainDef", "Child", null, "m", "C.xml", "SharedBase");
+
+            JsonElement edge = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("inheritanceEdges").EnumerateArray()
+                .Single(e => e.GetProperty("childNodeId").GetString() == "TerrainDef/Child");
+            Assert.That(edge.GetProperty("parentNodeId").GetString(), Is.EqualTo("ThingDef@SharedBase"));
+        }
+
+        [Test]
+        public void InheritanceEdge_MultiLevelThroughAbstractWithDefName_ResolvesEndToEnd()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // The defect-1 chain: a concrete leaf inherits an abstract base that ALSO declares
+            // a defName (registered here with defName=null so it keeps the "@{Name}" id), which
+            // in turn inherits a real base. Every link must resolve so a change to the top base
+            // fans out to the leaf.
+            graph.AddNode("TerrainDef", null, "NaturalTerrainBase", "m", "N.xml", null);
+            graph.AddNode("TerrainDef", null, "MF_VoidTerrainBase", "m", "V.xml", "NaturalTerrainBase");
+            graph.AddNode("TerrainDef", "MF_SpaceVoid", null, "m", "S.xml", "MF_VoidTerrainBase");
+
+            var byChild = JsonDocument.Parse(graph.Serialize(0)).RootElement
+                .GetProperty("inheritanceEdges").EnumerateArray()
+                .ToDictionary(e => e.GetProperty("childNodeId").GetString(),
+                              e => e.GetProperty("parentNodeId").GetString());
+            Assert.That(byChild["TerrainDef/MF_SpaceVoid"], Is.EqualTo("TerrainDef@MF_VoidTerrainBase"));
+            Assert.That(byChild["TerrainDef@MF_VoidTerrainBase"], Is.EqualTo("TerrainDef@NaturalTerrainBase"));
+        }
+
+        [Test]
+        public void AbstractWithDefName_RegisteredAsAtNameNode_BumpsAbstractCount()
+        {
+            ProvenanceGraph graph = new ProvenanceGraph();
+            // RegisterAbstract passes defName=null for an abstract-with-defName base so its
+            // identity stays the "{DefType}@{Name}" abstract shape (and counts as abstract).
+            graph.AddNode("TerrainDef", null, "MF_VoidTerrainBase", "m", "V.xml", null);
+
+            JsonDocument parsed = JsonDocument.Parse(graph.Serialize(0));
+            JsonElement node = parsed.RootElement.GetProperty("nodes").EnumerateArray()
+                .Single(n => n.GetProperty("id").GetString() == "TerrainDef@MF_VoidTerrainBase");
+            Assert.That(node.GetProperty("defName").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(parsed.RootElement.GetProperty("metrics")
+                .GetProperty("abstractNodeCount").GetInt32(), Is.EqualTo(1));
+        }
+
+        [Test]
         public void PatchEdge_AccumulatesAcrossMultipleApplies()
         {
             ProvenanceGraph graph = new ProvenanceGraph();
