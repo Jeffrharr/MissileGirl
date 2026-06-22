@@ -12,3 +12,4 @@ Source/.mfractor/
 *.vs
 .DS_Store
 *.dds
+metrics/
