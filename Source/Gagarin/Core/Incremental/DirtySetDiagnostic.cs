@@ -57,10 +57,22 @@ namespace Gagarin
         // Null until computed; reset each load so a stale set can't leak into a later gate.
         public static ICollection<string> LastChangedMods;
 
+        // The diagnostic's per-load results, published for the metrics load_summary. The gate
+        // (when enabled) emits one combined summary INCLUDING its own verdicts; when the gate is
+        // off the diagnostic emits a summary with the gate/recompute fields null. Valid only when
+        // LastDiagnosticValid is true (reset each load, set once the diagnostic completes).
+        public static bool LastDiagnosticValid;
+        public static int LastChangedAssets;
+        public static int LastTotalNodes;
+        public static long LastComputeMs;
+        public static DirtyResult LastResult;
+
         public static void Prefix()
         {
             LastDirtySet = null; // clear last load's set before anything can read it
             LastChangedMods = null;
+            LastDiagnosticValid = false; // reset so a stale summary can't leak into a later load
+            LastResult = null;
             if (!GagarinPrefs.DirtySetDiagnostic)
                 return;
             try
@@ -77,7 +89,21 @@ namespace Gagarin
                 s_priorHashes = null;
                 s_priorOrder = null;
                 Logger.Debug("GAGARIN: dirty-set diagnostic prefix failed", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "diagnostic.prefix", e.GetType().Name, e.Message));
             }
+        }
+
+        // The shared metrics envelope for this load. cold == full rebuild (!Context.IsUsingCache):
+        // a cache hit replays the prior Unified.xml, while a cache miss / mod-list change does the
+        // full rebuild these diagnostics run alongside. Cheap to rebuild per record; the modlist
+        // hash makes records from different modlists distinguishable across a week of play.
+        private static MetricsLog.Envelope CurrentEnvelope()
+        {
+            return MetricsLog.NewEnvelope(
+                cold: !Context.IsUsingCache,
+                packageIds: LoadedModManager.RunningMods.Select(m => m.PackageId));
         }
 
         // __result is LoadModXML's return: every def LoadableXmlAsset loaded this run. We take
@@ -114,10 +140,31 @@ namespace Gagarin
                 sw.Stop();
 
                 Emit(graph, change, result, changedAssets.Count, sw.ElapsedMilliseconds);
+
+                // Publish results for the metrics load_summary. When the gate is enabled it emits
+                // one combined summary (with its verdicts); when it is off we emit here so a
+                // diagnostic-only run still records a per-load row (gate/recompute fields null).
+                LastChangedAssets = changedAssets.Count;
+                LastTotalNodes = graph.Nodes.Count;
+                LastComputeMs = sw.ElapsedMilliseconds;
+                LastResult = result;
+                LastDiagnosticValid = true;
+                if (GagarinPrefs.Metrics && !GagarinPrefs.DirtySetGate)
+                    MetricsLog.Append(MetricsLog.BuildLoadSummary(
+                        CurrentEnvelope(), changedAssets.Count, change.ChangedMods.Count,
+                        result.Nodes.Count, graph.Nodes.Count,
+                        result.SeedChangedDefs, result.SeedPatchModified, result.SeedReorder,
+                        result.SeedWildcardFlip, result.InheritanceAdded, sw.ElapsedMilliseconds,
+                        gatePass: null, nonDirtyMismatches: 0, gateMs: 0,
+                        recomputePass: null, recomputeFallback: false, recomputeMismatches: 0,
+                        subDocSize: 0, recomputeMs: 0));
             }
             catch (Exception e)
             {
                 Logger.Debug("GAGARIN: dirty-set diagnostic failed", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "diagnostic", e.GetType().Name, e.Message));
             }
             finally
             {
@@ -339,6 +386,9 @@ namespace Gagarin
             catch (Exception e)
             {
                 Logger.Debug("GAGARIN: failed writing DirtySet.json", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "diagnostic.write", e.GetType().Name, e.Message));
             }
         }
 
