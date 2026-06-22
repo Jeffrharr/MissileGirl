@@ -23,7 +23,11 @@
 #
 # Usage:
 #   cd /home/deck/Developer/RimWorldMods/MissileGirl/TestMods
-#   bash run_test.sh [--no-teardown]   # --no-teardown leaves symlinks/ModsConfig/DLL in place
+#   bash run_test.sh [--no-teardown] [--expect-fallback]
+#     --no-teardown     leaves symlinks/ModsConfig/DLL in place
+#     --expect-fallback uses the *_Fallback change files (the change mod owns a container op)
+#                       and asserts RecomputeReport shows fallback==true && pass==true instead
+#                       of the default real-recompute fallback==false && recomputeMismatches==0
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -81,11 +85,28 @@ DEFS_MOD_DIR="$SCRIPT_DIR/TestMod_Defs"
 STATIC_MOD_DIR="$SCRIPT_DIR/TestMod_Static"
 
 NO_TEARDOWN=0
+# --expect-fallback: exercise the changed-mod container-op fallback instead of the default
+# real-recompute case. It swaps in the *_Fallback change files (in which the CHANGED mod owns
+# a PatchOperationSequence) and flips the recompute-report assertion to require fallback==true.
+EXPECT_FALLBACK=0
 for arg in "$@"; do
     if [[ "$arg" == "--no-teardown" ]]; then
         NO_TEARDOWN=1
+    elif [[ "$arg" == "--expect-fallback" ]]; then
+        EXPECT_FALLBACK=1
     fi
 done
+
+# Pick the change-file pair for this run mode. Default: the leaf-op fixtures that drive a real
+# sub-doc recompute. --expect-fallback: the fixtures whose change mod owns a container op, so
+# SubDocExpander declines to recompute and the full rebuild stands in.
+if [[ $EXPECT_FALLBACK -eq 1 ]]; then
+    RUN_A_CHANGE="Change_RunA_Fallback.xml"
+    RUN_B_CHANGE="Change_RunB_Fallback.xml"
+else
+    RUN_A_CHANGE="Change_RunA.xml"
+    RUN_B_CHANGE="Change_RunB.xml"
+fi
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -250,13 +271,18 @@ PYEOF
 }
 
 parse_recompute_report() {
-    # The recompute gate verdict. We require a REAL recompute (fallback==false), zero
-    # recompute mismatches, and pass==true. A fallback would mean the changed mod owned a
-    # container op — but these test mods deliberately keep all containers in the UNCHANGED
-    # static mod, so a fallback here is itself a failure of the test's premise.
-    python3 - "$RECOMPUTE_REPORT" <<'PYEOF'
-import sys, json
+    # The recompute gate verdict. Two accepted shapes, selected by EXPECT_FALLBACK:
+    #   default (EXPECT_FALLBACK=0): require a REAL recompute — fallback==false, zero
+    #     recompute mismatches, pass==true. The default test mods keep all container ops in
+    #     the UNCHANGED static mod, so a fallback here is itself a failure of the premise.
+    #   --expect-fallback (EXPECT_FALLBACK=1): require the CHANGED-mod container-op fallback —
+    #     fallback==true and pass==true. No real recompute runs (the authoritative full rebuild
+    #     already did), so recomputeMismatches is 0 and contextCount is 0 by construction.
+    # EXPECT_FALLBACK is exported so the python child sees it.
+    EXPECT_FALLBACK="$EXPECT_FALLBACK" python3 - "$RECOMPUTE_REPORT" <<'PYEOF'
+import os, sys, json
 try:
+    expect_fallback = os.environ.get("EXPECT_FALLBACK", "0") == "1"
     data = json.load(open(sys.argv[1]))
     passed = data.get("pass", False)
     fallback = data.get("fallback", True)
@@ -269,7 +295,10 @@ try:
     print(f"  pass={passed}  fallback={fallback}  recomputeMismatches={mismatches}  contextCount={ctx}  subDocSize={subdoc}  dirtyCount={dirty}  recomputeMs={ms}ms")
     if reason:
         print(f"  fallbackReason={reason}")
-    ok = passed and (mismatches == 0) and (not fallback)
+    if expect_fallback:
+        ok = passed and fallback and (mismatches == 0)
+    else:
+        ok = passed and (mismatches == 0) and (not fallback)
     sys.exit(0 if ok else 1)
 except Exception as e:
     print(f"  ERROR parsing RecomputeReport.json: {e}", file=sys.stderr)
@@ -350,9 +379,10 @@ rm -rf "$CACHE_DIR"
 mkdir -p "$CACHE_DIR"
 
 # Copy Run A patches into the active Change.xml.
-# Run A has a narrow xpath (only matches TC_Wildcard_A by defName).
-log "Setting Change.xml to Run A (narrow predicates)..."
-cp "$CHANGE_MOD_DIR/Patches/Change_RunA.xml" "$CHANGE_MOD_DIR/Patches/Change.xml"
+# Default Run A has a narrow xpath (only matches TC_Wildcard_A by defName); the --expect-fallback
+# variant instead gives the change mod a PatchOperationSequence (captured into the baseline graph).
+log "Setting Change.xml to Run A ($RUN_A_CHANGE)..."
+cp "$CHANGE_MOD_DIR/Patches/$RUN_A_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
 
 # ---------------------------------------------------------------------------
 # Step 3: Run A — cold load, capture provenance
@@ -379,12 +409,14 @@ log "DependencyGraph.json written ($(du -sh "$CACHE_DIR/DependencyGraph.json" | 
 # ---------------------------------------------------------------------------
 log "--- Step 4: preparing Run B (wide predicates — triggers cache miss + gate) ---"
 
-# Swap to Run B patches. Run B widens the xpath to @ParentName="TC_WildcardBase",
-# newly matching TC_Wildcard_B and TC_Wildcard_C (M2a wildcard flip), and also
-# changes the op type on TC_Identity and TC_SeqTarget (pure patch-file edit cases),
-# and adds conditionalTrigger to TC_Conditional (CASE 5 conditional branch flip).
-log "Setting Change.xml to Run B (wide predicates)..."
-cp "$CHANGE_MOD_DIR/Patches/Change_RunB.xml" "$CHANGE_MOD_DIR/Patches/Change.xml"
+# Swap to Run B patches. Default Run B widens the xpath to @ParentName="TC_WildcardBase",
+# newly matching TC_Wildcard_B and TC_Wildcard_C (M2a wildcard flip), and also changes the op
+# type on TC_Identity and TC_SeqTarget (pure patch-file edit cases), and adds conditionalTrigger
+# to TC_Conditional (CASE 5 conditional branch flip). The --expect-fallback variant instead edits
+# a value inside the change mod's own sequence — keeping the container op but marking the patch
+# file dirty, so SubDocExpander declines to recompute (fallback).
+log "Setting Change.xml to Run B ($RUN_B_CHANGE)..."
+cp "$CHANGE_MOD_DIR/Patches/$RUN_B_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
 
 # Do NOT clear the cache — Run B needs the prior cache (DependencyGraph.json,
 # AssetsHash.xml, Unified.xml) to compute the dirty set and run the gate.
