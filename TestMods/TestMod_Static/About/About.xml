@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Static Patches</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.static</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Patches that do NOT change between test runs. Exercises CASE 3 (sequence
+sibling — a sequence that bundles a dirty def with an unrelated sibling) and CASE 5
+(conditional branch flip — branch taken depends on a field added by TestMod_Change).
+No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Must load after base defs so the defs exist when patches are applied -->
+    <li>joof.testharness.defs</li>
+  </loadAfter>
+</ModMetaData>

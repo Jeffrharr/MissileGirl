@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- CASE 3: Sequence sibling expansion test.
+       This single PatchOperationSequence touches both TC_SeqSibling and TC_SeqTarget.
+       When TestMod_Change makes TC_SeqTarget dirty (by editing its own patch for that def),
+       any recompute sub-doc must also include TC_SeqSibling — otherwise the first op here
+       (targeting TC_SeqSibling) finds no match, PatchOperationSequence returns false, and
+       the op targeting TC_SeqTarget never runs.
+
+       This is the key sub-doc completeness test: a def (TC_SeqSibling) that is not itself
+       dirty must be present in the sub-doc as "context" because it is co-patched in the
+       same sequence as a dirty def (TC_SeqTarget).
+
+       This file does NOT change between runs — it is an UNCHANGED mod that happens to
+       bundle both defs. The change-vehicle is TestMod_Change. -->
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_SeqSibling"]</xpath>
+        <value>
+          <seqTag>from-static-seq</seqTag>
+        </value>
+      </li>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_SeqTarget"]</xpath>
+        <value>
+          <seqTag>from-static-seq</seqTag>
+        </value>
+      </li>
+    </operations>
+  </Operation>
+
+  <!-- CASE 5: PatchOperationConditional branch flip.
+       Checks for the presence of <conditionalTrigger> on TC_Conditional:
+         Run A (TestMod_Change does NOT add conditionalTrigger): nomatch branch fires
+                → conditionalNoMatchTag is added.
+         Run B (TestMod_Change DOES add conditionalTrigger):     match branch fires
+                → conditionalMatchTag is added instead.
+
+       TC_Conditional is dirty in run B because TestMod_Change's patch file changed (its
+       patch file now adds conditionalTrigger, making the def's final resolved state differ
+       from the cached baseline). The conditional itself is what makes the post-patch
+       difference observably different depending on the trigger field. -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="TC_Conditional"]/conditionalTrigger</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>Defs/ThingDef[defName="TC_Conditional"]</xpath>
+      <value>
+        <conditionalMatchTag>yes</conditionalMatchTag>
+      </value>
+    </match>
+    <nomatch Class="PatchOperationAdd">
+      <xpath>Defs/ThingDef[defName="TC_Conditional"]</xpath>
+      <value>
+        <conditionalNoMatchTag>no</conditionalNoMatchTag>
+      </value>
+    </nomatch>
+  </Operation>
+</Patch>

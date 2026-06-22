@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- TC_Identity: target for simple leaf-op tests (CASE 1 — add/replace on an exact defName
+       xpath). Should always appear dirty when TestMod_Change's patch for it changes. -->
+  <ThingDef>
+    <defName>TC_Identity</defName>
+    <label>test identity</label>
+  </ThingDef>
+
+  <!-- TC_SeqSibling: co-patched alongside TC_SeqTarget inside TestMod_Static's sequence
+       (CASE 3). When TC_SeqTarget is dirty, TC_SeqSibling must be present in any
+       recompute sub-doc so the sequence doesn't abort before reaching TC_SeqTarget's op.
+       TC_SeqSibling itself is not independently dirty — it's a passive context def. -->
+  <ThingDef>
+    <defName>TC_SeqSibling</defName>
+    <label>test seq sibling</label>
+  </ThingDef>
+
+  <!-- TC_SeqTarget: the def made dirty by TestMod_Change (CASE 3). TestMod_Static's
+       PatchOperationSequence targets it in the same sequence as TC_SeqSibling, so both
+       must be in the recompute sub-doc for the sequence to complete successfully. -->
+  <ThingDef>
+    <defName>TC_SeqTarget</defName>
+    <label>test seq target</label>
+  </ThingDef>
+
+  <!-- TC_Conditional: used by TestMod_Static's PatchOperationConditional (CASE 5).
+       Run A: no conditionalTrigger field → nomatch branch taken → conditionalNoMatchTag added.
+       Run B: TestMod_Change adds conditionalTrigger → match branch taken → conditionalMatchTag
+       added instead. The def is dirty in run B because its patch file changed. -->
+  <ThingDef>
+    <defName>TC_Conditional</defName>
+    <label>test conditional</label>
+  </ThingDef>
+
+  <!-- TC_WildcardBase / TC_Wildcard_A/B/C: for the xpath-widen (wildcard flip) test
+       (CASES 2 & 4). The abstract base carries the @Name="TC_WildcardBase" attribute that
+       the run-B patch uses as @ParentName="TC_WildcardBase" to wildcard-match all three
+       concrete children at once — widening from the narrow run-A patch that only targets
+       TC_Wildcard_A by defName. -->
+  <ThingDef Abstract="True" Name="TC_WildcardBase">
+    <label>wildcard base</label>
+  </ThingDef>
+
+  <ThingDef ParentName="TC_WildcardBase">
+    <defName>TC_Wildcard_A</defName>
+    <label>wildcard a</label>
+  </ThingDef>
+
+  <ThingDef ParentName="TC_WildcardBase">
+    <defName>TC_Wildcard_B</defName>
+    <label>wildcard b</label>
+  </ThingDef>
+
+  <ThingDef ParentName="TC_WildcardBase">
+    <defName>TC_Wildcard_C</defName>
+    <label>wildcard c</label>
+  </ThingDef>
+</Defs>
