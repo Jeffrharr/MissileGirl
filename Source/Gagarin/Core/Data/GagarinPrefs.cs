@@ -52,5 +52,35 @@ namespace Gagarin
         // builds the spliced doc in memory and diffs it, but does not replace the real cache.
         // Default OFF.
         public static bool DirtySetRecompute = false;
+
+        // Dev-only: let the live test harness flip the four incremental-cache diagnostic flags
+        // at launch via environment variables, instead of requiring a bespoke build with the
+        // defaults edited. The static ctor runs on first access to any field (i.e. before the
+        // load-time patches read these flags), applying any GAGARIN_* override present. Field
+        // initializers above run first, so an absent env var leaves the shipped default (OFF)
+        // untouched — production never sets these, so behaviour is unchanged. These four flags
+        // are the only ones overridable, and each changes no cache behaviour (they are pure
+        // diagnostics; see each flag's header). Accepted truthy values: "1" or "true".
+        //
+        //   GAGARIN_CAPTURE_PROVENANCE   -> CaptureProvenance
+        //   GAGARIN_DIRTYSET_DIAGNOSTIC  -> DirtySetDiagnostic
+        //   GAGARIN_DIRTYSET_GATE        -> DirtySetGate
+        //   GAGARIN_DIRTYSET_RECOMPUTE   -> DirtySetRecompute
+        static GagarinPrefs()
+        {
+            CaptureProvenance  = EnvFlag("GAGARIN_CAPTURE_PROVENANCE",  CaptureProvenance);
+            DirtySetDiagnostic = EnvFlag("GAGARIN_DIRTYSET_DIAGNOSTIC", DirtySetDiagnostic);
+            DirtySetGate       = EnvFlag("GAGARIN_DIRTYSET_GATE",       DirtySetGate);
+            DirtySetRecompute  = EnvFlag("GAGARIN_DIRTYSET_RECOMPUTE",  DirtySetRecompute);
+        }
+
+        // Returns the env-var override for a flag, or the current value when the var is unset.
+        private static bool EnvFlag(string name, bool current)
+        {
+            string v = Environment.GetEnvironmentVariable(name);
+            if (string.IsNullOrEmpty(v))
+                return current;
+            return v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
