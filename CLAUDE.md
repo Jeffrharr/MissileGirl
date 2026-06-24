@@ -75,8 +75,38 @@ Run-artifact archive: `../MissileGirl-metrics/` (12 MB; the evidence base — pr
 ## Live test harness
 
 `TestMods/run_test.sh` (+ `TestMods/README.md`). Deploys the dev DLL over the workshop
-`vr.missilegirl` `Gagarin.dll` (backup/restore), runs two cold loads, asserts both gates. Cases via
-`--expect-fallback`, `--expect-added`. Known flake: early-startup SIGSEGV ~1/4 launches → it retries.
+`vr.missilegirl` `Gagarin.dll` (backup/restore), runs two cold loads (Run A cold-captures the graph;
+Run B changes the patch/mod set → cache miss → gates), asserts both gates, archives reports to
+`../MissileGirl-metrics/livetest-runB-<ts>-*.json`, then restores DLL + `ModsConfig.xml` + symlinks.
+
+**Build the dev DLL first** (the harness deploys `1.6/Plugins/Stable/Gagarin.dll` as-is, so build the
+branch under test):
+```bash
+FrameworkPathOverride=/usr/lib/mono/4.8-api /home/deck/.dotnet/dotnet build Source/Gagarin/Gagarin.csproj -c Release
+cd TestMods && bash run_test.sh [flags]
+```
+
+**Flags** (mutually exclusive where noted):
+| Flag | What it exercises | Extra assertion |
+|---|---|---|
+| *(none)* | Default: real sub-doc recompute (leaf-op change in the changed mod) | `fallback==false && recomputeMismatches==0` |
+| `--expect-fallback` | Changed mod owns a container op (`PatchOperationSequence`) → SubDocExpander declines | `fallback==true && pass==true` |
+| `--expect-added` | P2 added-defs channel: `joof.testharness.added` held out of Run A, inserted before Run B | `seeds.addedDefs > 0` |
+| `--no-teardown` | Leaves symlinks/ModsConfig/DLL deployed (combine with others for debugging) | — |
+
+Both gates must pass: dirty-set gate (`GateReport.json`: `nonDirtyMismatches==0`) AND recompute gate
+(`RecomputeReport.json`: per the table). Each run is ~8–10 min (two ~4-min cold loads).
+
+**Caveats / operational notes:**
+- **Force-kills any running `RimWorldLinux`** (`pkill -9 -x RimWorldLinux`) on cleanup — close your
+  game first; it will drop an active session.
+- Known flake: early-startup Boehm-GC SIGSEGV ~1/4 launches (launched `--no-sandbox`); it retries up
+  to 5×. A real post-`GAGARIN:` crash is surfaced, not retried.
+- **Coverage gap (as of P1/P4):** the synthetic mods use plain `<ThingDef>`s, so the harness does NOT
+  yet exercise namespaced custom-def keying (P1) or `MayRequire` flips (P4). A green run is a
+  regression check, not validation of those. Validating P4 needs a `MayRequire`-gated def + a toggled
+  dependency mod (pure XML, a new flag); P1 needs a test mod with a C# assembly defining a
+  namespaced `Def` subclass (or a `Class="..."` def) — neither fixture exists yet.
 
 ## Roadmap — incremental correctness on add/remove
 
