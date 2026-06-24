@@ -39,6 +39,17 @@ namespace Gagarin
         // mods). Identity by node id, matching the graph's node ids.
         public HashSet<string> ChangedNodeIds = new HashSet<string>();
 
+        // ADDED defs (P2 — the added-defs channel): concrete def ids that exist in the CURRENT
+        // load but are absent from the baseline graph (a brand-new mod, or new defs in an edited
+        // file). They have no baseline node, so none of the structural seeds below reach them and
+        // the real-engine gate would correctly FAIL them as silently-stale. We seed them directly
+        // (Seed 5) so the recompute/splice path produces and inserts them on THIS load. Only
+        // CONCRETE ids belong here (abstract @Name bases are never cache items; a dirty concrete
+        // descendant pulls its abstract ancestors in via DefRecompute.AddAncestors). The driver
+        // restricts membership to ids whose owning file actually changed, so this stays orthogonal
+        // to P1 (uncaptured def TYPES whose files didn't change) and never mass-over-dirties.
+        public HashSet<string> AddedNodeIds = new HashSet<string>();
+
         // Mods whose PATCH files changed — every patch they declare is treated as suspect
         // (mod-granular: the graph records patch sourceMod but not sourceFile). A pure def
         // edit leaves this empty, so it does not over-dirty.
@@ -56,6 +67,7 @@ namespace Gagarin
         public int SeedPatchModified;   // nodes seeded by a changed mod's patches
         public int SeedReorder;         // nodes seeded by an order change
         public int SeedWildcardFlip;    // nodes seeded by a wildcard membership flip (M2a)
+        public int SeedAddedDefs;       // nodes seeded as newly-added defs absent from baseline (P2)
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int Iterations;          // inheritance-closure frontier steps
     }
@@ -78,6 +90,19 @@ namespace Gagarin
             foreach (var id in change.ChangedNodeIds)
                 if (id != null && dirty.Add(id))
                     result.SeedChangedDefs++;
+
+            // Seed 5 — ADDED defs (P2). Defs present in the current load but absent from the
+            // baseline graph (a newly-added mod, or new defs in an edited file). Folded in here
+            // alongside Seed 1 — BEFORE the inheritance closure — so a newly-added concrete def
+            // is dirtied, recomputed, and spliced in on this load. We deliberately seed it as a
+            // single concrete node and rely on DefRecompute.AddAncestors to pull its (possibly
+            // also-new) abstract parents from the CURRENT raw bodies; the baseline closure below
+            // cannot fan out to a node that has no baseline inheritance edges anyway. Numbered 5
+            // (after the structural seeds 1-4) to keep the existing seed identities stable while
+            // ordering it with Seed 1 in the algorithm — both seed concrete def bodies directly.
+            foreach (var id in change.AddedNodeIds)
+                if (id != null && dirty.Add(id))
+                    result.SeedAddedDefs++;
 
             // Seed 2 — a changed mod's patches: dirty every node they modified in the baseline.
             // Mod-granular and conservative (we cannot tell which patch in the mod changed).

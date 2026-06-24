@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- P2 — make the added-def recompute non-trivial.
+       This patch is owned by the ADDED mod (joof.testharness.added) and targets one of its own
+       new defs (TC_Added_Patched) by exact defName. Because the def only exists in run B, the
+       added-def channel must dirty it AND the recompute must apply this patch over it, so the
+       spliced cache entry for TC_Added_Patched is the post-patch resolved value — not the raw
+       body. If the added def were merely copied verbatim (patch skipped), the recompute gate would
+       FAIL with a byte mismatch against the full rebuild. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_Added_Patched"]</xpath>
+    <value>
+      <addedPatchTag>from-added-patch</addedPatchTag>
+    </value>
+  </Operation>
+</Patch>

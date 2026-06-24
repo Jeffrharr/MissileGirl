@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- P2 — the added-defs channel.
+       These ThingDefs exist ONLY when joof.testharness.added is in the active mod list. The
+       harness keeps that mod OUT of ModsConfig.xml for run A (so run A's baseline
+       DependencyGraph.json never records these nodes) and adds it for run B. On run B the
+       dirty-set diagnostic must seed these as ADDED defs (seeds.addedDefs > 0), the recompute must
+       produce them, and the splice must append them as new <Item path=...> entries that byte-match
+       a full rebuild — i.e. GateReport nonDirtyMismatches==0 and RecomputeReport
+       recomputeMismatches==0 with these ids present in the spliced cache.
+
+       TC_Added_Plain: a brand-new concrete def with no patch applied to it — the simplest added
+       node. Proves a genuinely-new def is dirtied, recomputed, and spliced in. -->
+  <ThingDef>
+    <defName>TC_Added_Plain</defName>
+    <label>test added plain</label>
+  </ThingDef>
+
+  <!-- TC_Added_Patched: a new concrete def that this mod ALSO patches (see Patches/AddedPatch.xml).
+       Its resolved value depends on the patch running over it, so the recompute path must apply the
+       patch to the added def for the spliced entry to match a full rebuild — making the added-def
+       recompute non-trivial rather than a verbatim copy of the raw body. -->
+  <ThingDef>
+    <defName>TC_Added_Patched</defName>
+    <label>test added patched</label>
+  </ThingDef>
+
+  <!-- TC_Added_Child: a new concrete def that inherits from a NEW abstract base also defined here.
+       Proves the added-def recompute pulls in newly-added abstract ancestors (via
+       DefRecompute.AddAncestors over the current raw bodies) and resolves inheritance correctly,
+       even though neither the child nor the base has any baseline inheritance edge to fan out from. -->
+  <ThingDef Abstract="True" Name="TC_Added_Base">
+    <label>added base</label>
+    <addedBaseTag>from-added-base</addedBaseTag>
+  </ThingDef>
+
+  <ThingDef ParentName="TC_Added_Base">
+    <defName>TC_Added_Child</defName>
+    <label>test added child</label>
+  </ThingDef>
+</Defs>

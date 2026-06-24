@@ -61,7 +61,9 @@ namespace Gagarin
     public static class MetricsLog
     {
         // Bump when the record shape changes so a week-spanning file can be parsed by version.
-        public const int SchemaVersion = 1;
+        // v2 adds seeds.addedDefs (the P2 added-defs channel) to the load_summary record; a file
+        // spanning the bump stays parseable because the schema field tags every line's shape.
+        public const int SchemaVersion = 2;
 
         // Default log file name under the (cache-clear-surviving) config folder.
         public const string LogFileName = "incremental-metrics.jsonl";
@@ -150,7 +152,7 @@ namespace Gagarin
             int changedAssets, int changedMods,
             int dirtyCount, int totalNodes,
             int seedChangedDefs, int seedPatchModified, int seedReorder,
-            int seedWildcardFlip, int inheritanceAdded,
+            int seedWildcardFlip, int seedAddedDefs, int inheritanceAdded,
             long computeMs,
             bool? gatePass, int nonDirtyMismatches, long gateMs,
             bool? recomputePass, bool recomputeFallback, int recomputeMismatches,
@@ -168,6 +170,7 @@ namespace Gagarin
             sb.Append(",\"patchModified\":").Append(seedPatchModified);
             sb.Append(",\"reorder\":").Append(seedReorder);
             sb.Append(",\"wildcardFlip\":").Append(seedWildcardFlip);
+            sb.Append(",\"addedDefs\":").Append(seedAddedDefs);
             sb.Append(",\"inheritanceAdded\":").Append(inheritanceAdded);
             sb.Append('}');
             sb.Append(",\"computeMs\":").Append(computeMs);

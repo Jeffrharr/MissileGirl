@@ -74,7 +74,7 @@ namespace Gagarin.Tests
             string line = MetricsLog.BuildLoadSummary(
                 Env(), changedAssets: 3, changedMods: 1, dirtyCount: 245, totalNodes: 28682,
                 seedChangedDefs: 5, seedPatchModified: 7, seedReorder: 0, seedWildcardFlip: 2,
-                inheritanceAdded: 231, computeMs: 12,
+                seedAddedDefs: 4, inheritanceAdded: 231, computeMs: 12,
                 gatePass: true, nonDirtyMismatches: 0, gateMs: 40,
                 recomputePass: true, recomputeFallback: false, recomputeMismatches: 0,
                 subDocSize: 337, recomputeMs: 88);
@@ -91,6 +91,8 @@ namespace Gagarin.Tests
             Assert.That(r.GetProperty("dirtyCount").GetInt32(), Is.EqualTo(245));
             Assert.That(r.GetProperty("totalNodes").GetInt32(), Is.EqualTo(28682));
             Assert.That(r.GetProperty("seeds").GetProperty("inheritanceAdded").GetInt32(), Is.EqualTo(231));
+            // P2 — the added-defs seed count is carried in the seeds object (schema v2).
+            Assert.That(r.GetProperty("seeds").GetProperty("addedDefs").GetInt32(), Is.EqualTo(4));
             Assert.That(r.GetProperty("gatePass").GetBoolean(), Is.True);
             Assert.That(r.GetProperty("recomputeFallback").GetBoolean(), Is.False);
             Assert.That(r.GetProperty("subDocSize").GetInt32(), Is.EqualTo(337));
@@ -102,7 +104,7 @@ namespace Gagarin.Tests
         public void NullableVerdicts_SerializeAsJsonNull()
         {
             string line = MetricsLog.BuildLoadSummary(
-                Env(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                Env(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 gatePass: null, nonDirtyMismatches: 0, gateMs: 0,
                 recomputePass: null, recomputeFallback: false, recomputeMismatches: 0,
                 subDocSize: 0, recomputeMs: 0);
