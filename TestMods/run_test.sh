@@ -113,6 +113,13 @@ EXPECT_ADDED=0
 # the MayRequire seed (DirtySet.json seeds.mayRequire > 0) so the dirty-set gate stays a superset.
 # Change.xml is held at run A for both runs, so the ONLY between-run delta is the gate mod removal.
 EXPECT_MAYREQUIRE=0
+# --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
+# ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
+# specific problem set captured from a prior run. Hard-capped at 100 mods total — the whole point of
+# the harness is a small, deterministic load; an 815-mod ambient list crashes RimWorld's GC during
+# unrelated mod init (zero of our code runs), which is not a test result.
+MODLIST_FILE=""
+MAX_MODS=100
 for arg in "$@"; do
     if [[ "$arg" == "--no-teardown" ]]; then
         NO_TEARDOWN=1
@@ -122,8 +129,15 @@ for arg in "$@"; do
         EXPECT_ADDED=1
     elif [[ "$arg" == "--expect-mayrequire" ]]; then
         EXPECT_MAYREQUIRE=1
+    elif [[ "$arg" == --modlist=* ]]; then
+        MODLIST_FILE="${arg#--modlist=}"
     fi
 done
+
+# A single timestamp for this whole run, used for every archived artifact (reports AND the exact
+# modlist that produced them) so a failing run is fully reproducible from one set of files.
+RUN_TS="$(date +%Y%m%d-%H%M%S)"
+METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
 
 if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE > 1 )); then
     echo "[run_test] FAIL: --expect-fallback, --expect-added and --expect-mayrequire are mutually exclusive." >&2
@@ -204,9 +218,11 @@ teardown() {
 # (the Boehm-GC crash in Prepatcher's prestarter GUI, ~1 in 4 launches). The crash
 # signature is "Caught fatal signal - signo:11" landing in Player.log BEFORE any
 # "GAGARIN:" line — i.e. the process died during native init, before our mod loaded.
-# (The "GC_mark_from" backtrace prints on stderr, which we send to /dev/null, so it is
-# NOT a reliable Player.log signature — an earlier version grepped for it there and never
-# matched, turning every flaky crash into a hard fail.)
+# The "GC_mark_from" backtrace prints on STDERR, so we capture stderr to RIMWORLD_STDERR
+# (not /dev/null) and grep BOTH it and Player.log for the crash signatures. An earlier
+# version sent stderr to /dev/null and only grepped Player.log, so the most common flake
+# signature (GC_mark_from on stderr) was invisible and every such crash hard-failed.
+RIMWORLD_STDERR="/tmp/rimworld_testharness_stderr.log"
 launch_rimworld() {
     local max_retries=5
     local attempt=0
@@ -215,37 +231,43 @@ launch_rimworld() {
         attempt=$((attempt + 1))
         log "Launching RimWorld (attempt $attempt / $max_retries)..."
 
-        # Clear the player log so we get a fresh read each attempt.
-        # RimWorld rewrites it on launch, but there can be leftover content
+        # Clear the player log + stderr capture so we get a fresh read each attempt.
+        # RimWorld rewrites Player.log on launch, but there can be leftover content
         # from a previous launch that could confuse our grep.
         # We truncate rather than delete so the path always exists.
         : > "$PLAYER_LOG"
+        : > "$RIMWORLD_STDERR"
 
         # --no-sandbox: avoids the Boehm-GC SIGSEGV in Prepatcher's prestarter GUI
-        # that occurs ~1 in 4 launches when sandboxed.
+        # that occurs ~1 in 4 launches when sandboxed. stderr -> file so we can detect the
+        # GC_mark_from backtrace (which never reaches Player.log).
         "$RIMWORLD/RimWorldLinux" --no-sandbox \
             -logfile "$PLAYER_LOG" \
-            2>/dev/null &
+            2>"$RIMWORLD_STDERR" &
         RIMWORLD_PID=$!
         log "RimWorldLinux PID: $RIMWORLD_PID"
 
-        # Wait a bit and then check: did it crash during native init (a fatal signal in
-        # Player.log before any GAGARIN output = the known flaky prestarter crash)?
+        # Wait a bit and then check: did it crash during native init (a fatal signal before
+        # any GAGARIN output = the known flaky prestarter crash)?
         sleep 60
         if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
-            # Process already dead. If it died before our mod loaded AND the log shows a
-            # fatal signal, it's the flaky early-startup crash — retry. If "GAGARIN:" is
-            # present, the mod loaded and this is a REAL crash we must surface (not retry).
-            if ! grep -q "GAGARIN:" "$PLAYER_LOG" 2>/dev/null && \
-               { grep -q "Caught fatal signal" "$PLAYER_LOG" 2>/dev/null || \
-                 grep -q "GC_mark_from" "$PLAYER_LOG" 2>/dev/null; }; then
-                log "Detected flaky early-startup SIGSEGV (attempt $attempt). Retrying..."
+            # Process already dead. If it died before our mod loaded ("GAGARIN:" absent), treat
+            # it as the flaky early-startup crash and retry — whether or not a recognised
+            # signature landed (the signature is on stderr/Player.log but a SIGSEGV during native
+            # init can leave neither). A death AFTER "GAGARIN:" means our mod loaded and ran, so
+            # it is a REAL crash we must surface, not retry.
+            if ! grep -q "GAGARIN:" "$PLAYER_LOG" 2>/dev/null; then
+                local sig=""
+                if grep -q "Caught fatal signal\|GC_mark_from" "$PLAYER_LOG" "$RIMWORLD_STDERR" 2>/dev/null; then
+                    sig=" (signature matched)"
+                fi
+                log "Died before mod load (attempt $attempt) — treating as flaky early-startup crash${sig}. Retrying..."
                 if [[ $attempt -ge $max_retries ]]; then
-                    fail "RimWorld crashed at startup $max_retries times in a row. Giving up."
+                    fail "RimWorld died before mod load $max_retries times in a row. Giving up (check $PLAYER_LOG / $RIMWORLD_STDERR)."
                 fi
                 continue
             else
-                fail "RimWorldLinux exited unexpectedly (PID $RIMWORLD_PID). Check $PLAYER_LOG."
+                fail "RimWorldLinux exited AFTER mod load (PID $RIMWORLD_PID) — real crash. Check $PLAYER_LOG."
             fi
         fi
 
@@ -421,57 +443,99 @@ cp "$DEV_GAGARIN_DLL" "$WORKSHOP_GAGARIN_DLL"
 log "Deployed dev Gagarin.dll ($(stat -c%s "$DEV_GAGARIN_DLL") bytes) → workshop."
 
 # ---------------------------------------------------------------------------
-# Step 1: patch ModsConfig.xml to add test mods after vr.missilegirl
+# Step 1: write a fresh MINIMAL ModsConfig.xml (self-contained — never the ambient list)
 # ---------------------------------------------------------------------------
-log "--- Step 1: patching ModsConfig.xml ---"
+# The harness ALWAYS loads a small, deterministic modlist: Core + official DLCs + Harmony + Gagarin
+# (vr.missilegirl, under test) + the test-harness mods. It does NOT inherit the user's active mods —
+# an 815-mod ambient list crashes RimWorld's Boehm GC during unrelated mod init (before any of our
+# code runs), which is a flaky non-result. The user's real ModsConfig is backed up and restored on
+# teardown, so their setup is untouched. An optional --modlist=FILE adds a captured problem set on
+# top, hard-capped at $MAX_MODS total.
+log "--- Step 1: writing minimal ModsConfig.xml ---"
 cp "$MODSCONFIG" "$MODSCONFIG_BAK"
 log "Backup saved to $MODSCONFIG_BAK"
 
 # In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
 # absent from run A's baseline graph so run B sees them as genuinely added.
-EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" python3 - "$MODSCONFIG" <<'PYEOF'
+EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" \
+MODLIST_FILE="$MODLIST_FILE" MAX_MODS="$MAX_MODS" \
+RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
 
 path = sys.argv[1]
-content = open(path, encoding="utf-8").read()
+max_mods = int(os.environ.get("MAX_MODS", "100"))
 
-# Package IDs to inject, in load order.
-# joof.testharness.defs must load first (provides the ThingDefs),
-# then joof.testharness.static (static patches layered on top),
-# then joof.testharness.change (the patched file we swap between runs).
-# joof.testharness.added is NEVER added here — it is the run-B-only mod (P2), inserted in step 4
-# in --expect-added mode (and never activated otherwise, so it stays inert).
-to_add = [
-    "joof.testharness.defs",
-    "joof.testharness.static",
-    "joof.testharness.change",
+# Preserve <version> + <knownExpansions> from the existing file; replace <activeMods> wholesale.
+orig = open(path, encoding="utf-8").read()
+m = re.search(r"<version>(.*?)</version>", orig, re.S)
+version = m.group(1).strip() if m else ""
+m = re.search(r"<knownExpansions>.*?</knownExpansions>", orig, re.S)
+known = m.group(0) if m else "<knownExpansions />"
+
+# Only list official DLCs actually installed (Data/<Name> present), in canonical load order.
+DLC = [
+    ("Royalty",  "ludeon.rimworld.royalty"),
+    ("Ideology", "ludeon.rimworld.ideology"),
+    ("Biotech",  "ludeon.rimworld.biotech"),
+    ("Anomaly",  "ludeon.rimworld.anomaly"),
+    ("Odyssey",  "ludeon.rimworld.odyssey"),
 ]
+data_dir = os.path.join(os.environ["RIMWORLD"], "Data")
+dlc_ids = [pid for (name, pid) in DLC if os.path.isdir(os.path.join(data_dir, name))]
 
-# --expect-mayrequire (P4): the gate mod and the gated-content mod are both active for run A. The
-# gate mod is REMOVED before run B (step 4), so its content (and the patch-injected gated li) flips
-# inclusion while joof.testharness.mayrequire itself never changes. gate loads before mayrequire.
+# Base load order: Core, DLCs, Harmony, then Gagarin (the mod under test).
+active = ["ludeon.rimworld"] + dlc_ids + ["brrainz.harmony", "vr.missilegirl"]
+
+# Optional captured problem set, on top of the base, before the test mods.
+extra_file = os.environ.get("MODLIST_FILE", "")
+if extra_file:
+    with open(extra_file, encoding="utf-8") as fh:
+        for line in fh:
+            pid = line.split("#", 1)[0].strip()
+            if pid and pid not in active:
+                active.append(pid)
+
+# Test-harness mods always load last, in dependency order.
+#   defs -> static -> change. The added mod (P2) is inserted before run B, not here.
+#   --expect-mayrequire: gate + mayrequire are active for run A; gate is removed before run B.
+test_mods = ["joof.testharness.defs", "joof.testharness.static", "joof.testharness.change"]
 if os.environ.get("EXPECT_MAYREQUIRE", "0") == "1":
-    to_add += ["joof.testharness.gate", "joof.testharness.mayrequire"]
+    test_mods += ["joof.testharness.gate", "joof.testharness.mayrequire"]
+active += test_mods
 
-# Insert each new entry after the previous test mod (or vr.missilegirl for the first), so they
-# land in declared load order and joof.testharness.added (if later inserted) trails them all.
-anchor = "vr.missilegirl"
-for pkg in to_add:
-    if pkg in content:
-        print(f"  {pkg}: already present")
-        anchor = pkg
-        continue
-    content = content.replace(
-        f"    <li>{anchor}</li>",
-        f"    <li>{anchor}</li>\n    <li>{pkg}</li>",
-        1
-    )
-    print(f"  {pkg}: added")
-    anchor = pkg
+if len(active) > max_mods:
+    print(f"  ERROR: {len(active)} mods exceeds the {max_mods}-mod cap (trim --modlist).",
+          file=sys.stderr)
+    sys.exit(3)
 
-open(path, "w", encoding="utf-8").write(content)
-print("ModsConfig.xml updated.")
+lis = "\n".join(f"    <li>{pid}</li>" for pid in active)
+out = (
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+    "<ModsConfigData>\n"
+    f"  <version>{version}</version>\n"
+    f"  <activeMods>\n{lis}\n  </activeMods>\n"
+    f"  {known}\n"
+    "</ModsConfigData>\n"
+)
+open(path, "w", encoding="utf-8").write(out)
+print(f"  minimal modlist written: {len(active)} mods "
+      f"(Core + {len(dlc_ids)} DLC + Harmony + Gagarin + {len(test_mods)} test"
+      + (f" + {len(active)-len(test_mods)-len(dlc_ids)-3} from --modlist" if extra_file else "")
+      + ")")
+for pid in active:
+    print(f"    <li>{pid}</li>")
 PYEOF
+mc_rc=$?
+if [[ $mc_rc -ne 0 ]]; then
+    fail "Failed to write minimal ModsConfig (rc=$mc_rc)."
+fi
+
+# Archive the exact active modlist NOW (before launching), so even a crashing run leaves behind the
+# list that produced it — the reproducible record the user asked for.
+mkdir -p "$METRICS_DIR"
+MODLIST_ARCHIVE="$METRICS_DIR/livetest-${RUN_TS}-modlist.xml"
+cp "$MODSCONFIG" "$MODLIST_ARCHIVE"
+log "Archived active modlist → $MODLIST_ARCHIVE"
 
 # ---------------------------------------------------------------------------
 # Step 2: prepare Run A (cold baseline + provenance capture)
@@ -671,13 +735,13 @@ fi
 # ---------------------------------------------------------------------------
 # Step 7: archive the artifacts
 # ---------------------------------------------------------------------------
-METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
+# Reuse RUN_TS so the reports share the timestamp of the modlist archived in Step 1 — one run, one
+# timestamp, fully reproducible (livetest-<RUN_TS>-modlist.xml + the reports below).
 mkdir -p "$METRICS_DIR"
-TS="$(date +%Y%m%d-%H%M)"
 for f in GateReport.json RecomputeReport.json DirtySet.json DependencyGraph.json RecomputeMismatch.json; do
     src="$CACHE_DIR/$f"
     if [[ -f "$src" ]]; then
-        dst="$METRICS_DIR/livetest-runB-${TS}-${f}"
+        dst="$METRICS_DIR/livetest-runB-${RUN_TS}-${f}"
         cp "$src" "$dst"
         log "Archived $f → $dst"
     fi
