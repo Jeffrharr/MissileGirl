@@ -33,14 +33,14 @@ A green `LIVE TEST HARNESS: PASS` banner means both gates passed. Artifacts are 
 
 | Step | Action |
 |---|---|
-| 0  | Symlinks the three test mods into `RimWorld/Mods/` (`joof-testharness-{defs,static,change}`). |
+| 0  | Symlinks the test mods into `RimWorld/Mods/` (`joof-testharness-{defs,static,change,added}`; `added` is inert unless `--expect-added`). |
 | 0b | Backs up the **workshop** `Gagarin.dll` and deploys the freshly-built dev DLL over it. |
-| 1  | Adds the three test packageIds to `ModsConfig.xml` (after `vr.missilegirl`); backs it up. |
+| 1  | Adds the three core test packageIds to `ModsConfig.xml` (after `vr.missilegirl`); backs it up. `joof.testharness.added` is NOT added here. |
 | 2  | Clears the MissileGirl cache (forces a cold rebuild) and sets `Change.xml` = the Run A file (`Change_RunA.xml`, or `Change_RunA_Fallback.xml` with `--expect-fallback`). |
 | 3  | **Run A** (cold): launches RimWorld, waits for `Provenance captured` → writes `DependencyGraph.json`. |
-| 4  | Sets `Change.xml` = the Run B file (`Change_RunB.xml`, or `Change_RunB_Fallback.xml`) — the change that triggers the cache miss. Does **not** clear cache. |
+| 4  | Sets `Change.xml` = the Run B file (`Change_RunB.xml`, or `Change_RunB_Fallback.xml`; held at Run A with `--expect-added`). With `--expect-added`, inserts `joof.testharness.added` into `ModsConfig.xml` (the run-B mod-list change). Does **not** clear cache. |
 | 5  | **Run B**: launches RimWorld, waits for the `Recompute gate` log line (both gates have run by then). |
-| 6  | Parses `GateReport.json` and `RecomputeReport.json`; prints the verdict. Both must pass. |
+| 6  | Parses `GateReport.json` and `RecomputeReport.json` (and `DirtySet.json` with `--expect-added`); prints the verdict. All must pass. |
 | 7  | Archives the reports to `../MissileGirl-metrics/`. |
 | exit | Teardown (always, via trap): restores `ModsConfig.xml` + the workshop `Gagarin.dll`, removes the symlinks. `--no-teardown` skips this. |
 
@@ -77,7 +77,9 @@ runs). In the **default** run it deliberately owns **only leaf ops** — so the 
 changed-mod fallback does *not* fire and the real sub-doc recompute is exercised. The
 **`--expect-fallback`** run instead swaps in `Change_Run{A,B}_Fallback.xml`, which give the
 change vehicle its own `PatchOperationSequence` so the fallback *does* fire (see
-"The fallback case" below).
+"The fallback case" below). `TestMod_Added` is the **added** mod (P2) — symlinked always but only
+activated for run B by `--expect-added`, so its defs are absent from run A's baseline graph (see
+"The added-defs case" below).
 
 | Case | What it exercises | Mechanism proven |
 |---|---|---|
@@ -86,6 +88,7 @@ change vehicle its own `PatchOperationSequence` so the fallback *does* fire (see
 | 3 | `TC_SeqTarget` dirtied; `TestMod_Static`'s **sequence** also touches `TC_SeqSibling` | **sub-doc sibling expansion** — `TC_SeqSibling` must be context so the sequence doesn't abort |
 | 4 | `TC_WildcardBase` (abstract) ancestor of the newly-matched concretes | inheritance fan-out through the closure |
 | 5 | `TC_Conditional`: `TestMod_Static`'s **conditional** flips nomatch→match when Run B adds `conditionalTrigger` | unchanged conditional re-evaluated over a dirty def |
+| 6 | `TestMod_Added` is **added** before run B; its `TC_Added_*` defs are absent from the baseline graph | **added-defs channel (P2)** — new defs seeded into the dirty set (`seeds.addedDefs > 0`), recomputed, and spliced in as new `<Item>`s (`--expect-added` only) |
 
 CASE 3 and CASE 5 are precisely the cases the earlier dirty-**only** sub-doc could not satisfy
 (the sequence aborted on the absent `TC_SeqSibling`, giving `recomputeMismatches=12`). The
@@ -132,6 +135,50 @@ No real recompute runs (the full rebuild is authoritative), so `RecomputeReport.
 
 The dirty-set gate (`GateReport.json`) is unaffected — it still asserts `nonDirtyMismatches==0`.
 
+## The added-defs case — `--expect-added`
+
+```bash
+bash TestMods/run_test.sh --expect-added
+```
+
+This proves the **added-defs channel (P2)**: defs that exist in the current load but are absent
+from the prior `DependencyGraph.json` (a newly-added mod, or new defs in an edited file) get seeded
+into the dirty set, recomputed, and spliced into the cache as new `<Item>`s. Without it, a mod-add
+leaves the new defs invisible to the dirty set and the dirty-set gate FAILs them as silently-stale
+(`nonDirtyMismatches > 0`).
+
+`TestMod_Added` (`joof.testharness.added`) is the vehicle. It is symlinked into `Mods/`
+unconditionally but only inserted into `ModsConfig.xml` in this mode, and only **before run B** —
+so run A captures a baseline that does not know its defs, and run B is a genuine mod-list change.
+`Change.xml` is held at the run-A file for both runs, so the **only** between-run delta is the new
+mod (the dirty set is driven purely by the add, not a patch-file edit). Its defs:
+
+| Def | What it proves |
+|---|---|
+| `TC_Added_Plain` | a brand-new concrete def with no patch — the simplest added node is dirtied + spliced. |
+| `TC_Added_Patched` | the added mod also patches this new def, so the recompute must apply the patch (non-trivial — not a verbatim copy of the raw body). |
+| `TC_Added_Child` / `TC_Added_Base` | a new concrete def inheriting a new abstract base, so the recompute pulls in the newly-added ancestor and resolves inheritance with no baseline edge to fan out from. |
+
+How it is armed:
+
+| Step | Effect |
+|---|---|
+| 0  | `TestMod_Added` is symlinked alongside the other three (inert unless activated). |
+| 1  | ModsConfig gets `defs`/`static`/`change` only — **not** `added`. |
+| A  | Cold load WITHOUT `joof.testharness.added` → its `TC_Added_*` nodes are absent from `DependencyGraph.json`. |
+| 4  | `joof.testharness.added` is inserted into ModsConfig (the run-B mod-list change). |
+| B  | Run B sees `TC_Added_*` as new concrete defs → `DirtySetDiagnostic` seeds them (`seeds.addedDefs > 0`), the recompute produces them, and the splice appends them as new `<Item path=...>` entries using the diagnostic's added-def path map. |
+
+On run B the dirty-set gate must still report `nonDirtyMismatches==0` (the add no longer slips past
+the dirty set), the recompute gate must report `recomputeMismatches==0 && fallback==false` (the
+added defs byte-match the full rebuild), and `DirtySet.json` must show `seeds.addedDefs > 0` (the
+channel actually fired). A representative run-B `DirtySet.json` carries the `TC_Added_*` ids in
+`dirtyNodeIds` and a non-zero `seeds.addedDefs`.
+
+> Self-healing: a mod-list change is a cold rebuild, so `ProvenanceRecorder` rewrites
+> `DependencyGraph.json` WITH the added mod's nodes at the end of run B. The added-defs channel only
+> needs to cover them for that one load; a subsequent run already has them as baseline nodes.
+
 ## Pass criteria
 
 Default run (`bash TestMods/run_test.sh`):
@@ -143,6 +190,12 @@ Fallback run (`bash TestMods/run_test.sh --expect-fallback`):
 
 - `GateReport.json`:      `pass==true && nonDirtyMismatches==0`
 - `RecomputeReport.json`: `pass==true && fallback==true && recomputeMismatches==0`
+
+Added-defs run (`bash TestMods/run_test.sh --expect-added`):
+
+- `GateReport.json`:      `pass==true && nonDirtyMismatches==0`
+- `RecomputeReport.json`: `pass==true && recomputeMismatches==0 && fallback==false`
+- `DirtySet.json`:        `seeds.addedDefs > 0`
 
 A representative PASS (test-mod modlist, 2026-06-21):
 

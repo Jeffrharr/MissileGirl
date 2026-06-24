@@ -23,11 +23,18 @@
 #
 # Usage:
 #   cd /home/deck/Developer/RimWorldMods/MissileGirl/TestMods
-#   bash run_test.sh [--no-teardown] [--expect-fallback]
+#   bash run_test.sh [--no-teardown] [--expect-fallback | --expect-added]
 #     --no-teardown     leaves symlinks/ModsConfig/DLL in place
 #     --expect-fallback uses the *_Fallback change files (the change mod owns a container op)
 #                       and asserts RecomputeReport shows fallback==true && pass==true instead
 #                       of the default real-recompute fallback==false && recomputeMismatches==0
+#     --expect-added    exercises the ADDED-defs channel (P2): joof.testharness.added is kept OUT
+#                       of ModsConfig for run A (so its defs are absent from the baseline graph)
+#                       and added before run B — a genuine mod-list change. Its new concrete defs
+#                       must show up dirty (DirtySet.json seeds.addedDefs > 0), recompute, and
+#                       splice in. The Change.xml file is held at run A for both runs, so the ONLY
+#                       change between runs is the new mod. Recompute assertion is the default
+#                       (real recompute: fallback==false && recomputeMismatches==0).
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -65,6 +72,7 @@ MODSCONFIG="/home/deck/.config/unity3d/Ludeon Studios/RimWorld by Ludeon Studios
 MODSCONFIG_BAK="/tmp/ModsConfig_testharness.bak.xml"
 GATE_REPORT="$CACHE_DIR/GateReport.json"
 RECOMPUTE_REPORT="$CACHE_DIR/RecomputeReport.json"
+DIRTYSET_REPORT="$CACHE_DIR/DirtySet.json"
 
 # The game loads vr.missilegirl from the WORKSHOP folder, so the dev build must be deployed
 # there (not into Mods/). We back up the existing workshop DLL and restore it on teardown.
@@ -83,19 +91,33 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHANGE_MOD_DIR="$SCRIPT_DIR/TestMod_Change"
 DEFS_MOD_DIR="$SCRIPT_DIR/TestMod_Defs"
 STATIC_MOD_DIR="$SCRIPT_DIR/TestMod_Static"
+ADDED_MOD_DIR="$SCRIPT_DIR/TestMod_Added"
 
 NO_TEARDOWN=0
 # --expect-fallback: exercise the changed-mod container-op fallback instead of the default
 # real-recompute case. It swaps in the *_Fallback change files (in which the CHANGED mod owns
 # a PatchOperationSequence) and flips the recompute-report assertion to require fallback==true.
 EXPECT_FALLBACK=0
+# --expect-added: exercise the added-defs channel (P2). joof.testharness.added is symlinked but
+# held OUT of ModsConfig for run A and inserted before run B, so run B is a genuine mod-list
+# change whose new concrete defs are absent from the baseline graph (seeds.addedDefs > 0). The
+# recompute assertion stays the default (real recompute), and Change.xml is held at run A so the
+# only between-run delta is the new mod.
+EXPECT_ADDED=0
 for arg in "$@"; do
     if [[ "$arg" == "--no-teardown" ]]; then
         NO_TEARDOWN=1
     elif [[ "$arg" == "--expect-fallback" ]]; then
         EXPECT_FALLBACK=1
+    elif [[ "$arg" == "--expect-added" ]]; then
+        EXPECT_ADDED=1
     fi
 done
+
+if [[ $EXPECT_FALLBACK -eq 1 && $EXPECT_ADDED -eq 1 ]]; then
+    echo "[run_test] FAIL: --expect-fallback and --expect-added are mutually exclusive." >&2
+    exit 2
+fi
 
 # Pick the change-file pair for this run mode. Default: the leaf-op fixtures that drive a real
 # sub-doc recompute. --expect-fallback: the fixtures whose change mod owns a container op, so
@@ -103,6 +125,12 @@ done
 if [[ $EXPECT_FALLBACK -eq 1 ]]; then
     RUN_A_CHANGE="Change_RunA_Fallback.xml"
     RUN_B_CHANGE="Change_RunB_Fallback.xml"
+elif [[ $EXPECT_ADDED -eq 1 ]]; then
+    # P2: hold Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT change.
+    # The only between-run delta is the newly-added mod (inserted into ModsConfig before run B), so
+    # the dirty set is driven purely by the added-defs channel rather than a patch-file edit.
+    RUN_A_CHANGE="Change_RunA.xml"
+    RUN_B_CHANGE="Change_RunA.xml"
 else
     RUN_A_CHANGE="Change_RunA.xml"
     RUN_B_CHANGE="Change_RunB.xml"
@@ -150,6 +178,7 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-defs"
     rm -f "$MODS_DIR/joof-testharness-static"
     rm -f "$MODS_DIR/joof-testharness-change"
+    rm -f "$MODS_DIR/joof-testharness-added"
     log "Symlinks removed."
 
     # Leave Change.xml in place (it's a test artifact; leaving it is harmless and useful for
@@ -306,6 +335,26 @@ except Exception as e:
 PYEOF
 }
 
+parse_dirtyset_added() {
+    # --expect-added (P2) only: assert the added-defs channel actually fired this run, i.e. the
+    # diagnostic seeded one or more brand-new concrete defs (seeds.addedDefs > 0 in DirtySet.json).
+    # A zero here would mean run B did not observe the new mod's defs as added (the whole premise
+    # of the run), even if the gates happened to pass.
+    python3 - "$DIRTYSET_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    seeds = data.get("seeds", {})
+    added = seeds.get("addedDefs", 0)
+    dirty = data.get("dirtyCount", "?")
+    print(f"  seeds.addedDefs={added}  dirtyCount={dirty}")
+    sys.exit(0 if added > 0 else 1)
+except Exception as e:
+    print(f"  ERROR parsing DirtySet.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 # ---------------------------------------------------------------------------
 # Step 0: ensure test-mod symlinks exist
 # ---------------------------------------------------------------------------
@@ -313,6 +362,10 @@ log "--- Step 0: setting up test-mod symlinks ---"
 ln -sfn "$DEFS_MOD_DIR"   "$MODS_DIR/joof-testharness-defs"
 ln -sfn "$STATIC_MOD_DIR" "$MODS_DIR/joof-testharness-static"
 ln -sfn "$CHANGE_MOD_DIR" "$MODS_DIR/joof-testharness-change"
+# The added mod (P2) is symlinked unconditionally so RimWorld can resolve it once run B inserts it
+# into ModsConfig. In the default / fallback runs it is symlinked but never activated, so it is
+# inert. Only --expect-added adds its packageId to ModsConfig (and only before run B).
+ln -sfn "$ADDED_MOD_DIR"  "$MODS_DIR/joof-testharness-added"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -334,8 +387,10 @@ log "--- Step 1: patching ModsConfig.xml ---"
 cp "$MODSCONFIG" "$MODSCONFIG_BAK"
 log "Backup saved to $MODSCONFIG_BAK"
 
-python3 - "$MODSCONFIG" <<'PYEOF'
-import sys, re
+# In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
+# absent from run A's baseline graph so run B sees them as genuinely added.
+EXPECT_ADDED="$EXPECT_ADDED" python3 - "$MODSCONFIG" <<'PYEOF'
+import os, sys, re
 
 path = sys.argv[1]
 content = open(path, encoding="utf-8").read()
@@ -344,24 +399,29 @@ content = open(path, encoding="utf-8").read()
 # joof.testharness.defs must load first (provides the ThingDefs),
 # then joof.testharness.static (static patches layered on top),
 # then joof.testharness.change (the patched file we swap between runs).
+# joof.testharness.added is NEVER added here — it is the run-B-only mod (P2), inserted in step 4
+# in --expect-added mode (and never activated otherwise, so it stays inert).
 to_add = [
     "joof.testharness.defs",
     "joof.testharness.static",
     "joof.testharness.change",
 ]
 
-# Only add entries that aren't already in the file.
+# Insert each new entry after the previous test mod (or vr.missilegirl for the first), so they
+# land in declared load order and joof.testharness.added (if later inserted) trails them all.
+anchor = "vr.missilegirl"
 for pkg in to_add:
     if pkg in content:
         print(f"  {pkg}: already present")
-    else:
-        # Insert after vr.missilegirl (the last normal mod)
-        content = content.replace(
-            "    <li>vr.missilegirl</li>",
-            f"    <li>vr.missilegirl</li>\n    <li>{pkg}</li>",
-            1
-        )
-        print(f"  {pkg}: added")
+        anchor = pkg
+        continue
+    content = content.replace(
+        f"    <li>{anchor}</li>",
+        f"    <li>{anchor}</li>\n    <li>{pkg}</li>",
+        1
+    )
+    print(f"  {pkg}: added")
+    anchor = pkg
 
 open(path, "w", encoding="utf-8").write(content)
 print("ModsConfig.xml updated.")
@@ -418,6 +478,32 @@ log "--- Step 4: preparing Run B (wide predicates — triggers cache miss + gate
 log "Setting Change.xml to Run B ($RUN_B_CHANGE)..."
 cp "$CHANGE_MOD_DIR/Patches/$RUN_B_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
 
+# --expect-added (P2): insert joof.testharness.added into ModsConfig now, AFTER run A captured its
+# baseline graph without it. This is the genuine mod-list change that drives the added-defs channel
+# — run B then sees TC_Added_* as new concrete defs absent from the baseline graph. (The
+# ModsConfig backup taken in step 1 still restores the original on teardown.)
+if [[ $EXPECT_ADDED -eq 1 ]]; then
+    log "Adding joof.testharness.added to ModsConfig for Run B (the mod-list change)..."
+    python3 - "$MODSCONFIG" <<'PYEOF'
+import sys
+path = sys.argv[1]
+content = open(path, encoding="utf-8").read()
+pkg = "joof.testharness.added"
+if pkg in content:
+    print(f"  {pkg}: already present")
+else:
+    # Land it after the last test mod so it is the trailing, freshly-added entry.
+    content = content.replace(
+        "    <li>joof.testharness.change</li>",
+        f"    <li>joof.testharness.change</li>\n    <li>{pkg}</li>",
+        1
+    )
+    print(f"  {pkg}: added (run-B mod-list change)")
+open(path, "w", encoding="utf-8").write(content)
+print("ModsConfig.xml updated for Run B.")
+PYEOF
+fi
+
 # Do NOT clear the cache — Run B needs the prior cache (DependencyGraph.json,
 # AssetsHash.xml, Unified.xml) to compute the dirty set and run the gate.
 
@@ -457,19 +543,29 @@ gate_ok=0; parse_gate_report && gate_ok=1 || gate_ok=0
 log "Recompute gate result:"
 recompute_ok=0; parse_recompute_report && recompute_ok=1 || recompute_ok=0
 
-if [[ $gate_ok -eq 1 && $recompute_ok -eq 1 ]]; then
+# --expect-added (P2): in addition to both gates, require the added-defs channel to have fired.
+added_ok=1
+if [[ $EXPECT_ADDED -eq 1 ]]; then
+    log "Added-defs channel result:"
+    added_ok=0; parse_dirtyset_added && added_ok=1 || added_ok=0
+fi
+
+if [[ $gate_ok -eq 1 && $recompute_ok -eq 1 && $added_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
     echo "  dirty-set gate:  nonDirtyMismatches = 0 (proven superset)"
     echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
+    if [[ $EXPECT_ADDED -eq 1 ]]; then
+        echo "  added-defs (P2): seeds.addedDefs > 0 (new mod's defs dirtied + spliced in)"
+    fi
     echo "========================================"
     EXIT_CODE=0
 else
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
-    echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok"
+    echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok  added-defs pass=$added_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1

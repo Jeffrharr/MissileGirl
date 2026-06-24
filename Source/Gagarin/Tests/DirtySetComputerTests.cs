@@ -102,6 +102,69 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void AddedDef_SeedsItAndCountsSeedAddedDefs()
+        {
+            // P2 — a newly-added concrete def (no baseline node) is seeded directly. The driver
+            // (DirtySetDiagnostic) restricts membership to genuinely-new, changed-file ids; the
+            // pure computer just folds whatever it is handed into the dirty set, exactly as it
+            // does for ChangedNodeIds. "ThingDef/Brand" has no inheritance children here, so the
+            // result is just itself — and it is counted under SeedAddedDefs, not SeedChangedDefs.
+            var change = new GraphChange
+            {
+                AddedNodeIds = { "ThingDef/Brand" },
+                PriorLoadOrder = Order("modA", "modB", "modC"),
+                CurrentLoadOrder = Order("modA", "modB", "modC")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change);
+            Assert.That(r.Nodes, Is.EquivalentTo(new[] { "ThingDef/Brand" }));
+            Assert.That(r.SeedAddedDefs, Is.EqualTo(1));
+            Assert.That(r.SeedChangedDefs, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void AddedDef_PropagatesInheritanceClosure()
+        {
+            // An added id that the baseline graph already has inheritance edges out of must fan
+            // out to its descendants just like any other seed — the closure runs over ALL seeds,
+            // added ones included. Seeding @BuildingBase via AddedNodeIds dirties Wall, Door, and
+            // (transitively) SteelWall, with the seed itself counted under SeedAddedDefs. This is
+            // the same fixpoint the changed-parent test asserts, reached through the new channel.
+            var change = new GraphChange
+            {
+                AddedNodeIds = { "ThingDef@BuildingBase" },
+                PriorLoadOrder = Order("modA", "modB", "modC"),
+                CurrentLoadOrder = Order("modA", "modB", "modC")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change);
+            Assert.That(r.Nodes, Is.EquivalentTo(new[]
+            {
+                "ThingDef@BuildingBase", "ThingDef/Wall", "ThingDef/Door", "ThingDef/SteelWall"
+            }));
+            Assert.That(r.SeedAddedDefs, Is.EqualTo(1));        // only the base is a seed
+            Assert.That(r.InheritanceAdded, Is.EqualTo(3));     // Wall, Door, SteelWall via closure
+        }
+
+        [Test]
+        public void AddedDef_AlreadyDirtyViaChangedDef_NotDoubleCounted()
+        {
+            // If an id is both a changed-def seed and an added seed, the first Add wins the count.
+            // Seed 1 (changed defs) runs before Seed 5 (added defs), so it is counted as a changed
+            // def and SeedAddedDefs stays 0 — the dirty set is unaffected (idempotent), and the
+            // metrics don't double-attribute the node. Guards the seed-ordering contract.
+            var change = new GraphChange
+            {
+                ChangedNodeIds = { "ThingDef/Steel" },
+                AddedNodeIds = { "ThingDef/Steel" },
+                PriorLoadOrder = Order("modA", "modB", "modC"),
+                CurrentLoadOrder = Order("modA", "modB", "modC")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change);
+            Assert.That(r.Nodes, Is.EquivalentTo(new[] { "ThingDef/Steel" }));
+            Assert.That(r.SeedChangedDefs, Is.EqualTo(1));
+            Assert.That(r.SeedAddedDefs, Is.EqualTo(0));
+        }
+
+        [Test]
         public void ChangedModPatches_DirtyTheirModifiedNodesOnly()
         {
             var change = new GraphChange

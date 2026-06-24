@@ -204,6 +204,7 @@ namespace Gagarin
                 haveDiag ? r.SeedPatchModified : 0,
                 haveDiag ? r.SeedReorder : 0,
                 haveDiag ? r.SeedWildcardFlip : 0,
+                haveDiag ? r.SeedAddedDefs : 0,
                 haveDiag ? r.InheritanceAdded : 0,
                 haveDiag ? DirtySetDiagnostic.LastComputeMs : 0,
                 gatePass: nonDirtyMismatches == 0,
@@ -274,7 +275,13 @@ namespace Gagarin
             var sw = Stopwatch.StartNew();
             Dictionary<string, string> recomputed =
                 DefRecompute.Recompute(dirty, context, out List<string> removed);
-            XmlDocument spliced = UnifiedCacheSplice.Splice(baselineDoc, recomputed, removed);
+            // newPaths (P2): the added-def id -> source-file map the diagnostic published this
+            // load. A recomputed id absent from the baseline cache is a genuinely-new def; the
+            // splice appends it as a new <Item path=...> and reads the path from here so the
+            // appended item byte-matches what a full rebuild would have written. Null/absent for
+            // ids that already existed (replaced in place, keeping their original wrapper).
+            XmlDocument spliced = UnifiedCacheSplice.Splice(
+                baselineDoc, recomputed, removed, DirtySetDiagnostic.LastNewPaths);
             // Normalize through the same whitespace-insensitive parse the rebuild went through, so
             // OuterXml comparison is not tripped by formatting differences.
             Dictionary<string, string> splicedIdx = UnifiedCacheDiff.IndexById(Reparse(spliced));

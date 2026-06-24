@@ -333,6 +333,47 @@ For the live re-test the owner exports the four existing diagnostic flags PLUS
 still skips (no prior sidecar yet); it is populated that run and the gate fires from the next
 changed load on.
 
+### Added-defs channel — P2 (branch `feat/added-defs-channel`)
+
+**Gap fixed:** when a mod is **added** (or new defs land in an edited file), the dirty set was
+computed against the *prior* `DependencyGraph.json`, which has no node for the new defs. The
+structural seeds (changed def body / changed-mod patch / reorder / wildcard flip) all key off
+baseline nodes, so the new defs were invisible — the real-engine gate correctly FAILed them as
+silently-stale (`nonDirtyMismatches > 0`). This is the long-noted added-nodes gap.
+
+**Fix (seeding only — the downstream machinery already handled added ids once seeded):**
+- `DirtySetComputer`: `GraphChange.AddedNodeIds` + `DirtyResult.SeedAddedDefs`; folded into the
+  dirty set as **Seed 5**, alongside Seed 1 and BEFORE the inheritance closure. Concrete ids only —
+  `DefRecompute.AddAncestors` pulls a new def's (possibly also-new) abstract parents from the
+  current raw bodies, so no baseline fan-out is needed.
+- `DirtySetDiagnostic`: a new `CurrentConcreteDefIndex` walks the current `<Defs>` and keys each
+  concrete def `{element.Name}/{defName}` (mirroring `DefRecompute.BuildRawIndex`) → owning
+  `FullFilePath`. An id is admitted as ADDED iff it is absent from the baseline graph **and** its
+  file is in `changedAssets`. The changed-file filter is the precise discriminator: it admits
+  new-mod/new-file defs while excluding uncaptured-def-TYPE defs (P1) whose files did not change,
+  keeping P2 orthogonal to P1 and avoiding mass over-dirty. The id→file map is published as
+  `LastNewPaths`.
+- `DirtySetGate.RunRecompute`: threads `LastNewPaths` as the splice's `newPaths`, so appended new
+  `<Item path=...>` entries carry their source path and byte-match a full rebuild.
+- `MetricsLog`: `SchemaVersion` 1→2; `seeds.addedDefs` in `load_summary`.
+
+**Self-healing:** a mod-list change is a cold rebuild, so `ProvenanceRecorder.Save()` rewrites the
+graph WITH the new defs at end of that load — P2 only needs to cover them for *this* load.
+
+**Known caveat (carried, not fixed here):** `Class`-attributed defs key by element name (e.g.
+`ThingDef/...`) here and in recompute/splice, but baseline node ids come from the runtime type via
+`RegisterNode`. For such defs the ids diverge, so a `Class`-attributed def could read as "new" every
+load → re-dirtied. Superset-safe (over-dirty, never under-dirty); the RegisterNode/KeyForNode
+divergence is left for a separate fix.
+
+**Tests:** offline NUnit cases in `DirtySetComputerTests` (added id seeds the set, propagates the
+closure, and is not double-counted when also a changed def) + `MetricsLogTests` (`seeds.addedDefs`
+round-trips at schema v2); existing `UnifiedCacheSplice` add round-trip still passes. Live:
+`TestMods/run_test.sh --expect-added` (`TestMod_Added` activated only for run B) — DEFERRED, not run.
+
+**Out of scope (still open):** P1 capture-all-def-types, P4 MayRequire/conditional patch flips in
+unchanged mods, recompute safe-fallback broadening.
+
 ---
 
 ## What the Piece A capture results are good for (it's a ubiquitous dataset)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Added Mod (P2)</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.added</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>The mod that is ADDED to the active list between run A and run B, exercising the
+added-defs channel (P2). It contributes brand-new concrete ThingDefs that do NOT exist in run A's
+baseline DependencyGraph.json, plus a patch that modifies one of them so the recompute is
+non-trivial. The runner (TestMods/run_test.sh --expect-added) symlinks it always but only inserts
+its packageId into ModsConfig.xml before run B, so run B is a genuine mod-list change and its defs
+appear as added (absent from the baseline graph). No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Load after the other harness mods so it is the trailing, freshly-added mod. -->
+    <li>joof.testharness.defs</li>
+    <li>joof.testharness.static</li>
+    <li>joof.testharness.change</li>
+  </loadAfter>
+</ModMetaData>

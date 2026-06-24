@@ -51,6 +51,14 @@ namespace Gagarin
         // computed; reset each load so a stale set can't leak into a later gate.
         public static HashSet<string> LastDirtySet;
 
+        // ADDED-def id -> owning source file, published for the M2b recompute splice (P2). When a
+        // recomputed id is absent from the baseline cache, UnifiedCacheSplice appends it as a new
+        // <Item path=...> and reads the path from this map; without it the added item's path would
+        // be empty and would not byte-match a full rebuild. Only carries ids that genuinely got
+        // ADDED this load (the same set as change.AddedNodeIds). Null until computed; reset each
+        // load so a stale map can't leak into a later gate.
+        public static Dictionary<string, string> LastNewPaths;
+
         // The packageIds of mods whose patch files changed this load, published alongside the
         // dirty set for the M2b-2b sub-doc gate. SubDocExpander uses it to fall back to a full
         // rebuild when a CHANGED mod owns a container op (its baseline execution path is stale).
@@ -70,6 +78,7 @@ namespace Gagarin
         public static void Prefix()
         {
             LastDirtySet = null; // clear last load's set before anything can read it
+            LastNewPaths = null; // and the added-def path map (read by the recompute splice)
             LastChangedMods = null;
             LastDiagnosticValid = false; // reset so a stale summary can't leak into a later load
             LastResult = null;
@@ -140,8 +149,14 @@ namespace Gagarin
                 DependencyGraphData graph = DependencyGraphData.Load(graphPath);
 
                 HashSet<string> changedAssets = ChangedAssets(s_priorHashes);
-                GraphChange change = BuildChange(graph, changedAssets);
+                // BuildChange also detects the ADDED defs (P2): concrete defs present this load
+                // but absent from the baseline graph, restricted to ids whose owning file changed.
+                // It returns the added id -> file map so the recompute splice can give each new
+                // <Item> its source path; we publish it for DirtySetGate to thread as newPaths.
+                GraphChange change = BuildChange(graph, changedAssets, __result,
+                    out Dictionary<string, string> newPaths);
                 LastChangedMods = change.ChangedMods; // publish for the M2b-2b sub-doc gate
+                LastNewPaths = newPaths;              // publish for the M2b recompute splice (P2)
 
                 // M2a — superset-safe wildcard re-test. A changed mod's patch predicate can
                 // newly match otherwise-unchanged defs, which none of the structural seeds
@@ -168,7 +183,8 @@ namespace Gagarin
                         CurrentEnvelope(), changedAssets.Count, change.ChangedMods.Count,
                         result.Nodes.Count, graph.Nodes.Count,
                         result.SeedChangedDefs, result.SeedPatchModified, result.SeedReorder,
-                        result.SeedWildcardFlip, result.InheritanceAdded, sw.ElapsedMilliseconds,
+                        result.SeedWildcardFlip, result.SeedAddedDefs, result.InheritanceAdded,
+                        sw.ElapsedMilliseconds,
                         gatePass: null, nonDirtyMismatches: 0, gateMs: 0,
                         recomputePass: null, recomputeFallback: false, recomputeMismatches: 0,
                         subDocSize: 0, recomputeMs: 0));
@@ -209,7 +225,8 @@ namespace Gagarin
             return changed;
         }
 
-        private static GraphChange BuildChange(DependencyGraphData graph, HashSet<string> changedAssets)
+        private static GraphChange BuildChange(DependencyGraphData graph, HashSet<string> changedAssets,
+            IEnumerable<LoadableXmlAsset> defAssets, out Dictionary<string, string> newPaths)
         {
             var change = new GraphChange
             {
@@ -231,6 +248,28 @@ namespace Gagarin
                 string mod = OwningMod(asset);
                 if (mod != null)
                     change.ChangedMods.Add(mod);
+            }
+
+            // ADDED defs (P2). Walk the CURRENT concrete def bodies and admit any id that is BOTH
+            // absent from the baseline graph (genuinely new — no baseline node, so the structural
+            // seeds above never reach it) AND owned by a file that actually changed this load. The
+            // changed-file filter is the precise discriminator: it lets through new-mod defs and
+            // new defs in an edited file, while excluding uncaptured-def-TYPE defs (P1) whose files
+            // did not change — keeping this orthogonal to P1 and preventing mass over-dirty on an
+            // unrelated load. The map's value is the owning file, reused below as the splice's
+            // newPaths so each appended <Item> carries its source path and byte-matches a rebuild.
+            newPaths = new Dictionary<string, string>(StringComparer.Ordinal);
+            var baselineIds = new HashSet<string>(graph.Nodes.Select(n => n.Id));
+            foreach (var kv in CurrentConcreteDefIndex(defAssets))
+            {
+                string id = kv.Key;
+                string file = kv.Value;
+                if (baselineIds.Contains(id))
+                    continue;                       // already a baseline node — not "added"
+                if (file == null || !changedAssets.Contains(file))
+                    continue;                       // file unchanged => out of scope here (P1)
+                if (change.AddedNodeIds.Add(id))
+                    newPaths[id] = file;
             }
             return change;
         }
@@ -334,6 +373,39 @@ namespace Gagarin
             return f?.GetValue(op) as string;
         }
 
+        // CONCRETE def id -> owning source file (asset.FullFilePath), over the loaded def assets.
+        // Mirrors DefRecompute.BuildRawIndex's id logic exactly so the ids pair to the recompute /
+        // splice scheme: a concrete def keys "{element.Name}/{defName}". Abstract bases ("@Name")
+        // are skipped — they are never cache items, so they are never "added" cache entries; a
+        // dirty concrete descendant pulls its abstract ancestors in via DefRecompute.AddAncestors.
+        // The file is the asset's FullFilePath, the same key the asset-hash diff and the graph's
+        // SourceFile use, so the added-def filter (file in changedAssets) joins without reconciling.
+        // Keyed by id; last write wins for a duplicate id (the same superset-safe behaviour as the
+        // raw index — an added id is dirtied at most once regardless).
+        private static Dictionary<string, string> CurrentConcreteDefIndex(
+            IEnumerable<LoadableXmlAsset> defAssets)
+        {
+            var index = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (defAssets == null)
+                return index;
+            foreach (var asset in defAssets)
+            {
+                var root = asset?.xmlDoc?.DocumentElement;
+                if (root == null || root.Name != "Defs")
+                    continue;
+                foreach (XmlNode child in root.ChildNodes)
+                {
+                    if (!(child is XmlElement def))
+                        continue;
+                    string defName = def["defName"]?.InnerText;
+                    if (string.IsNullOrEmpty(defName))
+                        continue;                   // abstract (@Name) or malformed — not a cache item
+                    index[def.Name + "/" + defName] = asset.FullFilePath;
+                }
+            }
+            return index;
+        }
+
         // Every top-level def element among the loaded def assets. Def files have a <Defs>
         // root; anything else (a stray <Patch>) is skipped — we want the raw def bodies the
         // patches target.
@@ -365,7 +437,7 @@ namespace Gagarin
                 $"dirty={result.Nodes.Count}/{total} ({pct:F2}%) " +
                 $"[seedDefs={result.SeedChangedDefs} seedPatch={result.SeedPatchModified} " +
                 $"seedReorder={result.SeedReorder} seedWildcard={result.SeedWildcardFlip} " +
-                $"inh={result.InheritanceAdded}] computeMs={computeMs}");
+                $"seedAdded={result.SeedAddedDefs} inh={result.InheritanceAdded}] computeMs={computeMs}");
 
             try
             {
@@ -381,6 +453,7 @@ namespace Gagarin
                 sb.Append($"\"patchModified\":{result.SeedPatchModified},");
                 sb.Append($"\"reorder\":{result.SeedReorder},");
                 sb.Append($"\"wildcardFlip\":{result.SeedWildcardFlip},");
+                sb.Append($"\"addedDefs\":{result.SeedAddedDefs},");
                 sb.Append($"\"inheritanceAdded\":{result.InheritanceAdded}}},");
                 sb.Append($"\"computeMs\":{computeMs},");
                 sb.Append("\"dirtyNodeIds\":[");
