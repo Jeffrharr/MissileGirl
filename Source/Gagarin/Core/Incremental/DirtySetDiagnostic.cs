@@ -437,7 +437,8 @@ namespace Gagarin
                 $"dirty={result.Nodes.Count}/{total} ({pct:F2}%) " +
                 $"[seedDefs={result.SeedChangedDefs} seedPatch={result.SeedPatchModified} " +
                 $"seedReorder={result.SeedReorder} seedWildcard={result.SeedWildcardFlip} " +
-                $"seedAdded={result.SeedAddedDefs} inh={result.InheritanceAdded}] computeMs={computeMs}");
+                $"seedAdded={result.SeedAddedDefs} seedMayRequire={result.SeedMayRequire} " +
+                $"inh={result.InheritanceAdded}] computeMs={computeMs}");
 
             try
             {
@@ -454,6 +455,7 @@ namespace Gagarin
                 sb.Append($"\"reorder\":{result.SeedReorder},");
                 sb.Append($"\"wildcardFlip\":{result.SeedWildcardFlip},");
                 sb.Append($"\"addedDefs\":{result.SeedAddedDefs},");
+                sb.Append($"\"mayRequire\":{result.SeedMayRequire},");
                 sb.Append($"\"inheritanceAdded\":{result.InheritanceAdded}}},");
                 sb.Append($"\"computeMs\":{computeMs},");
                 sb.Append("\"dirtyNodeIds\":[");

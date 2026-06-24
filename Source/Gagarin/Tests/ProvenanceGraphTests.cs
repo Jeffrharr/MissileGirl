@@ -321,5 +321,40 @@ namespace Gagarin.Tests
             Assert.That(edge.GetProperty("xpath").GetString(),
                 Is.EqualTo("Defs/ThingDef[defName=\"A\\B\"]"));
         }
+
+        [Test]
+        public void MayRequire_SerializesPackageToNodeIds()
+        {
+            // P4 capture side: each gated def is indexed under every packageId that gates it,
+            // de-duplicated, and emitted as a { packageId: [nodeId, ...] } object.
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddMayRequire("vanillaexpanded.vmemese", "ThingStyleDef/TST_Hedonist_KneelSheet");
+            graph.AddMayRequire("vanillaexpanded.vmemese", "FactionDef/Crows_VelosEnclave");
+            graph.AddMayRequire("vanillaexpanded.vmemese", "FactionDef/Crows_VelosEnclave"); // dup
+            graph.AddMayRequire("ludeon.rimworld.biotech", "ThingDef/Gene_Example");
+
+            JsonElement mayRequire = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("mayRequire");
+
+            var vmemese = mayRequire.GetProperty("vanillaexpanded.vmemese")
+                .EnumerateArray().Select(e => e.GetString()).ToList();
+            Assert.That(vmemese, Is.EquivalentTo(new[]
+            {
+                "ThingStyleDef/TST_Hedonist_KneelSheet", "FactionDef/Crows_VelosEnclave"
+            }));
+            Assert.That(mayRequire.GetProperty("ludeon.rimworld.biotech").GetArrayLength(),
+                Is.EqualTo(1));
+        }
+
+        [Test]
+        public void MayRequire_EmptyIndex_SerializesEmptyObject()
+        {
+            // A graph with no MayRequire content still emits the field (an empty object) so the
+            // schema is stable and the parser's lookup is uniform.
+            JsonElement mayRequire = JsonDocument.Parse(new ProvenanceGraph().Serialize(0))
+                .RootElement.GetProperty("mayRequire");
+            Assert.That(mayRequire.ValueKind, Is.EqualTo(JsonValueKind.Object));
+            Assert.That(mayRequire.EnumerateObject().Any(), Is.False);
+        }
     }
 }

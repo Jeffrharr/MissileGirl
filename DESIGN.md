@@ -644,3 +644,48 @@ cannot work, so the graph is currently WRONG for incremental recompute. Fix (bui
 new `@Name` keying): register abstract defs as `{DefType}@{Name}` nodes when encountered,
 and resolve `ParentName` against a `Name → nodeId` map. This is the natural first task of D.
 
+### P1 + P4 — the vmemese-removal gate misses (2026-06-24)
+The `vanillaexpanded.vmemese`-removal coverage run failed the dirty-set gate with
+`nonDirtyMismatches=45`. Breaking the `mismatchIds` down by type was decisive:
+
+- **40 namespaced custom Def subclasses** (`VFEProps.PropDef` ×34, `VanillaMemesExpanded.*`,
+  `VEF.*`). These were a **keying** bug, NOT a capture gap — see P1. `RegisterNode` keyed concrete
+  nodes by `def.GetType().Name` (e.g. `PropDef`) while every consumer keys by the XML element name
+  (`VFEProps.PropDef`). The split was visible inside one `DependencyGraph.json`: abstract nodes
+  (`RegisterAbstract` → `element.Name`) keyed *with* namespace next to concrete nodes keyed
+  *without*. Fix: `RegisterNode` keys by `element.Name`. One line; clears all 40.
+- **5 `MayRequire` flips** (3 `ThingStyleDef` + 2 `FactionDef`) — element name already == type name,
+  so untouched by P1. Root cause is **conditional content in UNCHANGED mods**:
+  - `toastyman.moreritualseats` declares `<ThingStyleDef MayRequire="vanillaexpanded.vmemese">`;
+    removing vmemese drops the whole def. The owning file never changed.
+  - `3346930834` patches `FactionDef/Crows_*` `requiredMemes` with
+    `<li MayRequire="VanillaExpanded.VMemesE">…</li>`; removing vmemese drops those lis. The
+    patch's owning mod never changed.
+  Neither is reachable by seeds 1–5 (no changed file, no changed mod, def not added/removed in the
+  FactionDef case). Note the **two casings** for the same mod — the index/seed must be
+  case-insensitive.
+
+**P4 implementation (`feat/p4-mayrequire-flips`).** One mechanism covers both:
+- *Capture* — `ProvenanceRecorder.IndexMayRequire(patchedDoc)`, called from the `ApplyPatches`
+  postfix, recursively scans the fully-patched `<Defs>` doc for `MayRequire`/`MayRequireAnyOf`
+  attributes. This runs after patching (so patch-injected `<li MayRequire>` is present and
+  indistinguishable from inline def content) but before `DefFromNode` strips failed nodes (so the
+  attributes still exist — verified: 4,579 survive into `Unified_Original.xml`). Each gated node is
+  resolved to its owning def via the existing `KeyForNode`, and indexed under every packageId it
+  names. Serialized as a `mayRequire` object in `DependencyGraph.json`.
+- *Seed 6* — `DirtySetComputer` dirties a packageId's gated defs when it is present in exactly one
+  of the prior/current load orders (XOR ⇒ a true add or remove; present-in-both is just a reorder
+  and cannot flip inclusion). Case-insensitive (`OrdinalIgnoreCase`).
+- Over-approximation is deliberate and superset-safe: `MayRequireAnyOf="a,b"` indexes the def under
+  *both* a and b, so removing either fires the seed even if the other still satisfies the condition.
+  The recompute/splice (DefRecompute already routes a dirty-but-absent concrete id to `removed`)
+  then decides the actual value; the seed's only job is gate superset-safety.
+
+Offline-tested: capture serialization (`ProvenanceGraphTests`), parse incl. case-insensitive
+lookup and pre-P4 graphs, and the Seed 6 add/remove/reorder/case matrix (`DirtySetComputerTests`) —
+91 tests green. **NOT yet validated in-game**: the doc-scan capture is RimWorld-coupled (like
+`RegisterNode`) and only a live coverage run proves the gate drops from 45 → 0. Merge is blocked on
+that run. Add-direction caveat: a `PatchOperationFindMod` gating a whole op would not inject (and so
+not index) its content while the required mod is absent, so adds via that shape are not yet covered;
+the documented failing case is a removal, which is fully covered.
+

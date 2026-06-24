@@ -211,6 +211,122 @@ namespace Gagarin.Tests
             Assert.That(r.Nodes, Does.Not.Contain("ThingDef/X"));
         }
 
+        // A graph carrying only a MayRequire index (no patch/inheritance edges), so Seed 6 is
+        // exercised in isolation: "vmemese" gates a ThingStyleDef (its own root) and a FactionDef
+        // (patch-injected content); "ludeon.rimworld.biotech" gates an unrelated def.
+        private static DependencyGraphData BuildMayRequireGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.MayRequireIndex["vanillaexpanded.vmemese"] = new List<string>
+            {
+                "ThingStyleDef/TST_Hedonist_KneelSheet", "FactionDef/Crows_VelosEnclave"
+            };
+            g.MayRequireIndex["ludeon.rimworld.biotech"] = new List<string> { "ThingDef/Gene_X" };
+            return g;
+        }
+
+        [Test]
+        public void MayRequireFlip_RemovedMod_DirtiesGatedDefs()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats", "vanillaexpanded.vmemese"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats")   // vmemese removed
+            };
+            var r = DirtySetComputer.Compute(BuildMayRequireGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("ThingStyleDef/TST_Hedonist_KneelSheet"));
+            Assert.That(r.Nodes, Contains.Item("FactionDef/Crows_VelosEnclave"));
+            Assert.That(r.SeedMayRequire, Is.EqualTo(2));
+            // A def gated on a DIFFERENT mod (biotech), present in neither load, must stay clean.
+            Assert.That(r.Nodes, Does.Not.Contain("ThingDef/Gene_X"));
+        }
+
+        [Test]
+        public void MayRequireFlip_AddedMod_DirtiesGatedDefs()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats", "vanillaexpanded.vmemese")
+            };
+            var r = DirtySetComputer.Compute(BuildMayRequireGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("ThingStyleDef/TST_Hedonist_KneelSheet"));
+            Assert.That(r.Nodes, Contains.Item("FactionDef/Crows_VelosEnclave"));
+        }
+
+        [Test]
+        public void MayRequire_ModPresentInBoth_NoFlip()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats", "vanillaexpanded.vmemese"),
+                CurrentLoadOrder = Order("vanillaexpanded.vmemese", "toastyman.moreritualseats")
+            };
+            var r = DirtySetComputer.Compute(BuildMayRequireGraph(), change);
+            // vmemese is in BOTH loads (only reordered) -> no inclusion flip -> no MayRequire seed.
+            Assert.That(r.SeedMayRequire, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("ThingStyleDef/TST_Hedonist_KneelSheet"));
+        }
+
+        [Test]
+        public void MayRequire_PackageIdMatch_IsCaseInsensitive()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            // Index keyed with the FactionDef-patch casing; load order uses the ThingStyleDef
+            // casing. RimWorld treats these as the same mod, so the flip must still fire.
+            g.MayRequireIndex["VanillaExpanded.VMemesE"] =
+                new List<string> { "FactionDef/Crows_VelosEnclave" };
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("vanillaexpanded.vmemese"),
+                CurrentLoadOrder = Order()
+            };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.Nodes, Contains.Item("FactionDef/Crows_VelosEnclave"));
+        }
+
+        [Test]
+        public void MayRequire_EmptyIndex_NoOpAndNoOverDirty()
+        {
+            // The base matrix graph has no MayRequire index; a pure mod-add must not be seeded
+            // by Seed 6 (P2/other seeds own that), proving Seed 6 stays inert when unused.
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("modA", "modB"),
+                CurrentLoadOrder = Order("modA", "modB", "modNew")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change);
+            Assert.That(r.SeedMayRequire, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void DependencyGraphData_Parse_ReadsMayRequireIndex_CaseInsensitive()
+        {
+            const string json =
+                "{\"version\":1,\"nodes\":[],\"patchEdges\":[],\"inheritanceEdges\":[]," +
+                "\"mayRequire\":{\"VanillaExpanded.VMemesE\":[\"FactionDef/Crows_VelosEnclave\"," +
+                  "\"ThingStyleDef/TST_Hedonist_KneelSheet\"]},\"metrics\":{}}";
+            var g = DependencyGraphData.Parse(json);
+            Assert.That(g.MayRequireIndex, Has.Count.EqualTo(1));
+            // Lookup with different casing must resolve (OrdinalIgnoreCase).
+            Assert.That(g.MayRequireIndex["vanillaexpanded.vmemese"],
+                Is.EquivalentTo(new[]
+                {
+                    "FactionDef/Crows_VelosEnclave", "ThingStyleDef/TST_Hedonist_KneelSheet"
+                }));
+        }
+
+        [Test]
+        public void DependencyGraphData_Parse_PreP4Graph_HasEmptyMayRequireIndex()
+        {
+            // A graph written before P4 has no "mayRequire" field; parsing must yield an empty
+            // index (not throw) so old caches load and Seed 6 simply no-ops.
+            const string json =
+                "{\"version\":1,\"nodes\":[],\"patchEdges\":[],\"inheritanceEdges\":[],\"metrics\":{}}";
+            var g = DependencyGraphData.Parse(json);
+            Assert.That(g.MayRequireIndex, Is.Empty);
+        }
+
         [Test]
         public void DependencyGraphData_Parse_ReadsSchema()
         {

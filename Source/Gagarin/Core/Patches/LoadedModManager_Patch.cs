@@ -141,6 +141,12 @@ namespace Gagarin
                 {
                     try
                     {
+                        // Provenance capture (dev-flag gated): index every MayRequire /
+                        // MayRequireAnyOf in the fully-patched doc against its owning def, so a
+                        // later mod add/remove can dirty those defs (P4). Done here, after all
+                        // patches are applied but before DefFromNode strips the failed nodes.
+                        ProvenanceRecorder.IndexMayRequire(xmlDoc);
+
                         if (File.Exists(GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath))
                             File.Delete(GagarinEnvironmentInfo.UnifiedPatchedOriginalXmlPath);
                         XmlWriterSettings settings = new XmlWriterSettings

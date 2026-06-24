@@ -87,12 +87,22 @@ recompute still FAIL in many cases). Workstreams:
   consumer keys by the XML element name, so namespaced custom def elements
   (`<VFEProps.PropDef>`) and `Class`-attributed defs were filed under a key nobody looks up.
   `RegisterNode` now keys by the element name (matching `RegisterAbstract`/`KeyForNode`); this
-  cleared 40 of 45 gate misses on the vmemese-removal run. **Residual (separate cause):** 3
-  XML-authored `ThingStyleDef` + 2 `FactionDef` whose element name already matched their type
-  name — these are reference-propagation / recompute-fidelity misses, not keying, tracked under
-  "Recompute fidelity" below.
+  cleared 40 of 45 gate misses on the vmemese-removal run. **Residual 5 (separate cause, → P4):**
+  3 `ThingStyleDef` + 2 `FactionDef` whose element name already matched their type name. These
+  turned out to be `MayRequire` flips, not keying — handled by P4 below.
 - **P2** added-defs channel (Seed 5) — **DONE** (PR #13, `feat/added-defs-channel`).
-- **P4** MayRequire / `MayRequireAnyOf` / conditional patch flips in *unchanged* mods — OPEN.
+- **P4** `MayRequire` / `MayRequireAnyOf` flips in *unchanged* mods — **DONE pending live run**
+  (`feat/p4-mayrequire-flips`). Capture scans the fully-patched doc for `MayRequire`/
+  `MayRequireAnyOf` attrs and indexes each gated node under its owning def (`ProvenanceRecorder.
+  IndexMayRequire`, called from the `ApplyPatches` postfix) → `mayRequire` map in
+  `DependencyGraph.json` (packageId → defNodeIds, case-insensitive). **Seed 6** (`DirtySetComputer`)
+  dirties a packageId's gated defs when it is present in exactly one of prior/current load order
+  (a true add/remove). Targets all 5 P1 residuals: the `ThingStyleDef` root `MayRequire` and the
+  `FactionDef` patch-injected `<li MayRequire>`. Structural parts offline-tested (91 tests); the
+  doc-scan capture is live-only — **needs a coverage run to confirm before merge.** Note: the
+  *add* direction is only covered when the gated content survives into the patched doc with the
+  required mod absent (true for plain `Add`-injected `<li MayRequire>`; a `PatchOperationFindMod`
+  that gates the whole op would not be captured with the mod absent).
 - Recompute fidelity / broaden the safe full-rebuild fallback — OPEN.
 
 ## Gotchas (verified)
