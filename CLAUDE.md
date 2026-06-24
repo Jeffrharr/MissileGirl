@@ -82,17 +82,26 @@ Run-artifact archive: `../MissileGirl-metrics/` (12 MB; the evidence base — pr
 
 The incremental path is **not yet trustworthy on add/remove** (coverage runs: CLEAN=0/15; gate &
 recompute still FAIL in many cases). Workstreams:
-- **P1** capture **all** def types (custom `Def` subclasses, `ThingStyleDef` are missed by the
-  Def-object-gated `RegisterNode`) — OPEN.
+- **P1** capture **all** def types — **mostly DONE**. Root cause was NOT a capture gap: the defs
+  *were* captured, but `RegisterNode` keyed them by `def.GetType().Name` (simple name) while every
+  consumer keys by the XML element name, so namespaced custom def elements
+  (`<VFEProps.PropDef>`) and `Class`-attributed defs were filed under a key nobody looks up.
+  `RegisterNode` now keys by the element name (matching `RegisterAbstract`/`KeyForNode`); this
+  cleared 40 of 45 gate misses on the vmemese-removal run. **Residual (separate cause):** 3
+  XML-authored `ThingStyleDef` + 2 `FactionDef` whose element name already matched their type
+  name — these are reference-propagation / recompute-fidelity misses, not keying, tracked under
+  "Recompute fidelity" below.
 - **P2** added-defs channel (Seed 5) — **DONE** (PR #13, `feat/added-defs-channel`).
 - **P4** MayRequire / `MayRequireAnyOf` / conditional patch flips in *unchanged* mods — OPEN.
 - Recompute fidelity / broaden the safe full-rebuild fallback — OPEN.
 
 ## Gotchas (verified)
 
-- **Node-id scheme is inconsistent**: `RegisterNode` keys by `def.GetType().Name`; everything else
-  (`KeyForNode`, `DefRecompute`, splice) keys by the **XML element name**. They agree for normal
-  defs; they diverge for `Class`-attributed defs (superset-safe over-dirty, not yet fixed).
+- **Node-id scheme** (FIXED): `RegisterNode` used to key by `def.GetType().Name` while everything
+  else (`KeyForNode`, `RegisterAbstract`, `DefRecompute`, splice, gate) keys by the **XML element
+  name**. They agreed for normal defs but diverged for `Class`-attributed and fully-namespaced
+  custom def elements, filing those nodes under an unmatchable key. `RegisterNode` now keys by the
+  element name, so all paths agree (see P1 in the roadmap).
 - **Graph self-heals on a changed load**: a mod-list change sets `IsUsingCache=false` → full rebuild
   → capture runs → `DependencyGraph.json` is rewritten with the new defs. The diagnostic reads the
   **prior** graph/state via the sidecar before that teardown — so the dirty set only needs to cover
