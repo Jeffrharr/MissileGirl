@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — MayRequire Gate</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.gate</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>The toggled dependency for the MayRequire-flip live test (P4). Its mere PRESENCE
+satisfies the MayRequire="joof.testharness.gate" gates in TestMod_MayRequire. The harness loads
+it for Run A and removes it before Run B, so the gated content flips inclusion between runs while
+its owning mod (TestMod_MayRequire) never changes. Carries one trivial ThingDef so that removing
+the mod changes the asset set and forces Gagarin's cache miss (an empty mod would not). No game
+content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+</ModMetaData>

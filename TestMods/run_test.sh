@@ -92,6 +92,8 @@ CHANGE_MOD_DIR="$SCRIPT_DIR/TestMod_Change"
 DEFS_MOD_DIR="$SCRIPT_DIR/TestMod_Defs"
 STATIC_MOD_DIR="$SCRIPT_DIR/TestMod_Static"
 ADDED_MOD_DIR="$SCRIPT_DIR/TestMod_Added"
+MAYREQUIRE_MOD_DIR="$SCRIPT_DIR/TestMod_MayRequire"
+GATE_MOD_DIR="$SCRIPT_DIR/TestMod_Gate"
 
 NO_TEARDOWN=0
 # --expect-fallback: exercise the changed-mod container-op fallback instead of the default
@@ -104,6 +106,13 @@ EXPECT_FALLBACK=0
 # recompute assertion stays the default (real recompute), and Change.xml is held at run A so the
 # only between-run delta is the new mod.
 EXPECT_ADDED=0
+# --expect-mayrequire: exercise the MayRequire-flip channel (P4). joof.testharness.mayrequire (an
+# UNCHANGED mod) carries content gated on joof.testharness.gate — a whole def at its root and a
+# patch-injected <li>. The gate mod is activated for run A (so the gated content is included and
+# indexed) and REMOVED before run B (a pure mod-list change). The gated defs must show up dirty via
+# the MayRequire seed (DirtySet.json seeds.mayRequire > 0) so the dirty-set gate stays a superset.
+# Change.xml is held at run A for both runs, so the ONLY between-run delta is the gate mod removal.
+EXPECT_MAYREQUIRE=0
 for arg in "$@"; do
     if [[ "$arg" == "--no-teardown" ]]; then
         NO_TEARDOWN=1
@@ -111,11 +120,13 @@ for arg in "$@"; do
         EXPECT_FALLBACK=1
     elif [[ "$arg" == "--expect-added" ]]; then
         EXPECT_ADDED=1
+    elif [[ "$arg" == "--expect-mayrequire" ]]; then
+        EXPECT_MAYREQUIRE=1
     fi
 done
 
-if [[ $EXPECT_FALLBACK -eq 1 && $EXPECT_ADDED -eq 1 ]]; then
-    echo "[run_test] FAIL: --expect-fallback and --expect-added are mutually exclusive." >&2
+if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE > 1 )); then
+    echo "[run_test] FAIL: --expect-fallback, --expect-added and --expect-mayrequire are mutually exclusive." >&2
     exit 2
 fi
 
@@ -125,10 +136,11 @@ fi
 if [[ $EXPECT_FALLBACK -eq 1 ]]; then
     RUN_A_CHANGE="Change_RunA_Fallback.xml"
     RUN_B_CHANGE="Change_RunB_Fallback.xml"
-elif [[ $EXPECT_ADDED -eq 1 ]]; then
-    # P2: hold Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT change.
-    # The only between-run delta is the newly-added mod (inserted into ModsConfig before run B), so
-    # the dirty set is driven purely by the added-defs channel rather than a patch-file edit.
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 ]]; then
+    # P2 / P4: hold Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT
+    # change. The only between-run delta is the mod-list change (P2: a mod added before run B; P4:
+    # the gate mod removed before run B), so the dirty set is driven purely by that channel rather
+    # than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
     RUN_B_CHANGE="Change_RunA.xml"
 else
@@ -179,6 +191,8 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-static"
     rm -f "$MODS_DIR/joof-testharness-change"
     rm -f "$MODS_DIR/joof-testharness-added"
+    rm -f "$MODS_DIR/joof-testharness-mayrequire"
+    rm -f "$MODS_DIR/joof-testharness-gate"
     log "Symlinks removed."
 
     # Leave Change.xml in place (it's a test artifact; leaving it is harmless and useful for
@@ -355,6 +369,27 @@ except Exception as e:
 PYEOF
 }
 
+parse_dirtyset_mayrequire() {
+    # --expect-mayrequire (P4) only: assert the MayRequire channel actually fired, i.e. the
+    # diagnostic seeded one or more defs via the MayRequire flip (seeds.mayRequire > 0 in
+    # DirtySet.json). A zero would mean Seed 6 did not dirty the gated defs even though the gate
+    # mod left the load — the exact silent-staleness this PR closes — so the gate would only pass
+    # by luck. We expect 2 here (TC_MR_Gated root-gated + TC_MR_Host patch-injected li).
+    python3 - "$DIRTYSET_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    seeds = data.get("seeds", {})
+    mr = seeds.get("mayRequire", 0)
+    dirty = data.get("dirtyCount", "?")
+    print(f"  seeds.mayRequire={mr}  dirtyCount={dirty}")
+    sys.exit(0 if mr > 0 else 1)
+except Exception as e:
+    print(f"  ERROR parsing DirtySet.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 # ---------------------------------------------------------------------------
 # Step 0: ensure test-mod symlinks exist
 # ---------------------------------------------------------------------------
@@ -366,6 +401,11 @@ ln -sfn "$CHANGE_MOD_DIR" "$MODS_DIR/joof-testharness-change"
 # into ModsConfig. In the default / fallback runs it is symlinked but never activated, so it is
 # inert. Only --expect-added adds its packageId to ModsConfig (and only before run B).
 ln -sfn "$ADDED_MOD_DIR"  "$MODS_DIR/joof-testharness-added"
+# The MayRequire fixture (P4) and its gate mod are symlinked unconditionally so RimWorld can resolve
+# them when --expect-mayrequire activates them in ModsConfig. In other modes they are symlinked but
+# never added to ModsConfig, so they are inert.
+ln -sfn "$MAYREQUIRE_MOD_DIR" "$MODS_DIR/joof-testharness-mayrequire"
+ln -sfn "$GATE_MOD_DIR"       "$MODS_DIR/joof-testharness-gate"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -389,7 +429,7 @@ log "Backup saved to $MODSCONFIG_BAK"
 
 # In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
 # absent from run A's baseline graph so run B sees them as genuinely added.
-EXPECT_ADDED="$EXPECT_ADDED" python3 - "$MODSCONFIG" <<'PYEOF'
+EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
 
 path = sys.argv[1]
@@ -406,6 +446,12 @@ to_add = [
     "joof.testharness.static",
     "joof.testharness.change",
 ]
+
+# --expect-mayrequire (P4): the gate mod and the gated-content mod are both active for run A. The
+# gate mod is REMOVED before run B (step 4), so its content (and the patch-injected gated li) flips
+# inclusion while joof.testharness.mayrequire itself never changes. gate loads before mayrequire.
+if os.environ.get("EXPECT_MAYREQUIRE", "0") == "1":
+    to_add += ["joof.testharness.gate", "joof.testharness.mayrequire"]
 
 # Insert each new entry after the previous test mod (or vr.missilegirl for the first), so they
 # land in declared load order and joof.testharness.added (if later inserted) trails them all.
@@ -504,6 +550,29 @@ print("ModsConfig.xml updated for Run B.")
 PYEOF
 fi
 
+# --expect-mayrequire (P4): REMOVE joof.testharness.gate from ModsConfig now, AFTER run A captured a
+# baseline graph that includes the gate's content + MayRequire index. This pure mod-list change is
+# what flips the gated content (TC_MR_Gated dropped, TC_MR_Host's gated li stripped) for run B, so
+# the MayRequire seed must dirty those defs. (Teardown still restores the original from the step-1
+# backup.)
+if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
+    log "Removing joof.testharness.gate from ModsConfig for Run B (the mod-list change)..."
+    python3 - "$MODSCONFIG" <<'PYEOF'
+import sys, re
+path = sys.argv[1]
+content = open(path, encoding="utf-8").read()
+pkg = "joof.testharness.gate"
+# Drop the gate's <li> line (and its trailing newline/indent) wherever it appears in the active list.
+new = re.sub(r"[ \t]*<li>" + re.escape(pkg) + r"</li>\s*\n", "", content, count=1)
+if new != content:
+    print(f"  {pkg}: removed (run-B mod-list change)")
+else:
+    print(f"  {pkg}: WARNING not found — gate was not active for run A?")
+open(path, "w", encoding="utf-8").write(new)
+print("ModsConfig.xml updated for Run B.")
+PYEOF
+fi
+
 # Do NOT clear the cache — Run B needs the prior cache (DependencyGraph.json,
 # AssetsHash.xml, Unified.xml) to compute the dirty set and run the gate.
 
@@ -550,14 +619,41 @@ if [[ $EXPECT_ADDED -eq 1 ]]; then
     added_ok=0; parse_dirtyset_added && added_ok=1 || added_ok=0
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_ok -eq 1 && $added_ok -eq 1 ]]; then
+# --expect-mayrequire (P4): require the MayRequire channel to have fired. The recompute gate is
+# NOT required to pass here: DefRecompute does not yet evaluate MayRequire over raw def bodies, so a
+# gated def is recomputed as present and mismatches the rebuild that dropped it. That is the
+# separate "recompute fidelity" workstream; P4's claim is purely that the dirty set stays a SUPERSET
+# (the silent-staleness gate), so we gate this mode on the dirty-set gate + the MayRequire seed and
+# treat the recompute result as informational.
+mayrequire_ok=1
+recompute_required=1
+if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
+    log "MayRequire channel result:"
+    mayrequire_ok=0; parse_dirtyset_mayrequire && mayrequire_ok=1 || mayrequire_ok=0
+    recompute_required=0
+fi
+
+# The recompute gate only counts toward the verdict when it is required for this mode.
+recompute_verdict=$recompute_ok
+if [[ $recompute_required -eq 0 ]]; then
+    recompute_verdict=1
+fi
+
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
     echo "  dirty-set gate:  nonDirtyMismatches = 0 (proven superset)"
-    echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
+    if [[ $recompute_required -eq 1 ]]; then
+        echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
+    else
+        echo "  recompute gate:  informational only this mode (pass=$recompute_ok)"
+    fi
     if [[ $EXPECT_ADDED -eq 1 ]]; then
         echo "  added-defs (P2): seeds.addedDefs > 0 (new mod's defs dirtied + spliced in)"
+    fi
+    if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
+        echo "  MayRequire (P4): seeds.mayRequire > 0 (gated defs dirtied on mod removal)"
     fi
     echo "========================================"
     EXIT_CODE=0
@@ -565,7 +661,8 @@ else
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
-    echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok  added-defs pass=$added_ok"
+    echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1

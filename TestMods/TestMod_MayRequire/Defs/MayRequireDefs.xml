@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- TC_MR_Host: present in BOTH runs (ungated). Its tradeTags list receives a gate-gated <li>
+       from a patch in this same mod (see MayRequirePatch.xml). With the gate mod present (Run A)
+       the resolved def has tradeTags [HostBase, GatedTag]; with it removed (Run B) the gated li
+       is stripped at def-parse, leaving [HostBase]. The def itself, its file, and the patch never
+       change between runs — so the only way the dirty set can cover this flip is the MayRequire
+       seed indexing TC_MR_Host under joof.testharness.gate. This is the FactionDef/requiredMemes
+       analog. -->
+  <ThingDef>
+    <defName>TC_MR_Host</defName>
+    <label>mayrequire host</label>
+    <tradeTags>
+      <li>HostBase</li>
+    </tradeTags>
+  </ThingDef>
+
+  <!-- TC_MR_Gated: the whole def is gated at its root. Present in Run A (gate active), dropped in
+       Run B (gate removed) — RimWorld skips MayRequire-failed def nodes at DefFromNode. Indexed
+       under the gate by the root attribute, so Seed 6 dirties it on removal and the splice can
+       drop it. This is the ThingStyleDef analog. -->
+  <ThingDef MayRequire="joof.testharness.gate">
+    <defName>TC_MR_Gated</defName>
+    <label>mayrequire gated</label>
+  </ThingDef>
+</Defs>
