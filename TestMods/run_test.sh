@@ -138,6 +138,13 @@ EXPECT_P1=0
 # unrelated mod init (zero of our code runs), which is not a test result.
 MODLIST_FILE=""
 MAX_MODS=100
+# --remove=PACKAGEID: a real-mod removal scenario. Run A loads the full --modlist; before run B this
+# mod is removed from ModsConfig (a pure mod-list change), reproducing real add/remove failures (e.g.
+# the vmemese case: removing it drops VFE Props' IfModActive loadFolders prop defs -> P1, and flips
+# toastyman's MayRequire ThingStyleDefs -> P4). Asserts only the dirty-set superset gate
+# (nonDirtyMismatches==0); recompute is informational (real content includes MayRequire defs that the
+# recompute-fidelity gap can't yet reproduce).
+REMOVE_MOD=""
 for arg in "$@"; do
     if [[ "$arg" == "--no-teardown" ]]; then
         NO_TEARDOWN=1
@@ -151,6 +158,8 @@ for arg in "$@"; do
         EXPECT_P1=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
+    elif [[ "$arg" == --remove=* ]]; then
+        REMOVE_MOD="${arg#--remove=}"
     fi
 done
 
@@ -163,6 +172,13 @@ if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 > 1 )); the
     echo "[run_test] FAIL: the --expect-* flags are mutually exclusive." >&2
     exit 2
 fi
+if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 > 0 )); then
+    echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
+    exit 2
+fi
+if [[ -n "$REMOVE_MOD" && -z "$MODLIST_FILE" ]]; then
+    echo "[run_test] WARN: --remove=$REMOVE_MOD with no --modlist= — the mod must already be in the minimal base or nothing is removed." >&2
+fi
 
 # Pick the change-file pair for this run mode. Default: the leaf-op fixtures that drive a real
 # sub-doc recompute. --expect-fallback: the fixtures whose change mod owns a container op, so
@@ -170,11 +186,11 @@ fi
 if [[ $EXPECT_FALLBACK -eq 1 ]]; then
     RUN_A_CHANGE="Change_RunA_Fallback.xml"
     RUN_B_CHANGE="Change_RunB_Fallback.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 ]]; then
-    # P2 / P4 / P1: hold Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT
-    # change. The only between-run delta is mode-specific (P2: a mod added before run B; P4: the gate
-    # mod removed before run B; P1: the JoofTest.PropDef def file swapped before run B), so the dirty
-    # set is driven purely by that channel rather than a patch-file edit.
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || -n "$REMOVE_MOD" ]]; then
+    # P2 / P4 / P1 / --remove: hold Change.xml at run A for BOTH runs so the change vehicle's patch
+    # file does NOT change. The only between-run delta is mode-specific (P2: a mod added before run B;
+    # P4: the gate mod removed; P1: the JoofTest.PropDef def file swapped; --remove: a real mod removed
+    # before run B), so the dirty set is driven purely by that channel rather than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
     RUN_B_CHANGE="Change_RunA.xml"
 else
@@ -711,6 +727,26 @@ print("ModsConfig.xml updated for Run B.")
 PYEOF
 fi
 
+# --remove=ID: remove the named real mod from ModsConfig for run B (case-insensitive), AFTER run A
+# captured the baseline graph with it. This is the real-mod add/remove change under test.
+if [[ -n "$REMOVE_MOD" ]]; then
+    log "Removing $REMOVE_MOD from ModsConfig for Run B (the mod-list change)..."
+    REMOVE_MOD="$REMOVE_MOD" python3 - "$MODSCONFIG" <<'PYEOF'
+import os, sys, re
+path = sys.argv[1]
+pkg = os.environ["REMOVE_MOD"]
+content = open(path, encoding="utf-8").read()
+# Case-insensitive <li> match (RimWorld treats packageIds case-insensitively).
+new = re.sub(r"[ \t]*<li>" + re.escape(pkg) + r"</li>\s*\n", "", content, count=1, flags=re.I)
+if new != content:
+    print(f"  {pkg}: removed (run-B mod-list change)")
+else:
+    print(f"  {pkg}: WARNING not found in active mods — was it in --modlist for run A?")
+open(path, "w", encoding="utf-8").write(new)
+print("ModsConfig.xml updated for Run B.")
+PYEOF
+fi
+
 # Do NOT clear the cache — Run B needs the prior cache (DependencyGraph.json,
 # AssetsHash.xml, Unified.xml) to compute the dirty set and run the gate.
 
@@ -780,6 +816,13 @@ if [[ $EXPECT_P1 -eq 1 ]]; then
     p1_ok=0; parse_dirtyset_p1 && p1_ok=1 || p1_ok=0
 fi
 
+# --remove (real-mod removal): the claim is purely that the dirty set stays a SUPERSET over real
+# content (nonDirtyMismatches==0). Recompute is informational — a real removal typically includes
+# MayRequire-gated defs the recompute-fidelity gap cannot yet reproduce.
+if [[ -n "$REMOVE_MOD" ]]; then
+    recompute_required=0
+fi
+
 # The recompute gate only counts toward the verdict when it is required for this mode.
 recompute_verdict=$recompute_ok
 if [[ $recompute_required -eq 0 ]]; then
@@ -804,6 +847,9 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     fi
     if [[ $EXPECT_P1 -eq 1 ]]; then
         echo "  node-id (P1):    changed def dirtied as JoofTest.PropDef/TC_P1_Prop (element-name keyed)"
+    fi
+    if [[ -n "$REMOVE_MOD" ]]; then
+        echo "  real removal:    $REMOVE_MOD removed — dirty set stayed a superset (P1+P4 on real content)"
     fi
     echo "========================================"
     EXIT_CODE=0
