@@ -76,8 +76,16 @@ Run-artifact archive: `../MissileGirl-metrics/` (12 MB; the evidence base — pr
 
 `TestMods/run_test.sh` (+ `TestMods/README.md`). Deploys the dev DLL over the workshop
 `vr.missilegirl` `Gagarin.dll` (backup/restore), runs two cold loads (Run A cold-captures the graph;
-Run B changes the patch/mod set → cache miss → gates), asserts both gates, archives reports to
-`../MissileGirl-metrics/livetest-runB-<ts>-*.json`, then restores DLL + `ModsConfig.xml` + symlinks.
+Run B changes the patch/mod set → cache miss → gates), asserts the gates, archives reports +
+**the exact modlist used** to `../MissileGirl-metrics/livetest-{runB-,}<ts>-*`, then restores DLL +
+`ModsConfig.xml` + symlinks.
+
+**Always a minimal, self-contained modlist.** Step 1 WRITES a fresh `ModsConfig` (it does NOT inherit
+your active mods): Core + installed official DLCs + `brrainz.harmony` + `vr.missilegirl` + the test
+mods (~13 total). This is deliberate — a large ambient list (observed: **815 mods**) SIGSEGVs
+RimWorld's Boehm GC during unrelated mod init, before any `GAGARIN:` line, so the run crashes with
+zero bearing on our code. Minimal = ~1–2 min/load, deterministic, and isolates the mechanism. Your
+real `ModsConfig` is backed up and restored on teardown.
 
 **Build the dev DLL first** (the harness deploys `1.6/Plugins/Stable/Gagarin.dll` as-is, so build the
 branch under test):
@@ -86,27 +94,30 @@ FrameworkPathOverride=/usr/lib/mono/4.8-api /home/deck/.dotnet/dotnet build Sour
 cd TestMods && bash run_test.sh [flags]
 ```
 
-**Flags** (mutually exclusive where noted):
-| Flag | What it exercises | Extra assertion |
+**Flags** (`--expect-*` are mutually exclusive):
+| Flag | What it exercises | Verdict criteria |
 |---|---|---|
-| *(none)* | Default: real sub-doc recompute (leaf-op change in the changed mod) | `fallback==false && recomputeMismatches==0` |
-| `--expect-fallback` | Changed mod owns a container op (`PatchOperationSequence`) → SubDocExpander declines | `fallback==true && pass==true` |
-| `--expect-added` | P2 added-defs channel: `joof.testharness.added` held out of Run A, inserted before Run B | `seeds.addedDefs > 0` |
+| *(none)* | Default: real sub-doc recompute (leaf-op change in the changed mod) | dirty-set gate + `fallback==false && recomputeMismatches==0` |
+| `--expect-fallback` | Changed mod owns a container op (`PatchOperationSequence`) → SubDocExpander declines | dirty-set gate + `fallback==true && pass==true` |
+| `--expect-added` | P2 added-defs channel: `joof.testharness.added` held out of Run A, inserted before Run B | dirty-set gate + recompute + `seeds.addedDefs > 0` |
+| `--expect-mayrequire` | P4 MayRequire flip: `joof.testharness.gate` active for Run A, removed for Run B; gated content in the unchanged `joof.testharness.mayrequire` (root-gated def + patch-injected `<li MayRequire>`) | dirty-set gate + `seeds.mayRequire > 0`. **Recompute is informational** here (DefRecompute doesn't yet evaluate MayRequire over raw bodies → the gated def recomputes as present and mismatches; that's the separate recompute-fidelity workstream, not P4's superset claim) |
+| `--modlist=FILE` | Adds a captured problem set (one packageId per line, `#` comments) on top of the minimal base; hard-capped at 100 mods total | per the `--expect-*` mode chosen |
 | `--no-teardown` | Leaves symlinks/ModsConfig/DLL deployed (combine with others for debugging) | — |
 
-Both gates must pass: dirty-set gate (`GateReport.json`: `nonDirtyMismatches==0`) AND recompute gate
-(`RecomputeReport.json`: per the table). Each run is ~8–10 min (two ~4-min cold loads).
+Dirty-set gate is `GateReport.json: nonDirtyMismatches==0` (the superset proof, always required).
+Recompute gate is `RecomputeReport.json` (required except in `--expect-mayrequire`).
 
 **Caveats / operational notes:**
 - **Force-kills any running `RimWorldLinux`** (`pkill -9 -x RimWorldLinux`) on cleanup — close your
   game first; it will drop an active session.
-- Known flake: early-startup Boehm-GC SIGSEGV ~1/4 launches (launched `--no-sandbox`); it retries up
-  to 5×. A real post-`GAGARIN:` crash is surfaced, not retried.
-- **Coverage gap (as of P1/P4):** the synthetic mods use plain `<ThingDef>`s, so the harness does NOT
-  yet exercise namespaced custom-def keying (P1) or `MayRequire` flips (P4). A green run is a
-  regression check, not validation of those. Validating P4 needs a `MayRequire`-gated def + a toggled
-  dependency mod (pure XML, a new flag); P1 needs a test mod with a C# assembly defining a
-  namespaced `Def` subclass (or a `Class="..."` def) — neither fixture exists yet.
+- Known flake: early-startup Boehm-GC SIGSEGV (launched `--no-sandbox`); retries up to 5×. Any death
+  **before** the first `GAGARIN:` line is treated as the flake (stderr → file so the `GC_mark_from`
+  signature is visible); a death **after** `GAGARIN:` is a real crash and is surfaced.
+- **Reproducing a problem set:** every run archives `livetest-<ts>-modlist.xml` (written before
+  launch, so it survives a crash). To replay, strip it to ≤100 packageIds and pass via `--modlist=`.
+- **P1 still lacks a live fixture:** the synthetic mods are plain `<ThingDef>`s, so the harness does
+  not yet exercise namespaced custom-def keying (P1) — that needs a test mod with a C# assembly
+  defining a namespaced `Def` subclass (or a `Class="..."` def). P4 is covered by `--expect-mayrequire`.
 
 ## Roadmap — incremental correctness on add/remove
 
@@ -121,8 +132,14 @@ recompute still FAIL in many cases). Workstreams:
   3 `ThingStyleDef` + 2 `FactionDef` whose element name already matched their type name. These
   turned out to be `MayRequire` flips, not keying — handled by P4 below.
 - **P2** added-defs channel (Seed 5) — **DONE** (PR #13, `feat/added-defs-channel`).
-- **P4** `MayRequire` / `MayRequireAnyOf` flips in *unchanged* mods — **DONE pending live run**
-  (`feat/p4-mayrequire-flips`). Capture scans the fully-patched doc for `MayRequire`/
+- **P4** `MayRequire` / `MayRequireAnyOf` flips in *unchanged* mods — **DONE, live-validated**
+  (`feat/p4-mayrequire-flips`). Live run (`run_test.sh --expect-mayrequire`, 2026-06-24):
+  dirty-set gate PASS `nonDirtyMismatches=0`, `seedMayRequire=2` (both gated defs dirtied on the
+  gate-mod removal). Recompute gate has 1 known mismatch (`TC_MR_Gated`) — the recompute-fidelity
+  gap, not P4. Required two harness fixes found along the way: load a minimal modlist (815 ambient
+  mods crashed the GC pre-capture) and export `GAGARIN_INCREMENTAL_CACHE=1` (the sidecar is the only
+  prior-order source that survives the modlist-change teardown; without it every load-order-diff
+  seed silently no-ops). Capture scans the fully-patched doc for `MayRequire`/
   `MayRequireAnyOf` attrs and indexes each gated node under its owning def (`ProvenanceRecorder.
   IndexMayRequire`, called from the `ApplyPatches` postfix) → `mayRequire` map in
   `DependencyGraph.json` (packageId → defNodeIds, case-insensitive). **Seed 6** (`DirtySetComputer`)
