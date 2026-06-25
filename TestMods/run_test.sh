@@ -552,7 +552,9 @@ mkdir -p "$CACHE_DIR"
 # Default Run A has a narrow xpath (only matches TC_Wildcard_A by defName); the --expect-fallback
 # variant instead gives the change mod a PatchOperationSequence (captured into the baseline graph).
 log "Setting Change.xml to Run A ($RUN_A_CHANGE)..."
-cp "$CHANGE_MOD_DIR/Patches/$RUN_A_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
+# Templates live in ChangeTemplates/ (NOT Patches/) so RimWorld only ever auto-loads the active
+# Patches/Change.xml — keeping every other Change_* file out of the load.
+cp "$CHANGE_MOD_DIR/ChangeTemplates/$RUN_A_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
 
 # ---------------------------------------------------------------------------
 # Step 3: Run A — cold load, capture provenance
@@ -586,7 +588,7 @@ log "--- Step 4: preparing Run B (wide predicates — triggers cache miss + gate
 # a value inside the change mod's own sequence — keeping the container op but marking the patch
 # file dirty, so SubDocExpander declines to recompute (fallback).
 log "Setting Change.xml to Run B ($RUN_B_CHANGE)..."
-cp "$CHANGE_MOD_DIR/Patches/$RUN_B_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
+cp "$CHANGE_MOD_DIR/ChangeTemplates/$RUN_B_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
 
 # --expect-added (P2): insert joof.testharness.added into ModsConfig now, AFTER run A captured its
 # baseline graph without it. This is the genuine mod-list change that drives the added-defs channel

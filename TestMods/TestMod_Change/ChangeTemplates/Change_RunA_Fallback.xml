@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Patch>
   <!-- Run A — FALLBACK variant of TestMod_Change's patches.
-       Selected by `run_test.sh --expect-fallback`; the runner copies this to
+       Selected by `run_test.sh` in expect-fallback mode; the runner copies this to
        Patches/Change.xml before the Run A (cold, provenance-capture) launch.
 
        Why this file exists:

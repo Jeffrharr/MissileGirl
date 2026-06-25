@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Patch>
   <!-- Run B — FALLBACK variant of TestMod_Change's patches.
-       Selected by `run_test.sh --expect-fallback`; copied to Patches/Change.xml before
+       Selected by `run_test.sh` in expect-fallback mode; copied to Patches/Change.xml before
        the Run B launch. See Change_RunA_Fallback.xml for the full rationale.
 
        What changes vs Run A:
@@ -15,7 +15,7 @@
 
        Expected outcome (RecomputeReport.json): fallback=true, pass=true (the authoritative
        full rebuild already ran), recomputeMismatches=0 (no recompute was attempted). The
-       --expect-fallback runner asserts exactly that. -->
+       expect-fallback runner asserts exactly that. -->
 
   <Operation Class="PatchOperationSequence">
     <operations>
