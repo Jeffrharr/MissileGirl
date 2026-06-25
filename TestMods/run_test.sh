@@ -102,6 +102,7 @@ STATIC_MOD_DIR="$SCRIPT_DIR/TestMod_Static"
 ADDED_MOD_DIR="$SCRIPT_DIR/TestMod_Added"
 MAYREQUIRE_MOD_DIR="$SCRIPT_DIR/TestMod_MayRequire"
 GATE_MOD_DIR="$SCRIPT_DIR/TestMod_Gate"
+P1_MOD_DIR="$SCRIPT_DIR/TestMod_P1"
 
 NO_TEARDOWN=0
 # --expect-fallback: exercise the changed-mod container-op fallback instead of the default
@@ -121,6 +122,15 @@ EXPECT_ADDED=0
 # the MayRequire seed (DirtySet.json seeds.mayRequire > 0) so the dirty-set gate stays a superset.
 # Change.xml is held at run A for both runs, so the ONLY between-run delta is the gate mod removal.
 EXPECT_MAYREQUIRE=0
+# --expect-p1: exercise the node-id keying fix (P1). joof.testharness.p1 ships a C# assembly with a
+# custom def subclass JoofTest.PropDef, authored in XML by its fully-qualified element name
+# (<JoofTest.PropDef>, simple type name "PropDef"). The harness swaps the def's p1Tag value between
+# run A and run B (a changed DEF file, modlist unchanged), so Seed 1 must dirty it by its NODE id.
+# With the fix that id is the element-name "JoofTest.PropDef/TC_P1_Prop" (matching the gate/Unified);
+# the old GetType().Name keying produced "PropDef/TC_P1_Prop" and the gate silently missed it. Asserts
+# the dirty-set gate stays a superset AND the dirty set contains the element-name id. Change.xml is
+# held at run A so the only between-run delta is the P1 def file.
+EXPECT_P1=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at 100 mods total — the whole point of
@@ -137,6 +147,8 @@ for arg in "$@"; do
         EXPECT_ADDED=1
     elif [[ "$arg" == "--expect-mayrequire" ]]; then
         EXPECT_MAYREQUIRE=1
+    elif [[ "$arg" == "--expect-p1" ]]; then
+        EXPECT_P1=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     fi
@@ -147,8 +159,8 @@ done
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
 
-if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE > 1 )); then
-    echo "[run_test] FAIL: --expect-fallback, --expect-added and --expect-mayrequire are mutually exclusive." >&2
+if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 > 1 )); then
+    echo "[run_test] FAIL: the --expect-* flags are mutually exclusive." >&2
     exit 2
 fi
 
@@ -158,11 +170,11 @@ fi
 if [[ $EXPECT_FALLBACK -eq 1 ]]; then
     RUN_A_CHANGE="Change_RunA_Fallback.xml"
     RUN_B_CHANGE="Change_RunB_Fallback.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 ]]; then
-    # P2 / P4: hold Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT
-    # change. The only between-run delta is the mod-list change (P2: a mod added before run B; P4:
-    # the gate mod removed before run B), so the dirty set is driven purely by that channel rather
-    # than a patch-file edit.
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 ]]; then
+    # P2 / P4 / P1: hold Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT
+    # change. The only between-run delta is mode-specific (P2: a mod added before run B; P4: the gate
+    # mod removed before run B; P1: the JoofTest.PropDef def file swapped before run B), so the dirty
+    # set is driven purely by that channel rather than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
     RUN_B_CHANGE="Change_RunA.xml"
 else
@@ -215,7 +227,14 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-added"
     rm -f "$MODS_DIR/joof-testharness-mayrequire"
     rm -f "$MODS_DIR/joof-testharness-gate"
+    rm -f "$MODS_DIR/joof-testharness-p1"
     log "Symlinks removed."
+
+    # Reset the P1 def file to its committed Run A value so a --expect-p1 run doesn't leave the git
+    # tree dirty (the harness overwrites it each run anyway).
+    if [[ -f "$P1_MOD_DIR/P1Templates/P1Defs_RunA.xml" ]]; then
+        cp "$P1_MOD_DIR/P1Templates/P1Defs_RunA.xml" "$P1_MOD_DIR/Defs/P1Defs.xml" 2>/dev/null || true
+    fi
 
     # Leave Change.xml in place (it's a test artifact; leaving it is harmless and useful for
     # inspecting the state after a run). Clean it up manually if desired.
@@ -420,6 +439,28 @@ except Exception as e:
 PYEOF
 }
 
+parse_dirtyset_p1() {
+    # --expect-p1 only: assert the changed namespaced def was dirtied under its ELEMENT-NAME node id
+    # "JoofTest.PropDef/TC_P1_Prop". This is the direct proof of the P1 fix: the old code keyed the
+    # node by GetType().Name ("PropDef/TC_P1_Prop"), which the gate/Unified never look up. Finding the
+    # element-name id in the dirty set means RegisterNode keyed it correctly.
+    python3 - "$DIRTYSET_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    ids = data.get("dirtyNodeIds", []) or []
+    want = "JoofTest.PropDef/TC_P1_Prop"
+    wrong = "PropDef/TC_P1_Prop"
+    has_want = want in ids
+    has_wrong = any(i == wrong for i in ids)  # the old, mis-keyed id (should NOT appear)
+    print(f"  dirty has '{want}': {has_want}  (legacy-mis-keyed '{wrong}': {has_wrong})")
+    sys.exit(0 if has_want else 1)
+except Exception as e:
+    print(f"  ERROR parsing DirtySet.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 # ---------------------------------------------------------------------------
 # Step 0: ensure test-mod symlinks exist
 # ---------------------------------------------------------------------------
@@ -436,6 +477,9 @@ ln -sfn "$ADDED_MOD_DIR"  "$MODS_DIR/joof-testharness-added"
 # never added to ModsConfig, so they are inert.
 ln -sfn "$MAYREQUIRE_MOD_DIR" "$MODS_DIR/joof-testharness-mayrequire"
 ln -sfn "$GATE_MOD_DIR"       "$MODS_DIR/joof-testharness-gate"
+# The P1 fixture (custom namespaced-def assembly) is symlinked unconditionally; only --expect-p1
+# activates it in ModsConfig.
+ln -sfn "$P1_MOD_DIR"         "$MODS_DIR/joof-testharness-p1"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -465,7 +509,7 @@ log "Backup saved to $MODSCONFIG_BAK"
 
 # In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
 # absent from run A's baseline graph so run B sees them as genuinely added.
-EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" \
+EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" EXPECT_P1="$EXPECT_P1" \
 MODLIST_FILE="$MODLIST_FILE" MAX_MODS="$MAX_MODS" \
 RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
@@ -509,6 +553,8 @@ if extra_file:
 test_mods = ["joof.testharness.defs", "joof.testharness.static", "joof.testharness.change"]
 if os.environ.get("EXPECT_MAYREQUIRE", "0") == "1":
     test_mods += ["joof.testharness.gate", "joof.testharness.mayrequire"]
+if os.environ.get("EXPECT_P1", "0") == "1":
+    test_mods += ["joof.testharness.p1"]
 active += test_mods
 
 if len(active) > max_mods:
@@ -567,6 +613,12 @@ log "Setting Change.xml to Run A ($RUN_A_CHANGE)..."
 # Patches/Change.xml — keeping every other Change_* file out of the load.
 cp "$CHANGE_MOD_DIR/ChangeTemplates/$RUN_A_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
 
+# --expect-p1: set the JoofTest.PropDef def file to its Run A value before the cold capture.
+if [[ $EXPECT_P1 -eq 1 ]]; then
+    log "Setting P1Defs.xml to Run A (p1Tag=run-a)..."
+    cp "$P1_MOD_DIR/P1Templates/P1Defs_RunA.xml" "$P1_MOD_DIR/Defs/P1Defs.xml"
+fi
+
 # ---------------------------------------------------------------------------
 # Step 3: Run A — cold load, capture provenance
 # ---------------------------------------------------------------------------
@@ -600,6 +652,15 @@ log "--- Step 4: preparing Run B (wide predicates — triggers cache miss + gate
 # file dirty, so SubDocExpander declines to recompute (fallback).
 log "Setting Change.xml to Run B ($RUN_B_CHANGE)..."
 cp "$CHANGE_MOD_DIR/ChangeTemplates/$RUN_B_CHANGE" "$CHANGE_MOD_DIR/Patches/Change.xml"
+
+# --expect-p1 (P1): swap the JoofTest.PropDef def file to its Run B value (p1Tag run-a -> run-b),
+# AFTER run A captured the baseline graph. This changed DEF file is the only between-run delta, so
+# Seed 1 must dirty the namespaced def by its node id — which only matches the gate/Unified id if
+# RegisterNode keyed it by the element name (the P1 fix).
+if [[ $EXPECT_P1 -eq 1 ]]; then
+    log "Swapping P1Defs.xml to Run B (p1Tag=run-b)..."
+    cp "$P1_MOD_DIR/P1Templates/P1Defs_RunB.xml" "$P1_MOD_DIR/Defs/P1Defs.xml"
+fi
 
 # --expect-added (P2): insert joof.testharness.added into ModsConfig now, AFTER run A captured its
 # baseline graph without it. This is the genuine mod-list change that drives the added-defs channel
@@ -710,13 +771,22 @@ if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
     recompute_required=0
 fi
 
+# --expect-p1 (P1): require the changed namespaced def to be dirtied under its element-name node id.
+# Unlike MayRequire, this is a clean change, so the recompute gate IS required to pass too (the def
+# recomputes and byte-matches the rebuild).
+p1_ok=1
+if [[ $EXPECT_P1 -eq 1 ]]; then
+    log "P1 node-id result:"
+    p1_ok=0; parse_dirtyset_p1 && p1_ok=1 || p1_ok=0
+fi
+
 # The recompute gate only counts toward the verdict when it is required for this mode.
 recompute_verdict=$recompute_ok
 if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -732,6 +802,9 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
         echo "  MayRequire (P4): seeds.mayRequire > 0 (gated defs dirtied on mod removal)"
     fi
+    if [[ $EXPECT_P1 -eq 1 ]]; then
+        echo "  node-id (P1):    changed def dirtied as JoofTest.PropDef/TC_P1_Prop (element-name keyed)"
+    fi
     echo "========================================"
     EXIT_CODE=0
 else
@@ -739,7 +812,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1

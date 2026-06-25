@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Run B value: p1Tag flips run-a -> run-b. This is the ONLY content change between runs, so the
+       def file's hash changes, Gagarin takes a cache miss, and Seed 1 must dirty the changed def by
+       its NODE id. With the P1 fix that id is the element-name "JoofTest.PropDef/TC_P1_Prop"
+       (matching the gate/Unified); with the old GetType().Name keying it was "PropDef/TC_P1_Prop"
+       and the gate silently missed it. -->
+  <JoofTest.PropDef>
+    <defName>TC_P1_Prop</defName>
+    <p1Tag>run-b</p1Tag>
+  </JoofTest.PropDef>
+</Defs>

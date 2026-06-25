@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Active def file (committed default = Run A). The harness overwrites this from P1Templates/
+       before each run; it is the only file in Defs/ so RimWorld loads exactly one JoofTest.PropDef. -->
+  <JoofTest.PropDef>
+    <defName>TC_P1_Prop</defName>
+    <p1Tag>run-a</p1Tag>
+  </JoofTest.PropDef>
+</Defs>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — P1 Namespaced Def</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.p1</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Exercises the P1 node-id keying fix live. Ships a C# assembly defining a custom def
+subclass `JoofTest.PropDef : Def`, declared in XML by its FULLY-QUALIFIED element name
+(&lt;JoofTest.PropDef&gt;). The XML element name ("JoofTest.PropDef") differs from the type's simple
+name ("PropDef"), which is exactly the divergence P1 fixes: RegisterNode must key the node by the
+element name (like every consumer) so a change to the def is dirtiable. The harness swaps the def's
+field value between Run A and Run B; with the fix the changed def is dirtied under
+"JoofTest.PropDef/TC_P1_Prop" and the gate stays a superset, with the old keying it was filed under
+"PropDef/TC_P1_Prop" and silently missed. No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+</ModMetaData>
