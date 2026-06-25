@@ -182,3 +182,12 @@ recompute still FAIL in many cases). Workstreams:
   new defs for the current load.
 - **Squash-merge hazard**: `main` carries squashed history, so branches off old feature branches
   conflict. Base new work on `origin/main`; cherry-pick only the new delta.
+- **`TestMod_Change/Patches/` must hold ONLY the runtime `Change.xml`** (gitignored; the harness
+  writes it per run from `ChangeTemplates/`). RimWorld auto-loads *every* `.xml` under `Patches/`, so
+  any `Change_Run*` template left there is loaded as a live patch — and the `_Fallback` templates
+  contain `run_test.sh --expect-fallback` in a comment, whose `--` is illegal inside an XML comment.
+  That throws in `LoadableXmlAsset..ctor`, NREs Gagarin's constructor postfix, and collapses the
+  whole load (black screen + the misleading downstream `Cache/AssetsHash.xml` DirectoryNotFound).
+  The templates were once *copied* to `ChangeTemplates/` instead of *moved*, leaving 4 stale tracked
+  duplicates in `Patches/` — removed 2026-06-25. If a live run black-screens during Run A, check that
+  `Patches/` contains nothing but `Change.xml`.
