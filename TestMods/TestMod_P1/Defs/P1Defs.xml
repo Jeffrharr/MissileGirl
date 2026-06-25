@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
-  <!-- Active def file (committed default = Run A). The harness overwrites this from P1Templates/
-       before each run; it is the only file in Defs/ so RimWorld loads exactly one JoofTest.PropDef. -->
+  <!-- Run A value. The harness copies this to Defs/P1Defs.xml before the cold capture. The element
+       name is the fully-qualified type name JoofTest.PropDef (simple name "PropDef") — the whole
+       point of the P1 fixture. -->
   <JoofTest.PropDef>
     <defName>TC_P1_Prop</defName>
     <p1Tag>run-a</p1Tag>
