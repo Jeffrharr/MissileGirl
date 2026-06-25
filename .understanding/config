@@ -1,0 +1,13 @@
+# Understanding Gate — per-repo config, sourced by .understanding/set-status.sh.
+# Environment variables override anything set here. Uncomment and edit to customize.
+
+# Slash command shown in the check's unblock message. Point this at your own
+# interview skill if you've made one; otherwise leave the default.
+# UNDERSTANDING_SKILL=understanding-check
+
+# GitHub status check name. Must match the required check in branch protection —
+# change both together, or merges will never unblock.
+# UNDERSTANDING_CONTEXT=understanding-check
+
+# The "Details" link shown on the status.
+# UNDERSTANDING_DOCS_URL=https://github.com/Jeffrharr/ClaudeCIQuestions#unblocking-a-pr
