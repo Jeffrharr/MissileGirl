@@ -46,6 +46,7 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 using MissileGirl;
+using RimWorld;
 using Verse;
 
 namespace Gagarin
@@ -165,6 +166,28 @@ namespace Gagarin
                 {
                     if (!IsConcrete(id) || !nodeById.TryGetValue(id, out XmlElement node))
                         continue;
+
+                    // MayRequire fidelity: the real loader (ParseAndProcessXML) drops a def whose
+                    // root node carries a failing MayRequire / MayRequireAnyOf — it `continue`s
+                    // before registering it, so it never reaches Unified.xml. DefRecompute reads raw
+                    // bodies and does not parse defs, so without this it would recompute a gated def
+                    // as present and the splice would diverge from a full rebuild that dropped it
+                    // (the classic case: a mod providing the required packageId leaves the load).
+                    // `node` is the post-patch sub-doc node — exactly the state the loader evaluates
+                    // MayRequire against (it reads item4's own attributes, post-patch, pre-resolve).
+                    // Read via Attributes[...]?.Value so an absent attribute is null (GetAttribute
+                    // would return "" and falsely trip the gate). A failing def is routed to
+                    // removedConcreteIds so the splice drops it, matching the rebuild byte-for-byte.
+                    if (!MayRequireGate.Passes(
+                            node.Attributes["MayRequire"]?.Value,
+                            node.Attributes["MayRequireAnyOf"]?.Value,
+                            ModLister.AllModsActiveNoSuffix,
+                            ModLister.AnyModActiveNoSuffix))
+                    {
+                        removedConcreteIds.Add(id);
+                        continue;
+                    }
+
                     result[id] = Massage(node, subDoc).OuterXml;
                 }
             }
