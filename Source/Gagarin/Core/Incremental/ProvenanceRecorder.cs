@@ -305,6 +305,75 @@ namespace Gagarin
             }
         }
 
+        // Scans the fully-patched document for MayRequire / MayRequireAnyOf attributes and
+        // indexes each gated node under its owning def, keyed by every packageId it names
+        // (P4). Called once from the ApplyPatches postfix, where the combined+patched doc is
+        // complete but def objects have not yet been parsed — so the attributes are still
+        // present (RimWorld strips MayRequire-failed nodes later, at DefFromNode time). This
+        // captures the dependencies of BOTH inline def content (<ThingStyleDef MayRequire=...>)
+        // and patch-injected content (<li MayRequire=...> an Add operation spliced in), because
+        // after patching they are indistinguishable nodes in one tree. The index is what makes
+        // a mod add/remove dirty the affected defs even though their own files never changed.
+        public static void IndexMayRequire(XmlDocument patchedDoc)
+        {
+            if (!Active || patchedDoc?.DocumentElement == null)
+                return;
+
+            overhead.Start();
+            recordSw.Start();
+            try
+            {
+                ScanForMayRequire(patchedDoc.DocumentElement);
+            }
+            finally
+            {
+                recordSw.Stop();
+                overhead.Stop();
+            }
+        }
+
+        // The two attribute names RimWorld recognises for conditional inclusion. MayRequire
+        // takes a single packageId; MayRequireAnyOf takes a comma-separated list. We treat
+        // both as a list and index the owning def under each named package — over-dirtying
+        // is superset-safe, under-dirtying is the silent-staleness bug we are closing.
+        private static readonly char[] PackageIdSeparators = { ',', ';' };
+
+        private static void ScanForMayRequire(XmlNode node)
+        {
+            if (node is XmlElement element)
+            {
+                string mayRequire = element.GetAttribute("MayRequire");
+                string mayRequireAnyOf = element.GetAttribute("MayRequireAnyOf");
+                if (!string.IsNullOrEmpty(mayRequire) || !string.IsNullOrEmpty(mayRequireAnyOf))
+                {
+                    // Resolve the owning def only once we know the node is gated. KeyForNode
+                    // walks up to the nearest <Defs> child and keys it the same way every
+                    // other consumer does, so the indexed id matches the dirty-set/gate ids.
+                    string nodeId = graph.KeyForNode(element);
+                    if (nodeId != null)
+                    {
+                        AddPackages(mayRequire, nodeId);
+                        AddPackages(mayRequireAnyOf, nodeId);
+                    }
+                }
+            }
+
+            for (XmlNode child = node.FirstChild; child != null; child = child.NextSibling)
+                ScanForMayRequire(child);
+        }
+
+        private static void AddPackages(string attrValue, string nodeId)
+        {
+            if (string.IsNullOrEmpty(attrValue))
+                return;
+            foreach (string raw in attrValue.Split(PackageIdSeparators))
+            {
+                string pkg = raw.Trim();
+                if (pkg.Length > 0)
+                    graph.AddMayRequire(pkg, nodeId);
+            }
+        }
+
         // Keys a matched node to its stable id at selection time — called from the XML
         // selection hooks while the node is still attached to the document. Returns null
         // when capture is inactive. Keying here, rather than in the Apply postfix, is what
@@ -398,6 +467,7 @@ namespace Gagarin
                     $"mods={activeModCount} nodes={graph.NodeCount} (abstract={graph.AbstractNodeCount}) " +
                     $"patchEdges={graph.PatchEdgeCount} " +
                     $"inheritanceEdges={edges} (resolved={resolved}, {resolvedPct:F1}%) " +
+                    $"mayRequire={graph.MayRequireEdgeCount} (pkgs={graph.MayRequirePackageCount}) " +
                     $"docPathFallbacks={graph.DocumentPathFallbackCount} " +
                     $"bytes={Encoding.UTF8.GetByteCount(json)} overheadMs={overhead.ElapsedMilliseconds} " +
                     $"[registerMs={registerSw.ElapsedMilliseconds} " +

@@ -1,0 +1,51 @@
+direction: down
+
+start: "Load start" {shape: oval}
+decide: "Context.IsUsingCache?\nmodlist hash + per-file AssetsHash" {shape: diamond}
+start -> decide
+
+warm: "WARM (author's fast path)\nreplay Unified.xml, skip the whole\nLoadModXML -> ApplyPatches -> Parse pipeline"
+decide -> warm: "hit (unchanged)"
+
+cold: "COLD rebuild - runs the full RimWorld pipeline\n(graph #1) with our capture hooks attached" {
+  idx: "IndexPatches(mods): assign a stable patchId\nto every op incl. nested (PatchIdWalker)\ne.g. mod#3.operations[2]"
+  capEdge: "Apply Pre/Postfix + SelectNodes/SelectSingleNode\nhooks -> RecordPatch = patch edge\n{patchId, sourceMod, xpath, modifiedNodeIds}"
+  capNode: "DefFromNodeNew Postfix -> RegisterNode\n= node {DefType/defName, mod, sourceFile, ParentName}\n** Def-object-gated -> misses custom Def types (P1) **"
+  capAbs: "XmlInheritance.TryRegister Postfix ->\nRegisterAbstract (Name bases) + inheritance edges"
+  save: "Save() -> DependencyGraph.json"
+  idx -> capEdge -> capNode -> capAbs -> save
+}
+decide -> cold: "miss / changed"
+
+sidecar: "Sidecar snapshot (before author teardown)\nprior ModList.xml / Unified.xml / AssetsHash"
+cold -> sidecar
+
+store: "DependencyGraph.json + sidecar priors" {shape: cylinder}
+cold.save -> store
+sidecar -> store
+
+incr: "INCREMENTAL diagnostic (changed load, in LoadModXML hooks)" {
+  pre: "Prefix: snapshot prior hashes + load order"
+  changed: "ChangedAssets: prior<->current hash diff\n-> changed / ADDED / removed files"
+  build: "BuildChange:\nChangedNodeIds = baseline nodes w/ changed file\n** added-mod defs absent from baseline -> never seeded (P2) **\nChangedMods = mods w/ changed Patches/ files"
+  flips: "M2a wildcard re-test: CHANGED mods'\nCURRENT xpaths vs current def bodies (__result)\n-> newly-matched def ids\n** only changed mods; unchanged-mod conditional\nflips not seen (P4) **"
+  compute: "DirtySetComputer.Compute\nS1 changed defs / S2 patch-modified / S3 reorder\nS4 wildcard flips -> inheritance closure (fixpoint)"
+  pre -> changed -> build -> flips -> compute
+}
+store -> incr
+
+gate: "DirtySetGate (after rebuild's Save)\nUnifiedCacheDiff prior<->new Unified ->\nnonDirtyMismatches (proves dirty set superset of real change)" {shape: diamond}
+incr.compute -> gate
+
+recomp: "RunRecompute" {
+  expand: "SubDocExpander.Expand: dirty + sequence-sibling\nCONTEXT; needsFullRebuild if a CHANGED mod owns\na container op -> safe FALLBACK to full rebuild"
+  re: "DefRecompute: REAL patch.Apply over a tiny\n<Defs> sub-doc + inheritance -> resolved dirty defs"
+  splice: "UnifiedCacheSplice into prior Unified ->\ndiff vs rebuild = recomputeMismatches"
+  expand -> re -> splice
+}
+gate -> recomp
+
+metrics: "MetricsLog -> incremental-metrics.jsonl\nload_summary / error / inconsistency\n(survives cache clears)" {shape: cylinder}
+incr.compute -> metrics
+gate -> metrics
+recomp -> metrics

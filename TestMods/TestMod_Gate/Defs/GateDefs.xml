@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- TC_Gate_Marker: the gate mod's sole def. Its only purpose is to give this mod an XML
+       asset, so that removing the mod before Run B changes the asset set and triggers Gagarin's
+       cache miss (Run B must rebuild for the dirty-set gate to run at all). On removal this def's
+       source file disappears, so it is dirtied by Seed 1 (changed/removed assets) — NOT by the
+       MayRequire seed — and is therefore expected to be covered without any P4 logic. The defs
+       that exercise P4 live in TestMod_MayRequire (an UNCHANGED mod). -->
+  <ThingDef>
+    <defName>TC_Gate_Marker</defName>
+    <label>gate marker</label>
+  </ThingDef>
+</Defs>
