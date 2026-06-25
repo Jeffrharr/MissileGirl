@@ -61,6 +61,13 @@ namespace Gagarin
         public readonly List<GraphPatchEdge> PatchEdges = new List<GraphPatchEdge>();
         public readonly List<GraphInheritanceEdge> InheritanceEdges = new List<GraphInheritanceEdge>();
 
+        // MayRequire index (P4): packageId -> def node ids gated on that mod's presence.
+        // Case-insensitive to match how RimWorld compares packageIds and how the capture
+        // side keyed them (authors reference the same mod with varying casing). Empty when
+        // the graph predates P4 (the field is simply absent from older DependencyGraph.json).
+        public readonly Dictionary<string, List<string>> MayRequireIndex =
+            new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
+
         public static DependencyGraphData Load(string path)
         {
             return Parse(File.ReadAllText(path));
@@ -116,8 +123,20 @@ namespace Gagarin
                 });
             }
 
+            // MayRequire index (P4). An object of packageId -> [nodeId, ...]. Absent in
+            // pre-P4 graphs, in which case AsObject yields an empty map and Seed 6 no-ops.
+            foreach (var kv in AsObject(Get(root, "mayRequire")))
+            {
+                var ids = new List<string>();
+                AddStrings(ids, kv.Value);
+                data.MayRequireIndex[kv.Key] = ids;
+            }
+
             return data;
         }
+
+        private static IEnumerable<KeyValuePair<string, object>> AsObject(object v)
+            => v as Dictionary<string, object> ?? new Dictionary<string, object>();
 
         private static object Get(Dictionary<string, object> o, string key)
             => o.TryGetValue(key, out var v) ? v : null;

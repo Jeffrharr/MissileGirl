@@ -27,6 +27,7 @@
 // which are folded in before the closure. With them the result is the SUPERSET a recompute
 // requires; without them (the M1 path) it is a sound LOWER bound for sizing the prize.
 
+using System;
 using System.Collections.Generic;
 
 namespace Gagarin
@@ -68,6 +69,7 @@ namespace Gagarin
         public int SeedReorder;         // nodes seeded by an order change
         public int SeedWildcardFlip;    // nodes seeded by a wildcard membership flip (M2a)
         public int SeedAddedDefs;       // nodes seeded as newly-added defs absent from baseline (P2)
+        public int SeedMayRequire;      // nodes seeded by a MayRequire flip on a mod add/remove (P4)
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int Iterations;          // inheritance-closure frontier steps
     }
@@ -148,6 +150,34 @@ namespace Gagarin
                 foreach (var id in wildcardFlipSeeds)
                     if (id != null && dirty.Add(id))
                         result.SeedWildcardFlip++;
+            }
+
+            // Seed 6 — MayRequire flips (P4). When a mod enters or leaves the active set, any
+            // def the baseline indexed against that packageId (via a MayRequire /
+            // MayRequireAnyOf on its own content, or on patch-injected content) flips inclusion
+            // or value. Such a def lives in an UNCHANGED mod with an UNCHANGED file, so seeds
+            // 1-5 never reach it — this is the gap that silently serves stale FactionDef /
+            // ThingStyleDef content on a mod add/remove. We dirty every indexed def whose gating
+            // mod is present in exactly one of the two load orders (a true add or remove); mods
+            // present in both (or neither) cannot have flipped, so they are skipped. Placed
+            // before the inheritance closure so a flipped abstract base still fans out.
+            if (graph.MayRequireIndex != null && graph.MayRequireIndex.Count > 0)
+            {
+                var prior = new HashSet<string>(
+                    change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                var current = new HashSet<string>(
+                    change.CurrentLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var kv in graph.MayRequireIndex)
+                {
+                    // XOR: only a packageId that entered or left the load flips its gated defs.
+                    if (prior.Contains(kv.Key) == current.Contains(kv.Key))
+                        continue;
+                    foreach (var id in kv.Value)
+                        if (id != null && dirty.Add(id))
+                            result.SeedMayRequire++;
+                }
             }
 
             // Propagation — inheritance closure to a fixpoint: dirtying a parent dirties its

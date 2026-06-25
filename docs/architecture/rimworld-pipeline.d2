@@ -1,0 +1,33 @@
+direction: down
+
+active: "Active mods, in load order\n(ModsConfig.ActiveModsInLoadOrder)" {shape: hexagon}
+
+load: "1. LoadModXML()" {
+  defs: "Defs/**.xml -> LoadableXmlAsset\nraw <Defs> element trees (per file)"
+  patches: "mod.Patches (lazy: ModContentPack.LoadPatches)\nEVERY <Operation> loaded into the list\n- no MayRequire gate here.\n<li MayRequire/MayRequireAnyOf> children\nare dropped during list deserialize\n(DirectXmlToObject), so a container op's\nchild set depends on active mods"
+}
+
+combine: "2. CombineIntoUnifiedXML()\nimport every def node into ONE <Defs>\nXmlDocument; assetlookup[node]=owning asset"
+
+apply: "3. ApplyPatches(unifiedDoc)" {
+  loop: "runningMods.SelectMany(rm => rm.Patches)\nin load order -> patch.Apply(unifiedDoc)"
+  pathed: "PatchOperationPathed: SelectNodes(xpath)\n-> Add/Insert/Replace/Remove/SetName ...\nmatch is by XPATH, not identity"
+  seq: "PatchOperationSequence: run children\nin order, ABORT whole seq on first\nchild whose xpath finds no match"
+  cond: "PatchOperationConditional / FindMod:\ntest xpath / mod presence ->\nmatch vs nomatch branch"
+  loop -> pathed
+  loop -> seq
+  loop -> cond
+}
+
+parse: "4. ParseAndProcessXML(unifiedDoc)" {
+  reg: "a. per node: XmlInheritance.TryRegister(node, mod)\nindex by Name (abstract bases) / ParentName"
+  resolve: "b. XmlInheritance.Resolve()\nmerge parent fields down into each child"
+  gate: "c. per node: def-level MayRequire /\nMayRequireAnyOf - skip if unsatisfied" {shape: diamond}
+  inst: "d. DirectXmlToObjectNew.DefFromNodeNew(node)\n-> Def object -> mod.AddDef()"
+  reg -> resolve -> gate
+  gate -> inst: "satisfied"
+}
+
+xref: "5. DirectXmlCrossRefLoader\n.ResolveAllWantedCrossReferences\n+ PostLoad -> DefDatabase<T> populated" {shape: cylinder}
+
+active -> load -> combine -> apply -> parse -> xref

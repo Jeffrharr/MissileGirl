@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run A — FALLBACK variant of TestMod_Change's patches.
+       Selected by `run_test.sh` in expect-fallback mode; the runner copies this to
+       Patches/Change.xml before the Run A (cold, provenance-capture) launch.
+
+       Why this file exists:
+         The default change fixtures (Change_RunA.xml / Change_RunB.xml) keep ALL
+         container ops in the UNCHANGED static mod, so SubDocExpander never trips its
+         changed-mod fallback and the real sub-doc recompute is exercised. To prove the
+         OTHER branch — the conservative full-rebuild fallback — the CHANGED mod itself
+         must own a container op. This variant gives joof.testharness.change a
+         PatchOperationSequence.
+
+       How the fallback is armed (verified against SubDocExpander.Expand):
+         The fallback fires when, for some BASELINE-graph patch edge,
+         changedModIds.Contains(edge.SourceMod) AND edge.PatchId is a container child
+         ("...operations[N]" => PatchOperationSequence). So the sequence must be present
+         on BOTH runs: Run A (this file) so its child ops are captured into
+         DependencyGraph.json as joof.testharness.change#N.operations[M] edges, and Run B
+         (Change_RunB_Fallback.xml) which EDITS a value inside it so the patch file hash
+         changes and the mod lands in LastChangedMods. Both conditions then hold on Run B
+         and SubDocExpander returns needsFullRebuild=true.
+
+         Each sequence child is a PatchOperationAdd (a PatchOperationPathed), so it gets an
+         ".operations[N]" id and an edge with modified nodes; the parent sequence is not
+         pathed and produces no edge of its own. The child xpaths target real defs
+         (TC_SeqTarget, TC_Identity) that exist on Run A so the ops succeed and the edges
+         are captured.
+
+       Note this fixture intentionally does NOT also widen the wildcard or flip the
+       conditional — the static mod still owns those, but on a fallback load the recompute
+       declines entirely (full rebuild is authoritative), so only the sequence-ownership
+       matters for the path under test. -->
+
+  <!-- The container op owned by the CHANGED mod: a 2-op sequence touching TC_SeqTarget
+       then TC_Identity. Present (and successfully matching) on Run A so its children are
+       recorded as container-child edges in the baseline graph. -->
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_SeqTarget"]</xpath>
+        <value>
+          <changeSeqTag>run-a</changeSeqTag>
+        </value>
+      </li>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_Identity"]</xpath>
+        <value>
+          <changeSeqTag>run-a</changeSeqTag>
+        </value>
+      </li>
+    </operations>
+  </Operation>
+</Patch>
