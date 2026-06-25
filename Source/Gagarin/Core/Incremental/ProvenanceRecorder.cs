@@ -244,8 +244,19 @@ namespace Gagarin
                 // A concrete def can also be an inheritance template (Name attribute);
                 // pass it so children referencing it by ParentName resolve here.
                 string nameAttr = element?.GetAttribute("Name");
+                // Key by the XML ELEMENT name, not def.GetType().Name. These diverge for
+                // two real cases: a fully-namespaced custom def element
+                // (<VFEProps.PropDef> -> element name "VFEProps.PropDef" vs type name
+                // "PropDef") and a Class-attributed def (<ThingDef Class="Mod.SubDef">
+                // -> element "ThingDef" vs type "SubDef"). Every consumer of the graph
+                // -- KeyForNode, RegisterAbstract, DefRecompute, the splice and the gate
+                // -- keys nodes by the element name, so using the simple type name here
+                // filed those defs under a key nobody looks up: they were captured but
+                // never matchable, so no seed could dirty them (the bulk of the P1
+                // "un-captured def types" gate misses). Fall back to the type name only
+                // if node somehow isn't an element (a def always has an element here).
                 graph.AddNode(
-                    def.GetType().Name,
+                    element?.Name ?? def.GetType().Name,
                     def.defName,
                     nameAttr,
                     asset?.mod?.PackageId,
