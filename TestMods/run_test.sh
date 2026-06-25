@@ -86,6 +86,14 @@ export GAGARIN_CAPTURE_PROVENANCE=1
 export GAGARIN_DIRTYSET_DIAGNOSTIC=1
 export GAGARIN_DIRTYSET_GATE=1
 export GAGARIN_DIRTYSET_RECOMPUTE=1
+# The master toggle enables PriorStateSnapshot (the sidecar under .../MissileGirl/Incremental/prior/).
+# It is the ONLY source of the TRUE prior modlist/Unified/hash that survives OnInitialization's
+# modlist-change teardown — the live ModList.xml is re-dumped to the CURRENT order before the
+# diagnostic reads it. Without it, any seed that compares prior vs current load order (reorder /
+# MayRequire) silently sees no change on a mod add/remove and never fires. It gates ONLY the sidecar
+# (verified: GagarinPrefs.IncrementalCache is referenced nowhere else), so it does not alter the
+# full-rebuild path the gates compare against.
+export GAGARIN_INCREMENTAL_CACHE=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHANGE_MOD_DIR="$SCRIPT_DIR/TestMod_Change"
@@ -547,6 +555,9 @@ log "--- Step 2: preparing Run A (cold baseline) ---"
 log "Clearing MissileGirl cache..."
 rm -rf "$CACHE_DIR"
 mkdir -p "$CACHE_DIR"
+# Also wipe the prior-state sidecar (.../MissileGirl/Incremental/) so a stale snapshot from an
+# earlier run cannot be read as Run A's prior. Run A re-captures it; Run B reads Run A's copy.
+rm -rf "$(dirname "$CACHE_DIR")/Incremental"
 
 # Copy Run A patches into the active Change.xml.
 # Default Run A has a narrow xpath (only matches TC_Wildcard_A by defName); the --expect-fallback
