@@ -101,6 +101,7 @@ cd TestMods && bash run_test.sh [flags]
 | `--expect-fallback` | Changed mod owns a container op (`PatchOperationSequence`) → SubDocExpander declines | dirty-set gate + `fallback==true && pass==true` |
 | `--expect-added` | P2 added-defs channel: `joof.testharness.added` held out of Run A, inserted before Run B | dirty-set gate + recompute + `seeds.addedDefs > 0` |
 | `--expect-mayrequire` | P4 MayRequire flip: `joof.testharness.gate` active for Run A, removed for Run B; gated content in the unchanged `joof.testharness.mayrequire` (root-gated def + patch-injected `<li MayRequire>`) | dirty-set gate + `seeds.mayRequire > 0`. **Recompute is informational** here (DefRecompute doesn't yet evaluate MayRequire over raw bodies → the gated def recomputes as present and mismatches; that's the separate recompute-fidelity workstream, not P4's superset claim) |
+| `--expect-p1` | P1 node-id keying: `joof.testharness.p1` (C# assembly defining the namespaced `JoofTest.PropDef`); its def file's `p1Tag` is swapped Run A→B (changed def file, modlist unchanged) | dirty-set gate + recompute gate + the dirty set contains `JoofTest.PropDef/TC_P1_Prop` (element-name keyed, not legacy `PropDef/...`) |
 | `--modlist=FILE` | Adds a captured problem set (one packageId per line, `#` comments) on top of the minimal base; hard-capped at 100 mods total | per the `--expect-*` mode chosen |
 | `--no-teardown` | Leaves symlinks/ModsConfig/DLL deployed (combine with others for debugging) | — |
 
@@ -115,18 +116,20 @@ Recompute gate is `RecomputeReport.json` (required except in `--expect-mayrequir
   signature is visible); a death **after** `GAGARIN:` is a real crash and is surfaced.
 - **Reproducing a problem set:** every run archives `livetest-<ts>-modlist.xml` (written before
   launch, so it survives a crash). To replay, strip it to ≤100 packageIds and pass via `--modlist=`.
-- **P1 still lacks a live fixture:** the synthetic mods are plain `<ThingDef>`s, so the harness does
-  not yet exercise namespaced custom-def keying (P1) — that needs a test mod with a C# assembly
-  defining a namespaced `Def` subclass (or a `Class="..."` def). P4 is covered by `--expect-mayrequire`.
+- P1 and P4 both have live fixtures: `--expect-p1` (`TestMod_P1`, a C# assembly with the namespaced
+  `JoofTest.PropDef`) and `--expect-mayrequire`. Both pass.
 
 ## Roadmap — incremental correctness on add/remove
 
 The incremental path is **not yet trustworthy on add/remove** (coverage runs: CLEAN=0/15; gate &
 recompute still FAIL in many cases). Workstreams:
-- **P1** capture **all** def types — **mostly DONE**. Root cause was NOT a capture gap: the defs
-  *were* captured, but `RegisterNode` keyed them by `def.GetType().Name` (simple name) while every
-  consumer keys by the XML element name, so namespaced custom def elements
+- **P1** capture **all** def types — **DONE, live-validated**. Root cause was NOT a capture gap: the
+  defs *were* captured, but `RegisterNode` keyed them by `def.GetType().Name` (simple name) while
+  every consumer keys by the XML element name, so namespaced custom def elements
   (`<VFEProps.PropDef>`) and `Class`-attributed defs were filed under a key nobody looks up.
+  Live run (`run_test.sh --expect-p1`, 2026-06-24): dirty-set gate PASS, recompute gate PASS, and the
+  changed `<JoofTest.PropDef>` was dirtied as `JoofTest.PropDef/TC_P1_Prop` (NOT the legacy
+  `PropDef/TC_P1_Prop`). Fixture `TestMod_P1` ships a C# assembly defining the namespaced `Def` subclass.
   `RegisterNode` now keys by the element name (matching `RegisterAbstract`/`KeyForNode`); this
   cleared 40 of 45 gate misses on the vmemese-removal run. **Residual 5 (separate cause, → P4):**
   3 `ThingStyleDef` + 2 `FactionDef` whose element name already matched their type name. These
