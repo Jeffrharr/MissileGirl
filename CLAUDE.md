@@ -100,7 +100,7 @@ cd TestMods && bash run_test.sh [flags]
 | *(none)* | Default: real sub-doc recompute (leaf-op change in the changed mod) | dirty-set gate + `fallback==false && recomputeMismatches==0` |
 | `--expect-fallback` | Changed mod owns a container op (`PatchOperationSequence`) → SubDocExpander declines | dirty-set gate + `fallback==true && pass==true` |
 | `--expect-added` | P2 added-defs channel: `joof.testharness.added` held out of Run A, inserted before Run B | dirty-set gate + recompute + `seeds.addedDefs > 0` |
-| `--expect-mayrequire` | P4 MayRequire flip: `joof.testharness.gate` active for Run A, removed for Run B; gated content in the unchanged `joof.testharness.mayrequire` (root-gated def + patch-injected `<li MayRequire>`) | dirty-set gate + `seeds.mayRequire > 0`. **Recompute is informational** here (DefRecompute doesn't yet evaluate MayRequire over raw bodies → the gated def recomputes as present and mismatches; that's the separate recompute-fidelity workstream, not P4's superset claim) |
+| `--expect-mayrequire` | P4 MayRequire flip: `joof.testharness.gate` active for Run A, removed for Run B; gated content in the unchanged `joof.testharness.mayrequire` (root-gated def + patch-injected `<li MayRequire>`) | dirty-set gate + `seeds.mayRequire > 0` + recompute gate (`recomputeMismatches==0`). DefRecompute now mirrors the loader's root MayRequire gate (`MayRequireGate`), so the gated def is dropped from the splice exactly as the rebuild drops it — recompute is **required**, no longer informational |
 | `--expect-p1` | P1 node-id keying: `joof.testharness.p1` (C# assembly defining the namespaced `JoofTest.PropDef`); its def file's `p1Tag` is swapped Run A→B (changed def file, modlist unchanged) | dirty-set gate + recompute gate + the dirty set contains `JoofTest.PropDef/TC_P1_Prop` (element-name keyed, not legacy `PropDef/...`) |
 | `--modlist=FILE` | Adds a captured problem set (one packageId per line, `#` comments) on top of the minimal base; hard-capped at 100 mods total | per the `--expect-*` mode chosen |
 | `--no-teardown` | Leaves symlinks/ModsConfig/DLL deployed (combine with others for debugging) | — |
@@ -153,14 +153,20 @@ recompute still FAIL in many cases). Workstreams:
   *add* direction is only covered when the gated content survives into the patched doc with the
   required mod absent (true for plain `Add`-injected `<li MayRequire>`; a `PatchOperationFindMod`
   that gates the whole op would not be captured with the mod absent).
-- **Recompute fidelity for `MayRequire` — OPEN (next up).** `DefRecompute` reads the current raw def
-  bodies and does NOT evaluate `MayRequire`/`MayRequireAnyOf`, so on a mod add/remove it recomputes a
-  gated def/`<li>` as *present* and the spliced result diverges from the full rebuild that dropped it.
-  The dirty-set (superset) gate already covers these (P4 dirties them); this is purely the
-  value-production half. Reproduced live: `--expect-mayrequire` and the real vmemese-removal run both
-  show `recomputeMismatches` = exactly the gated defs (e.g. the 3 toastyman `ThingStyleDef`s). Fix
-  direction: have `DefRecompute` apply the same `MayRequire` filtering RimWorld does when building the
-  sub-doc (or treat a dirty def whose gating mod changed as a drop), so the splice matches the rebuild.
+- **Recompute fidelity for `MayRequire` — DONE.** `DefRecompute` used to read the current raw def
+  bodies without evaluating `MayRequire`/`MayRequireAnyOf`, so on a mod add/remove it recomputed a
+  root-gated def as *present* and the spliced result diverged from the full rebuild that dropped it.
+  Fixed by `MayRequireGate.Passes` (`Core/Incremental/MayRequireGate.cs`), a pure mirror of the
+  root-level gate `LoadedModManager.ParseAndProcessXML` applies before registering a def (ALL of
+  `MayRequire` active + at least one `MayRequireAnyOf` active, lowercased/comma-split). DefRecompute
+  step 6 evaluates it on each dirty concrete def's **post-patch** node (supplying the real
+  `ModLister.AllModsActiveNoSuffix`/`AnyModActiveNoSuffix`); a failing def is routed to
+  `removedConcreteIds`, so the splice drops it byte-for-byte like the rebuild. The semantics are
+  offline-tested (`MayRequireGateTests`, 7 cases); the engine wiring is gate-validated. Note this is
+  the *root-gated def* case — a patch-injected `<li MayRequire>` already matched, because the loader
+  leaves `MayRequire` attrs in `Unified.xml` (evaluated at cache-LOAD/DefFromNode time) so both
+  rebuild and recompute serialize the gated `<li>` identically. `--expect-mayrequire` now requires
+  the recompute gate to pass (was informational).
 - Recompute fidelity (general) / broaden the safe full-rebuild fallback — OPEN.
 
 ## Gotchas (verified)

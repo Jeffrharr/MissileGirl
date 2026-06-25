@@ -119,8 +119,10 @@ EXPECT_ADDED=0
 # UNCHANGED mod) carries content gated on joof.testharness.gate — a whole def at its root and a
 # patch-injected <li>. The gate mod is activated for run A (so the gated content is included and
 # indexed) and REMOVED before run B (a pure mod-list change). The gated defs must show up dirty via
-# the MayRequire seed (DirtySet.json seeds.mayRequire > 0) so the dirty-set gate stays a superset.
-# Change.xml is held at run A for both runs, so the ONLY between-run delta is the gate mod removal.
+# the MayRequire seed (DirtySet.json seeds.mayRequire > 0) so the dirty-set gate stays a superset,
+# AND the recompute gate must pass (DefRecompute drops the now-failing gated def via MayRequireGate,
+# matching the rebuild). Change.xml is held at run A for both runs, so the ONLY between-run delta is
+# the gate mod removal.
 EXPECT_MAYREQUIRE=0
 # --expect-p1: exercise the node-id keying fix (P1). joof.testharness.p1 ships a C# assembly with a
 # custom def subclass JoofTest.PropDef, authored in XML by its fully-qualified element name
@@ -793,18 +795,16 @@ if [[ $EXPECT_ADDED -eq 1 ]]; then
     added_ok=0; parse_dirtyset_added && added_ok=1 || added_ok=0
 fi
 
-# --expect-mayrequire (P4): require the MayRequire channel to have fired. The recompute gate is
-# NOT required to pass here: DefRecompute does not yet evaluate MayRequire over raw def bodies, so a
-# gated def is recomputed as present and mismatches the rebuild that dropped it. That is the
-# separate "recompute fidelity" workstream; P4's claim is purely that the dirty set stays a SUPERSET
-# (the silent-staleness gate), so we gate this mode on the dirty-set gate + the MayRequire seed and
-# treat the recompute result as informational.
+# --expect-mayrequire (P4 + MayRequire recompute fidelity): require BOTH the MayRequire channel to
+# have fired AND the recompute gate to pass. DefRecompute now mirrors the loader's root-level
+# MayRequire / MayRequireAnyOf gate (MayRequireGate.Passes): a dirty def whose gating mod left the
+# load is dropped from the splice exactly as the full rebuild dropped it, so the spliced cache
+# byte-matches. (This row used to treat recompute as informational, before that fidelity fix landed.)
 mayrequire_ok=1
 recompute_required=1
 if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
     log "MayRequire channel result:"
     mayrequire_ok=0; parse_dirtyset_mayrequire && mayrequire_ok=1 || mayrequire_ok=0
-    recompute_required=0
 fi
 
 # --expect-p1 (P1): require the changed namespaced def to be dirtied under its element-name node id.

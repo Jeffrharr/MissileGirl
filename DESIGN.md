@@ -689,3 +689,33 @@ that run. Add-direction caveat: a `PatchOperationFindMod` gating a whole op woul
 not index) its content while the required mod is absent, so adds via that shape are not yet covered;
 the documented failing case is a removal, which is fully covered.
 
+### MayRequire recompute fidelity (the value-production half)
+
+P4/Seed 6 is the *dirty-set* (superset) half: it guarantees a `MayRequire`-gated def is **dirtied**
+when its gating mod enters/leaves. That keeps the gate a superset, but it does not by itself produce
+the right *value*. `DefRecompute` rebuilds each dirty concrete def from its raw body via the real
+engine; it never parsed defs, so it never evaluated `MayRequire`/`MayRequireAnyOf`. A root-gated def
+(`<ThingStyleDef MayRequire="…">`) whose mod just left the load was therefore recomputed as
+**present** and spliced in, while the full rebuild **dropped** it — a real divergence the recompute
+gate flagged (`--expect-mayrequire`: `recomputeMismatches=1` = `TC_MR_Gated`; the real vmemese
+removal: the 3 toastyman `ThingStyleDef`s).
+
+The real loader's drop happens in `LoadedModManager.ParseAndProcessXML`, which — *before* registering
+a def — `continue`s past any node whose root `MayRequire` packages aren't ALL active, or whose
+`MayRequireAnyOf` has NONE active. `MayRequireGate.Passes` (`Core/Incremental/MayRequireGate.cs`) is a
+pure mirror of those two checks (lowercase + comma-split, `MayRequire` null-skips, `MayRequireAnyOf`
+null/empty-skips), taking the two `ModLister` oracles as delegates so the AND/OR semantics are
+offline-tested (`MayRequireGateTests`, 7 cases) while DefRecompute supplies the real
+`ModLister.AllModsActiveNoSuffix`/`AnyModActiveNoSuffix` in-game. DefRecompute step 6 evaluates it on
+each dirty concrete def's **post-patch** sub-doc node (exactly the state the loader reads `item4`'s
+attributes from — post-patch, pre-resolve); a failing def is routed to `removedConcreteIds`, so the
+splice drops it byte-for-byte like the rebuild. Attributes are read via `Attributes["X"]?.Value` (null
+when absent), NOT `GetAttribute` (which returns `""` and would falsely trip the gate).
+
+Scope clarification — only the **root-gated def** case needed fixing. A patch-injected
+`<li MayRequire>` already matched: the loader leaves `MayRequire` attributes in `Unified.xml` (they're
+re-evaluated at cache-LOAD/`DefFromNode` time, not at Save), so both the rebuild and the recompute
+serialize the gated `<li>` identically into the cache. With the root-gated drop in place,
+`--expect-mayrequire` flips from "recompute informational" to **recompute required**
+(`recomputeMismatches==0`).
+
