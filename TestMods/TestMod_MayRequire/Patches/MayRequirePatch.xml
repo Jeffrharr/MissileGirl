@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Injects a gate-gated <li> into TC_MR_Host's tradeTags, reproducing the FactionDef case
+       (mod 3346930834 added <li MayRequire="VanillaExpanded.VMemesE"> to requiredMemes). The Add
+       op itself is unconditional, so the <li> is always spliced into the document; its own
+       MayRequire attribute is what RimWorld evaluates at def-parse. Thus:
+         Run A (gate active):   the <li> survives  -> tradeTags [HostBase, GatedTag]
+         Run B (gate removed):  the <li> is stripped -> tradeTags [HostBase]
+       Because the Add runs regardless, the gated <li> is present in the patched document on the
+       baseline (Run A) load, so ProvenanceRecorder.IndexMayRequire sees it and indexes TC_MR_Host
+       under joof.testharness.gate. This file does NOT change between runs. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_MR_Host"]/tradeTags</xpath>
+    <value>
+      <li MayRequire="joof.testharness.gate">GatedTag</li>
+    </value>
+  </Operation>
+</Patch>

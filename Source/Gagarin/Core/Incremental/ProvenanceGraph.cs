@@ -20,6 +20,7 @@
 // deliberately free of any RimWorld dependency so the load-bearing keying and
 // serialization logic can be unit-tested offline against synthetic XmlDocuments.
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
@@ -77,6 +78,18 @@ namespace Gagarin
         private readonly List<InheritanceEdge> inheritanceEdges =
             new List<InheritanceEdge>();
 
+        // MayRequire index (P4): packageId -> set of def node ids whose resolved content
+        // carries a MayRequire / MayRequireAnyOf gated on that packageId. Captured by
+        // scanning the patched document (see ProvenanceRecorder.IndexMayRequire). It is
+        // what lets a dirty-set seed fire when a mod is added to / removed from the load:
+        // such a def lives in an UNCHANGED mod with an UNCHANGED file, so no structural
+        // seed reaches it, yet its resolved value flips with the gated mod's presence.
+        // Keyed case-insensitively because RimWorld treats packageIds that way and the
+        // same mod is referenced with different casing across authors
+        // (e.g. "vanillaexpanded.vmemese" vs "VanillaExpanded.VMemesE").
+        private readonly Dictionary<string, HashSet<string>> mayRequire =
+            new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
         // defName -> node id, so inheritance edges can resolve a ParentName to a
         // concrete parent node id during serialization (the parent def may be
         // registered after the child).
@@ -104,6 +117,19 @@ namespace Gagarin
         public int NodeCount => nodes.Count;
         public int PatchEdgeCount => patchEdges.Count;
         public int InheritanceEdgeCount => inheritanceEdges.Count;
+        // Distinct packageIds referenced by any MayRequire / MayRequireAnyOf this load.
+        public int MayRequirePackageCount => mayRequire.Count;
+        // Total (packageId, defNodeId) pairs indexed — the seed's fan-out upper bound.
+        public int MayRequireEdgeCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (HashSet<string> ids in mayRequire.Values)
+                    count += ids.Count;
+                return count;
+            }
+        }
         // How many times KeyForNode fell back to DocumentPath (NearestDefElement
         // returned null). High values indicate nodes outside a <Defs> root or an
         // unexpected document structure worth investigating.
@@ -145,6 +171,7 @@ namespace Gagarin
             defNameToNodeId.Clear();
             nameAttrToNodeId.Clear();
             pendingInheritance.Clear();
+            mayRequire.Clear();
             keyCache.Clear();
             DocumentPathFallbackCount = 0;
         }
@@ -186,6 +213,24 @@ namespace Gagarin
 
             if (!string.IsNullOrEmpty(parentName))
                 pendingInheritance.Add(new KeyValuePair<string, string>(id, parentName));
+        }
+
+        // Indexes one MayRequire / MayRequireAnyOf dependency: def node nodeId carries
+        // (directly, or via a patch that injected the gated content) a requirement on
+        // packageId. Empty/null inputs are ignored. A MayRequireAnyOf listing several
+        // packages calls this once per package — conservatively, ANY of them entering or
+        // leaving the load can flip the def's inclusion, so we want the seed to fire on
+        // each; over-approximating here only over-dirties (superset-safe), never misses.
+        public void AddMayRequire(string packageId, string nodeId)
+        {
+            if (string.IsNullOrEmpty(packageId) || string.IsNullOrEmpty(nodeId))
+                return;
+            if (!mayRequire.TryGetValue(packageId, out HashSet<string> ids))
+            {
+                ids = new HashSet<string>();
+                mayRequire[packageId] = ids;
+            }
+            ids.Add(nodeId);
         }
 
         // Records matched/modified node ids for a single PatchOperation. The ids are
@@ -395,6 +440,21 @@ namespace Gagarin
             }
             sb.Append("],");
 
+            // MayRequire index (P4): { "<packageId>": ["<nodeId>", ...], ... }. An object
+            // rather than an array so the consumer (DirtySetComputer Seed 6) can look up a
+            // packageId directly when a mod enters/leaves the load.
+            sb.Append("\"mayRequire\":{");
+            first = true;
+            foreach (KeyValuePair<string, HashSet<string>> kv in mayRequire)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                AppendQ(sb, kv.Key);
+                sb.Append(':');
+                AppendArr(sb, kv.Value);
+            }
+            sb.Append("},");
+
             // serializedBytes is the UTF-8 length of the complete document,
             // including the serializedBytes field itself. The value is therefore
             // self-referential: writing it changes the length. We measure the
@@ -407,6 +467,8 @@ namespace Gagarin
                 $"\"patchEdgeCount\":{patchEdges.Count}," +
                 $"\"inheritanceEdgeCount\":{inheritanceEdges.Count}," +
                 $"\"inheritanceResolvedCount\":{InheritanceResolvedCount}," +
+                $"\"mayRequirePackageCount\":{MayRequirePackageCount}," +
+                $"\"mayRequireEdgeCount\":{MayRequireEdgeCount}," +
                 $"\"documentPathFallbacks\":{DocumentPathFallbackCount}," +
                 $"\"activeModCount\":{activeModCount}," +
                 $"\"registerMs\":{registerMs}," +

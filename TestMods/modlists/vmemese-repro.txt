@@ -1,0 +1,16 @@
+# Real-mod reproduction of the vmemese-removal case (P1 + P4 on real content).
+# Loaded on top of the harness's minimal base (Core + DLCs + Harmony + Gagarin + test mods) for run A;
+# run with:  bash run_test.sh --modlist=<abs path>/vmemese-repro.txt --remove=VanillaExpanded.VMemesE
+#
+# Removing VanillaExpanded.VMemesE before run B:
+#   - drops VFE Props' IfModActive="VanillaExpanded.VMemesE" loadFolders prop defs
+#     (1.6/Mods/VanillaMemesExpanded/Defs/PropDefs/...), i.e. namespaced <VFEProps.PropDef> defs whose
+#     files vanish -> Seed 1 must dirty them by their element-name node id (the P1 case); and
+#   - flips toastyman.moreritualseats' <ThingStyleDef MayRequire="VanillaExpanded.VMemesE"> roots
+#     (the P4 case); and
+#   - removes VMemesE's own (often namespaced) defs.
+# With P1+P4 the dirty-set gate must stay a superset (nonDirtyMismatches==0).
+OskarPotocki.VanillaFactionsExpanded.Core
+VanillaExpanded.VMemesE
+VanillaExpanded.VFEPropsandDecor
+toastyman.moreritualseats
