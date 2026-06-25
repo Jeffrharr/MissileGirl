@@ -153,7 +153,15 @@ recompute still FAIL in many cases). Workstreams:
   *add* direction is only covered when the gated content survives into the patched doc with the
   required mod absent (true for plain `Add`-injected `<li MayRequire>`; a `PatchOperationFindMod`
   that gates the whole op would not be captured with the mod absent).
-- Recompute fidelity / broaden the safe full-rebuild fallback — OPEN.
+- **Recompute fidelity for `MayRequire` — OPEN (next up).** `DefRecompute` reads the current raw def
+  bodies and does NOT evaluate `MayRequire`/`MayRequireAnyOf`, so on a mod add/remove it recomputes a
+  gated def/`<li>` as *present* and the spliced result diverges from the full rebuild that dropped it.
+  The dirty-set (superset) gate already covers these (P4 dirties them); this is purely the
+  value-production half. Reproduced live: `--expect-mayrequire` and the real vmemese-removal run both
+  show `recomputeMismatches` = exactly the gated defs (e.g. the 3 toastyman `ThingStyleDef`s). Fix
+  direction: have `DefRecompute` apply the same `MayRequire` filtering RimWorld does when building the
+  sub-doc (or treat a dirty def whose gating mod changed as a drop), so the splice matches the rebuild.
+- Recompute fidelity (general) / broaden the safe full-rebuild fallback — OPEN.
 
 ## Gotchas (verified)
 
