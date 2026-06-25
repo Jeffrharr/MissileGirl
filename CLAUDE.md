@@ -58,6 +58,16 @@ FrameworkPathOverride=/usr/lib/mono/4.8-api /home/deck/.dotnet/dotnet test Sourc
 ```
 Note: building updates the tracked artifact `1.6/Plugins/Stable/Gagarin.dll` — it shows up in diffs.
 
+## Workflow
+
+- **Open a draft PR early** — as soon as a branch has a coherent first commit, push it and open a
+  **draft** PR (`gh pr create --draft`). It makes in-flight work visible, gives a stable place to
+  track validation status, and avoids losing track of branches (the way `fd1ca79`'s inheritance-edge
+  fix sat un-PR'd on a local-only branch for days). If we later decide not to merge, just **close the
+  draft** — cheap. Mark it ready for review (`gh pr ready`) once it's validated.
+- **Multi-commit PRs are rebase-merged** (preserve the deliberate commit split); single-change PRs may
+  be squash-merged. See the squash-merge hazard in Gotchas before branching off an in-flight branch.
+
 ## Flags (env-overridable via `GagarinPrefs` static ctor; all default OFF)
 
 `GAGARIN_INCREMENTAL_CACHE` (master toggle — must no-op when OFF, restoring upstream's cache
