@@ -1,0 +1,70 @@
+direction: down
+
+title: "Cross-def conditional recompute-fidelity gap (TestMods CASE 6)" {
+  shape: text
+  style.font-size: 24
+  style.bold: true
+}
+
+# ---- The fixture: an UNCHANGED mod whose conditional READS one def but WRITES another ----
+fixture: "TestMod_Static (UNCHANGED mod) — one PatchOperationConditional" {
+  style.fill: "#eef6ff"
+  probe: "TC_CrossProbe\n<probeFlag>yes</probeFlag>\n(never dirtied)" {shape: cylinder; style.fill: "#ffffff"}
+  effect: "TC_CrossEffect\n(the def we dirty)" {shape: cylinder; style.fill: "#ffffff"}
+  cond: "PatchOperationConditional" {shape: diamond; style.fill: "#fff3cd"}
+  test: "TEST <xpath>:\nThingDef[defName=\"TC_CrossProbe\"]/probeFlag" {shape: text}
+  m: "match  -> add <crossTag>probe-present</crossTag> to TC_CrossEffect" {shape: text}
+  nm: "nomatch -> add <crossTag>probe-absent</crossTag> to TC_CrossEffect" {shape: text}
+  cond -> test: "reads"
+  test -> probe: "looks up"
+  cond -> m
+  cond -> nm
+  m -> effect: "writes"
+  nm -> effect: "writes"
+}
+
+trigger: "TestMod_Change dirties TC_CrossEffect\n(changeTag run-a -> run-b)" {shape: oval; style.fill: "#e2e3e5"}
+fixture -> trigger
+
+# ---- Two worlds diverge from the same dirty def ----
+trigger -> rebuild: "FULL REBUILD\n(the truth)"
+trigger -> recompute: "INCREMENTAL RECOMPUTE\n(DefRecompute over a sub-doc)"
+
+rebuild: "FULL REBUILD — whole def database" {
+  style.fill: "#d4edda"
+  doc: "Document = ALL defs\n(TC_CrossProbe IS present)" {shape: page}
+  ev: "conditional test finds TC_CrossProbe/probeFlag\n=> MATCH branch" {shape: diamond}
+  out: "TC_CrossEffect: crossTag = probe-present  ✓" {style.fill: "#ffffff"}
+  doc -> ev -> out
+}
+
+recompute: "INCREMENTAL RECOMPUTE — tiny sub-doc" {
+  style.fill: "#f8d7da"
+  doc: "Sub-doc = { TC_CrossEffect }  + ancestors + sequence-context\nTC_CrossProbe is NOT here\n(not dirty; not a sequence sibling, so SubDocExpander never pulls it in)" {shape: page}
+  ev: "conditional test finds NOTHING\n=> NOMATCH branch" {shape: diamond}
+  out: "TC_CrossEffect: crossTag = probe-absent  ✗" {style.fill: "#ffffff"}
+  doc -> ev -> out
+}
+
+# ---- The divergence + why it is silent ----
+diverge: "DIVERGENCE: probe-present  !=  probe-absent\n=> recompute serves a WRONG value" {
+  shape: hexagon
+  style.fill: "#f5c6cb"
+  style.bold: true
+}
+rebuild.out -> diverge
+recompute.out -> diverge
+
+silent: "Why it is SILENT (the danger):\n- Dirty-set gate stays GREEN: TC_CrossEffect's VALUE did not change\n  between Run A and Run B rebuilds (probe present both times), and it\n  IS in the dirty set, so nonDirtyMismatches = 0 (superset holds).\n- Only the RECOMPUTE gate (recompute vs full rebuild) catches it.\n- In production there is NO full rebuild to diff against -> wrong data ships." {
+  shape: text
+  style.fill: "#fff3cd"
+  style.font-size: 14
+}
+diverge -> silent
+
+root_cause: "ROOT CAUSE: the conditional READS a def it does not MODIFY.\nA sub-doc holds only what is dirty (+context), so the read target is\nabsent and the branch flips. Leaf ops are safe because they read == write." {
+  shape: text
+  style.bold: true
+  style.font-size: 14
+}
+diverge -> root_cause
