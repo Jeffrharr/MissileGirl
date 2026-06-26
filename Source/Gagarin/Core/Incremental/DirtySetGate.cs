@@ -252,6 +252,25 @@ namespace Gagarin
 
             HashSet<string> context = SubDocExpander.Expand(
                 graph, dirty, changedMods, out bool needsFullRebuild, out string fallbackReason);
+
+            // Recompute allowlist (safe-by-default): even when SubDocExpander is willing to recompute,
+            // take the incremental path ONLY when every op producing a dirty def is a proven-faithful
+            // pattern (leaf op with a stable xpath, sequence-with-context, same-def conditional).
+            // Anything unmodelled — cross-def conditional, positional/custom op, capture gap — declines
+            // here and the authoritative full rebuild stands. Each decline is logged with its category
+            // so the backlog of what to allowlist next is frequency-ranked. Folded into the existing
+            // needsFullRebuild path so fallback is one code path.
+            if (!needsFullRebuild &&
+                !RecomputeAllowlist.CanRecompute(graph, dirty, context,
+                    out string blockReason, out string blockCategory))
+            {
+                needsFullRebuild = true;
+                fallbackReason = blockReason;
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildFallback(
+                        CurrentEnvelope(), blockCategory, blockReason, dirty.Count));
+            }
+
             if (needsFullRebuild)
             {
                 // Not a failure: the full rebuild already ran and is authoritative. The sub-doc

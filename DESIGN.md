@@ -719,3 +719,42 @@ serialize the gated `<li>` identically into the cache. With the root-gated drop 
 `--expect-mayrequire` flips from "recompute informational" to **recompute required**
 (`recomputeMismatches==0`).
 
+### Recompute-fidelity gap + the safe-by-default ALLOWLIST (2026-06-25)
+
+A cross-def `PatchOperationConditional` in an UNCHANGED mod (tests def P, branch modifies def E) makes
+a dirty E recompute over a sub-doc lacking P → the test flips → E silently diverges from the rebuild,
+while the dirty-set gate stays a clean superset. Live-reproduced as TestMods **CASE 6**
+(`run_test.sh --expect-recompute-gap`): `Core/Incremental/RecomputeAllowlist.cs` did not exist yet, so
+`recomputeMismatches=1` on `ThingDef/TC_CrossEffect`, `fallback=false` — wrong data, no fallback. (See
+PR #21: the repro + a pre-flight XML lint that catches the `--`-in-XML-comment black-screen trap.)
+
+The fix is an **allowlist, not a blocklist** (PR #23, supersedes the interim blocklist PR #22): the
+recompute is faithful only for patterns we have *proven*, so the default is **fall back to a full
+rebuild** and we take the incremental path ONLY when every op producing a dirty def (or an inheritance
+ancestor) is allowlisted. Unmodelled ⇒ fall back ⇒ correct-but-slower, never wrong; new patterns only
+widen the fast path. `RecomputeAllowlist.CanRecompute` (pure, offline-tested) admits: non-positional
+safe-leaf ops {Add, Replace, Remove, Attribute*, SetName} (incl. wildcard selectors — per-node leaf
+effect is local), sequence children (siblings already in `SubDocExpander` context), and same-def /
+in-sub-doc conditionals (parent test read set ⊆ sub-doc). `DirtySetGate` calls it right after
+`SubDocExpander.Expand` and routes a decline into the existing full-rebuild fallback path. Live:
+`--expect-recompute-gap` now declines (`fallback=true`, reason names the cross-def conditional);
+default mode still recomputes byte-perfect (CASE 5 same-def conditional admitted).
+
+**MVP hit-rate** (`scripts/predictor_analysis.py` allowlist mode, ~100-mod 28k-def archive
+`livetest-runB-20260621-1917`): **94.5% of concrete defs are allowlist-clean**, 5.5% fall back.
+
+**Capture-gap backlog (log so we implement incrementally — every decline is also emitted to
+`incremental-metrics.jsonl` via `MetricsLog.BuildFallback`, category + reason, for a frequency-ranked
+runtime backlog):**
+- `capture-gap` **3.6%** — biggest cause. A conditional NESTED in another container
+  (`#N.match.operations[k]`: a sequence inside a conditional's match branch) records only the leaf
+  children — the parent conditional TEST edge (and its read set) is **not** captured as a queryable
+  edge, so the allowlist can't prove the conditional is same-def and falls back. *Fix:* capture
+  intermediate container ops (emit the nested conditional parent edge with its matched/read set), à la
+  the apply-time enclosing-op attribution noted for the 3 unindexed leaf ops.
+- `unknown-op-kind` **1.8%** — custom/positional ops not yet modelled: `AddModExtension`,
+  `EditResearch`, `PatchOperationInsert` (positional), `AddIf`/`ReplaceIf`/`RemoveIf`, `FindMod`.
+  *Fix:* prove and add each kind to the allowlist (or model its hazard) one at a time.
+- `conditional-cross-def` **0.1%** and `positional-xpath` **0.0%** (the latter conservatively includes
+  within-def `li[n]`; refine def-level vs within-def positional later).
+
