@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run A for the expect-recompute-gap mode (CASE 6). The change vehicle adds a baseline changeTag to
+       TC_CrossEffect via an exact-defName Add. The ONLY purpose is to give Run B something to
+       Replace so TC_CrossEffect's patch file changes (Seed 2 / seedDefs), marking it dirty.
+       Deliberately minimal — this mode isolates the cross-def conditional gap, so it touches no
+       other test def. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_CrossEffect"]</xpath>
+    <value>
+      <changeTag>run-a</changeTag>
+    </value>
+  </Operation>
+</Patch>
