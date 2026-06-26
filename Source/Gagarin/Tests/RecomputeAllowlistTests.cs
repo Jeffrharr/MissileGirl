@@ -173,6 +173,19 @@ namespace Gagarin.Tests
             Assert.That(cat, Is.EqualTo("capture-gap"));
         }
 
+        // An UNATTRIBUTED op (RecordPatch's "unindexed#{type}" bucket — a dynamically-generated op)
+        // looks like a safe leaf op (real OperationType, non-positional xpath) but must DECLINE as a
+        // capture-gap: we cannot vouch for what generated it or what it reads. This is the apparel-op
+        // false-admit hole (3 ops on a ~100-mod capture).
+        [Test]
+        public void UnindexedOp_LooksSafeButDeclined_AsCaptureGap()
+        {
+            var g = Graph(Edge("unindexed#PatchOperationReplace", "PatchOperationReplace",
+                "Defs/ThingDef[defName=\"Apparel_Cape\"]/x", "ThingDef/Apparel_Cape"));
+            Assert.That(Can(g, Set("ThingDef/Apparel_Cape"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("capture-gap"));
+        }
+
         // An unsafe op on an ANCESTOR of a dirty def declines: the dirty descendant inherits the
         // ancestor's (cross-def-conditional) value, so it cannot be recomputed faithfully either.
         [Test]
