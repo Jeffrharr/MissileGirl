@@ -56,4 +56,24 @@
     <defName>TC_Wildcard_C</defName>
     <label>wildcard c</label>
   </ThingDef>
+
+  <!-- CASE 6: cross-def conditional (recompute-fidelity gap probe).
+       TC_CrossProbe is a passive, never-dirty def whose <probeFlag> is the TEST target of
+       TestMod_Static's cross-def PatchOperationConditional. The conditional's EFFECT lands on
+       TC_CrossEffect (a different def). When the expect-recompute-gap mode dirties TC_CrossEffect (via
+       TestMod_Change), the recompute sub-doc contains TC_CrossEffect but NOT TC_CrossProbe (it
+       is neither dirty nor a sequence sibling, so SubDocExpander never pulls it in). The
+       conditional therefore re-evaluates its test against an absent probe and takes the WRONG
+       branch — reproducing a genuine cross-def recompute-fidelity gap the full rebuild does not
+       have. In every OTHER mode TC_CrossEffect is never dirtied, so this whole case is inert. -->
+  <ThingDef>
+    <defName>TC_CrossProbe</defName>
+    <label>test cross probe</label>
+    <probeFlag>yes</probeFlag>
+  </ThingDef>
+
+  <ThingDef>
+    <defName>TC_CrossEffect</defName>
+    <label>test cross effect</label>
+  </ThingDef>
 </Defs>

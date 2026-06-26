@@ -56,4 +56,36 @@
       </value>
     </nomatch>
   </Operation>
+
+  <!-- CASE 6: CROSS-DEF PatchOperationConditional — the recompute-fidelity gap.
+       Unlike CASE 5 (whose test and effect are both on TC_Conditional, so a dirty-only sub-doc
+       still contains everything it reads), this conditional's TEST and EFFECT are on DIFFERENT
+       defs:
+         TEST   — does TC_CrossProbe carry <probeFlag>?  (a different, never-dirty def)
+         EFFECT — add <crossTag> to TC_CrossEffect.
+       Full load / full rebuild: TC_CrossProbe is present → match branch → crossTag=probe-present.
+       Incremental recompute: when the expect-recompute-gap mode dirties TC_CrossEffect, the sub-doc holds
+       TC_CrossEffect but NOT TC_CrossProbe (it is neither dirty nor a sequence sibling, so
+       SubDocExpander does not pull it in). The test xpath finds nothing → nomatch branch →
+       crossTag=probe-absent. The recomputed def therefore DIVERGES from the full rebuild — a
+       genuine cross-def fidelity gap that the current pipeline cannot detect or avoid.
+
+       This file is the UNCHANGED static mod, so SubDocExpander's changed-mod container-op fallback
+       does NOT fire; the recompute runs and produces the wrong value. The case is inert in every
+       other mode because nothing dirties TC_CrossEffect there. -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="TC_CrossProbe"]/probeFlag</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>Defs/ThingDef[defName="TC_CrossEffect"]</xpath>
+      <value>
+        <crossTag>probe-present</crossTag>
+      </value>
+    </match>
+    <nomatch Class="PatchOperationAdd">
+      <xpath>Defs/ThingDef[defName="TC_CrossEffect"]</xpath>
+      <value>
+        <crossTag>probe-absent</crossTag>
+      </value>
+    </nomatch>
+  </Operation>
 </Patch>

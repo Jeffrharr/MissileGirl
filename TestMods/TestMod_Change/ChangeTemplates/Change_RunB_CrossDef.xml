@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-recompute-gap mode (CASE 6). Replaces TC_CrossEffect's changeTag value
+       (run-a -> run-b). The changed op type + value means the patch file hash differs from Run A,
+       so the diagnostic seeds TC_CrossEffect as dirty (Seed 2). TC_CrossEffect is then recomputed
+       over a sub-doc that lacks TC_CrossProbe, so TestMod_Static's cross-def conditional takes the
+       wrong branch and the recompute diverges from the full rebuild — the gap this mode proves.
+
+       Note this is a plain LEAF op on the changed mod (not a container), so SubDocExpander does
+       NOT fall back: the recompute genuinely runs and produces the wrong value (that is the
+       point — the gap is silent, not a declined recompute). -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_CrossEffect"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>

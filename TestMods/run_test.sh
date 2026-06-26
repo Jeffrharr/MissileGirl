@@ -35,6 +35,14 @@
 #                       splice in. The Change.xml file is held at run A for both runs, so the ONLY
 #                       change between runs is the new mod. Recompute assertion is the default
 #                       (real recompute: fallback==false && recomputeMismatches==0).
+#     --expect-recompute-gap  PROVES a genuine cross-def recompute-fidelity gap (CASE 6) — the
+#                       INVERSE of the default: a non-zero recomputeMismatches is the PASS. The
+#                       unchanged static mod conditionally patches TC_CrossEffect based on a test
+#                       against TC_CrossProbe; dirtying TC_CrossEffect makes it recompute over a
+#                       sub-doc missing the probe, so the conditional flips and the recompute
+#                       silently diverges from the rebuild. Asserts nonDirtyMismatches==0 (dirty set
+#                       still a superset) AND recomputeMismatches>0 && fallback==false (the silent
+#                       wrong value). This is the recall target for a future safety predictor.
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -133,6 +141,16 @@ EXPECT_MAYREQUIRE=0
 # the dirty-set gate stays a superset AND the dirty set contains the element-name id. Change.xml is
 # held at run A so the only between-run delta is the P1 def file.
 EXPECT_P1=0
+# --expect-recompute-gap: PROVE a genuine cross-def recompute-fidelity gap (the inverse of the
+# default mode — here a non-zero recomputeMismatches is the PASS). TestMod_Static (UNCHANGED) carries
+# a cross-def PatchOperationConditional whose TEST is on TC_CrossProbe but whose EFFECT is on
+# TC_CrossEffect (CASE 6). TestMod_Change dirties TC_CrossEffect (run-a->run-b), so it is recomputed
+# over a sub-doc that lacks the never-dirty TC_CrossProbe; the conditional takes the wrong branch and
+# the recompute diverges from the full rebuild. Asserts the dirty-set gate STAYS a superset
+# (nonDirtyMismatches==0) AND the recompute genuinely diverged (recomputeMismatches>0, fallback==false)
+# — i.e. the pipeline silently served a wrong value. This is the recall target a future safety
+# predictor / broadened fallback must cover.
+EXPECT_GAP=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at 100 mods total — the whole point of
@@ -158,6 +176,8 @@ for arg in "$@"; do
         EXPECT_MAYREQUIRE=1
     elif [[ "$arg" == "--expect-p1" ]]; then
         EXPECT_P1=1
+    elif [[ "$arg" == "--expect-recompute-gap" ]]; then
+        EXPECT_GAP=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --remove=* ]]; then
@@ -170,11 +190,11 @@ done
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
 
-if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 > 1 )); then
+if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP > 1 )); then
     echo "[run_test] FAIL: the --expect-* flags are mutually exclusive." >&2
     exit 2
 fi
-if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 > 0 )); then
+if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP > 0 )); then
     echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
@@ -188,6 +208,11 @@ fi
 if [[ $EXPECT_FALLBACK -eq 1 ]]; then
     RUN_A_CHANGE="Change_RunA_Fallback.xml"
     RUN_B_CHANGE="Change_RunB_Fallback.xml"
+elif [[ $EXPECT_GAP -eq 1 ]]; then
+    # --expect-recompute-gap: the change file MUST differ between runs (run-a -> run-b) so
+    # TC_CrossEffect is seeded dirty (Seed 2) and thus recomputed over a sub-doc missing TC_CrossProbe.
+    RUN_A_CHANGE="Change_RunA_CrossDef.xml"
+    RUN_B_CHANGE="Change_RunB_CrossDef.xml"
 elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || -n "$REMOVE_MOD" ]]; then
     # P2 / P4 / P1 / --remove: hold Change.xml at run A for BOTH runs so the change vehicle's patch
     # file does NOT change. The only between-run delta is mode-specific (P2: a mod added before run B;
@@ -416,6 +441,28 @@ except Exception as e:
 PYEOF
 }
 
+parse_recompute_gap() {
+    # --expect-recompute-gap only: the INVERSE of the normal recompute gate. Here the pipeline is
+    # EXPECTED to silently produce a wrong value, so PASS = the recompute genuinely ran (fallback
+    # ==false) AND diverged from the full rebuild (recomputeMismatches>0). A zero here would mean the
+    # gap did NOT reproduce (the sub-doc somehow contained the probe, or the conditional matched
+    # anyway) — the whole premise of the run. The divergent ids are printed so the gap is legible.
+    python3 - "$RECOMPUTE_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    fallback = data.get("fallback", True)
+    mismatches = data.get("recomputeMismatches", 0)
+    ids = data.get("mismatchIds", []) or []
+    print(f"  fallback={fallback}  recomputeMismatches={mismatches}  mismatchIds={ids}")
+    ok = (not fallback) and (mismatches > 0)
+    sys.exit(0 if ok else 1)
+except Exception as e:
+    print(f"  ERROR parsing RecomputeReport.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 parse_dirtyset_added() {
     # --expect-added (P2) only: assert the added-defs channel actually fired this run, i.e. the
     # diagnostic seeded one or more brand-new concrete defs (seeds.addedDefs > 0 in DirtySet.json).
@@ -478,6 +525,34 @@ except Exception as e:
     sys.exit(2)
 PYEOF
 }
+
+# ---------------------------------------------------------------------------
+# Pre-flight: every test-mod XML must be well-formed BEFORE we launch.
+# ---------------------------------------------------------------------------
+# A malformed asset under a mod's Patches/ (the classic trap: a literal "--" inside an XML
+# <!-- comment -->, illegal per the XML spec) throws in RimWorld's LoadableXmlAsset..ctor, NREs
+# Gagarin's constructor postfix, and collapses the whole cold load to a black screen — but the
+# symptom is only a 600s timeout waiting for "Provenance captured" plus a misleading downstream
+# Cache/AssetsHash.xml DirectoryNotFound. Catch it here in <1s instead of after a 10-minute hang.
+# Lints the ChangeTemplates too (they are copied into Patches/Change.xml per run).
+log "--- Pre-flight: validating test-mod XML is well-formed ---"
+xml_lint_failed=0
+while IFS= read -r xmlf; do
+    if ! python3 -c "import sys,xml.dom.minidom; xml.dom.minidom.parse(sys.argv[1])" "$xmlf" 2>/tmp/xmllint.$$; then
+        echo "[run_test] FAIL: malformed XML: $xmlf" >&2
+        sed 's/^/[run_test]   /' /tmp/xmllint.$$ >&2
+        xml_lint_failed=1
+    fi
+# Exclude TestMod_Change/Patches/Change.xml: it is a per-run generated artifact (overwritten from a
+# ChangeTemplates/ file in Step 2, AFTER this lint), so a stale copy from a prior failed run must not
+# fail pre-flight. The templates it is copied from ARE linted below, which is what matters.
+done < <(find "$SCRIPT_DIR"/TestMod_* -name '*.xml' \
+            -not -path "$CHANGE_MOD_DIR/Patches/Change.xml" 2>/dev/null)
+rm -f /tmp/xmllint.$$
+if [[ $xml_lint_failed -eq 1 ]]; then
+    fail "test-mod XML is malformed (see above). Common cause: a literal '--' inside an XML comment."
+fi
+log "Pre-flight XML lint passed."
 
 # ---------------------------------------------------------------------------
 # Step 0: ensure test-mod symlinks exist
@@ -657,6 +732,16 @@ if [[ ! -f "$CACHE_DIR/DependencyGraph.json" ]]; then
 fi
 log "DependencyGraph.json written ($(du -sh "$CACHE_DIR/DependencyGraph.json" | cut -f1))."
 
+# Archive Run A's graph as the PRIOR graph for offline analysis. This is the exact graph the
+# recompute gate consults during Run B (via the sidecar snapshot taken at the end of Run A), and
+# the one a production incremental load reads. Run B's full rebuild OVERWRITES CACHE_DIR's graph
+# (the self-heal), so this is the only window to capture it. The recompute-fidelity safety
+# predictor must score recall against THIS graph (the removed mod is still present here), not the
+# post-change runB graph the rest of Step 7 archives.
+mkdir -p "$METRICS_DIR"
+cp "$CACHE_DIR/DependencyGraph.json" "$METRICS_DIR/livetest-runA-${RUN_TS}-DependencyGraph.json"
+log "Archived Run A (prior) graph → $METRICS_DIR/livetest-runA-${RUN_TS}-DependencyGraph.json"
+
 # ---------------------------------------------------------------------------
 # Step 4: prepare Run B (changed patch → cache miss → gate)
 # ---------------------------------------------------------------------------
@@ -816,6 +901,17 @@ if [[ $EXPECT_P1 -eq 1 ]]; then
     p1_ok=0; parse_dirtyset_p1 && p1_ok=1 || p1_ok=0
 fi
 
+# --expect-recompute-gap: the INVERSE verdict. We require the recompute to have genuinely run and
+# DIVERGED (the silent wrong value), so the normal recompute-pass is not required; instead gap_ok
+# demands recomputeMismatches>0 && fallback==false. The dirty-set gate is still required to be a
+# superset (nonDirtyMismatches==0) — the gap is a recompute-fidelity failure, not a dirty-set one.
+gap_ok=1
+if [[ $EXPECT_GAP -eq 1 ]]; then
+    log "Recompute-gap result (non-zero mismatches EXPECTED):"
+    gap_ok=0; parse_recompute_gap && gap_ok=1 || gap_ok=0
+    recompute_required=0
+fi
+
 # --remove (real-mod removal): the claim is purely that the dirty set stays a SUPERSET over real
 # content (nonDirtyMismatches==0). Recompute is informational — a real removal typically includes
 # MayRequire-gated defs the recompute-fidelity gap cannot yet reproduce.
@@ -829,12 +925,14 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
     echo "  dirty-set gate:  nonDirtyMismatches = 0 (proven superset)"
-    if [[ $recompute_required -eq 1 ]]; then
+    if [[ $EXPECT_GAP -eq 1 ]]; then
+        echo "  recompute-gap:   recomputeMismatches > 0, fallback=false — cross-def gap REPRODUCED"
+    elif [[ $recompute_required -eq 1 ]]; then
         echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
     else
         echo "  recompute gate:  informational only this mode (pass=$recompute_ok)"
@@ -858,7 +956,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  recompute-gap pass=$gap_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1
