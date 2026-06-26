@@ -145,7 +145,15 @@ namespace Gagarin
                 List<string> mismatches = UnifiedCacheDiff.NonDirtyMismatches(baseline, rebuild, dirty);
                 sw.Stop();
 
-                Emit(baseline.Count, rebuild.Count, dirty.Count, mismatches, sw.ElapsedMilliseconds);
+                // Capture-completeness audit (invisible-op detector): of the defs that changed between
+                // the prior cache and this rebuild, flag any not explained by a captured patch edge or
+                // a raw-file change. A persistent zero across real captures is the evidence that no op
+                // is invisible to capture — the precondition for trusting the incremental SERVE path,
+                // where no full rebuild exists to catch a silent miss.
+                List<string> unattributed = RunCoverageAudit(baseline, rebuild);
+
+                Emit(baseline.Count, rebuild.Count, dirty.Count, mismatches, unattributed,
+                    sw.ElapsedMilliseconds);
 
                 // M2b-2b — real-engine recompute proof: recompute the dirty defs, splice them
                 // onto the prior cache, and require the spliced doc to byte-match the full
@@ -166,6 +174,13 @@ namespace Gagarin
                         MetricsLog.Append(MetricsLog.BuildInconsistency(
                             CurrentEnvelope(), "gate", mismatches.Count,
                             mismatches.GetRange(0, Math.Min(20, mismatches.Count))));
+                    // An unattributed change is a capture-completeness anomaly: a def changed but no
+                    // recorded op or raw-file change explains it (the invisible-op signature). High
+                    // value to surface — it is exactly what must stay zero before serving.
+                    if (unattributed.Count > 0)
+                        MetricsLog.Append(MetricsLog.BuildInconsistency(
+                            CurrentEnvelope(), "invisible-op", unattributed.Count,
+                            unattributed.GetRange(0, Math.Min(20, unattributed.Count))));
                 }
             }
             catch (Exception e)
@@ -219,6 +234,63 @@ namespace Gagarin
 
         private const string GraphFileName = "DependencyGraph.json";
         private const string RecomputeReportFileName = "RecomputeReport.json";
+
+        // Capture-completeness audit (invisible-op detector). Of the defs present in BOTH the prior
+        // cache and this rebuild whose serialized value DIFFERS, returns those not explained by any
+        // captured cause — i.e. neither the def nor an inheritance ancestor is in a patch edge's
+        // modifiedNodeIds (a recorded op touched it) nor in this load's raw-changed set (Seed 1). Such
+        // a def changed for a reason capture did not see: an op invisible to it (no edge, or an edge
+        // with empty modifiedNodeIds from a custom op that bypassed Select*). Added/removed DEFS are
+        // excluded for free (not present in both).
+        //
+        // Edges are unioned from BOTH graphs — the PRIOR (sidecar) and the CURRENT (cache, just
+        // written this cold rebuild) — because a def changes when a patch is added, removed, or
+        // changed: an ADDED patch's edge is only in the current graph, a REMOVED patch's edge (e.g. a
+        // removed mod) is only in the prior graph, a CHANGED patch is in both. Using one graph alone
+        // would false-flag the other direction (notably every revert on a mod removal). If neither
+        // graph is present the audit no-ops rather than false-alarm.
+        private static List<string> RunCoverageAudit(
+            Dictionary<string, string> baseline, Dictionary<string, string> rebuild)
+        {
+            var changedInBoth = new List<string>();
+            foreach (KeyValuePair<string, string> kv in rebuild)
+                if (baseline.TryGetValue(kv.Key, out string prior)
+                    && !string.Equals(prior, kv.Value, StringComparison.Ordinal))
+                    changedInBoth.Add(kv.Key);
+            if (changedInBoth.Count == 0)
+                return new List<string>();
+
+            var modifiedByEdges = new HashSet<string>(StringComparer.Ordinal);
+            var parentOf = new Dictionary<string, string>(StringComparer.Ordinal);
+            bool anyGraph = false;
+            anyGraph |= FoldGraph(Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, GraphFileName),
+                modifiedByEdges, parentOf);
+            if (PriorStateSnapshot.Available)
+                anyGraph |= FoldGraph(PriorStateSnapshot.PriorGraphPath, modifiedByEdges, parentOf);
+            if (!anyGraph)
+                return new List<string>();
+
+            return PatchCoverageAudit.Unattributed(
+                changedInBoth, modifiedByEdges, parentOf, DirtySetDiagnostic.LastChangedNodeIds);
+        }
+
+        // Folds one graph file's modified-node set and inheritance map into the audit accumulators.
+        // Returns false (and leaves the accumulators untouched) when the file is absent. Inheritance
+        // is unioned across graphs; a child's parent rarely differs between runs, last write wins.
+        private static bool FoldGraph(
+            string graphPath, HashSet<string> modifiedByEdges, Dictionary<string, string> parentOf)
+        {
+            if (!File.Exists(graphPath))
+                return false;
+            DependencyGraphData graph = DependencyGraphData.Load(graphPath);
+            foreach (GraphPatchEdge e in graph.PatchEdges)
+                foreach (string nid in e.ModifiedNodeIds)
+                    modifiedByEdges.Add(nid);
+            foreach (GraphInheritanceEdge e in graph.InheritanceEdges)
+                if (!string.IsNullOrEmpty(e.ChildNodeId) && !string.IsNullOrEmpty(e.ParentNodeId))
+                    parentOf[e.ChildNodeId] = e.ParentNodeId;
+            return true;
+        }
 
         // Recompute the dirty defs through the real engine, splice onto the prior cache, and diff
         // the spliced result against the full rebuild over ALL defs. Mismatches here = recompute
@@ -457,7 +529,7 @@ namespace Gagarin
         }
 
         private static void Emit(int baselineDefs, int rebuildDefs, int dirtyCount,
-            List<string> mismatches, long gateMs)
+            List<string> mismatches, List<string> unattributed, long gateMs)
         {
             string verdict = mismatches.Count == 0 ? "<color=green>PASS</color>" : "<color=red>FAIL</color>";
             Log.Warning($"GAGARIN: <color=white>Dirty-set gate</color> {verdict} " +
@@ -466,6 +538,15 @@ namespace Gagarin
             if (mismatches.Count > 0)
                 Log.Warning("GAGARIN: gate mismatches (dirty set missed these): " +
                     string.Join(", ", mismatches.GetRange(0, Math.Min(20, mismatches.Count))));
+            // Capture-completeness: a non-zero here means a def changed with no captured op or raw
+            // change to explain it — an op invisible to capture. Surface it prominently; it must be
+            // zero before the incremental serve path can be trusted.
+            string coverageVerdict = unattributed.Count == 0 ? "<color=green>COMPLETE</color>" : "<color=red>INCOMPLETE</color>";
+            Log.Warning($"GAGARIN: <color=white>Capture coverage</color> {coverageVerdict} " +
+                $"unattributedChanged={unattributed.Count}");
+            if (unattributed.Count > 0)
+                Log.Warning("GAGARIN: unattributed changes (no captured op explains these — invisible op?): " +
+                    string.Join(", ", unattributed.GetRange(0, Math.Min(20, unattributed.Count))));
 
             try
             {
@@ -473,10 +554,18 @@ namespace Gagarin
                 sb.Append('{');
                 sb.Append($"\"pass\":{(mismatches.Count == 0 ? "true" : "false")},");
                 sb.Append($"\"nonDirtyMismatches\":{mismatches.Count},");
+                sb.Append($"\"unattributedChangedCount\":{unattributed.Count},");
                 sb.Append($"\"baselineDefs\":{baselineDefs},");
                 sb.Append($"\"rebuildDefs\":{rebuildDefs},");
                 sb.Append($"\"dirtyCount\":{dirtyCount},");
                 sb.Append($"\"gateMs\":{gateMs},");
+                sb.Append("\"unattributedChangedIds\":[");
+                for (int i = 0; i < unattributed.Count && i < 50; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    AppendQuoted(sb, unattributed[i]);
+                }
+                sb.Append("],");
                 sb.Append("\"mismatchIds\":[");
                 for (int i = 0; i < mismatches.Count; i++)
                 {

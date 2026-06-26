@@ -65,6 +65,13 @@ namespace Gagarin
         // Null until computed; reset each load so a stale set can't leak into a later gate.
         public static ICollection<string> LastChangedMods;
 
+        // The node ids whose own raw source FILE changed this load (Seed 1) — i.e. a non-patch change
+        // channel. Published for PatchCoverageAudit (the invisible-op detector): a def that changed
+        // between cache and rebuild is "explained" if it or an inheritance ancestor had its raw body
+        // change, so the audit must exclude this channel before flagging a change as unattributed.
+        // Null until computed; reset each load.
+        public static ICollection<string> LastChangedNodeIds;
+
         // The diagnostic's per-load results, published for the metrics load_summary. The gate
         // (when enabled) emits one combined summary INCLUDING its own verdicts; when the gate is
         // off the diagnostic emits a summary with the gate/recompute fields null. Valid only when
@@ -80,6 +87,7 @@ namespace Gagarin
             LastDirtySet = null; // clear last load's set before anything can read it
             LastNewPaths = null; // and the added-def path map (read by the recompute splice)
             LastChangedMods = null;
+            LastChangedNodeIds = null;
             LastDiagnosticValid = false; // reset so a stale summary can't leak into a later load
             LastResult = null;
             if (!GagarinPrefs.DirtySetDiagnostic)
@@ -156,6 +164,7 @@ namespace Gagarin
                 GraphChange change = BuildChange(graph, changedAssets, __result,
                     out Dictionary<string, string> newPaths);
                 LastChangedMods = change.ChangedMods; // publish for the M2b-2b sub-doc gate
+                LastChangedNodeIds = change.ChangedNodeIds; // publish for the invisible-op audit (Seed 1 channel)
                 LastNewPaths = newPaths;              // publish for the M2b recompute splice (P2)
 
                 // M2a — superset-safe wildcard re-test. A changed mod's patch predicate can
