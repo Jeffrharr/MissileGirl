@@ -252,6 +252,20 @@ namespace Gagarin
 
             HashSet<string> context = SubDocExpander.Expand(
                 graph, dirty, changedMods, out bool needsFullRebuild, out string fallbackReason);
+
+            // Safety predictor (never serve wrong data): even when SubDocExpander is willing to
+            // recompute, a cross-def conditional whose test reads a def absent from the sub-doc would
+            // make a dirty def's recompute diverge from the full rebuild (TestMods CASE 6). Predict
+            // that from the graph and the dirty+context sets, and fall back exactly like a changed-mod
+            // container op. Folded into the same needsFullRebuild path so the fallback verdict is one
+            // code path.
+            if (!needsFullRebuild &&
+                RecomputeSafetyPredictor.IsUnsafe(graph, dirty, context, out string unsafeReason))
+            {
+                needsFullRebuild = true;
+                fallbackReason = unsafeReason;
+            }
+
             if (needsFullRebuild)
             {
                 // Not a failure: the full rebuild already ran and is authoritative. The sub-doc

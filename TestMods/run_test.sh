@@ -35,14 +35,14 @@
 #                       splice in. The Change.xml file is held at run A for both runs, so the ONLY
 #                       change between runs is the new mod. Recompute assertion is the default
 #                       (real recompute: fallback==false && recomputeMismatches==0).
-#     --expect-recompute-gap  PROVES a genuine cross-def recompute-fidelity gap (CASE 6) — the
-#                       INVERSE of the default: a non-zero recomputeMismatches is the PASS. The
-#                       unchanged static mod conditionally patches TC_CrossEffect based on a test
-#                       against TC_CrossProbe; dirtying TC_CrossEffect makes it recompute over a
-#                       sub-doc missing the probe, so the conditional flips and the recompute
-#                       silently diverges from the rebuild. Asserts nonDirtyMismatches==0 (dirty set
-#                       still a superset) AND recomputeMismatches>0 && fallback==false (the silent
-#                       wrong value). This is the recall target for a future safety predictor.
+#     --expect-recompute-gap  Asserts the SAFETY PREDICTOR catches a cross-def recompute-fidelity gap
+#                       (CASE 6) and falls back. The unchanged static mod conditionally patches
+#                       TC_CrossEffect based on a test against TC_CrossProbe; dirtying TC_CrossEffect
+#                       would make it recompute over a sub-doc missing the probe, flipping the
+#                       conditional and diverging from the rebuild. RecomputeSafetyPredictor detects
+#                       this statically and forces a full rebuild. Asserts nonDirtyMismatches==0
+#                       (dirty set still a superset) AND fallback==true with a cross-def-conditional
+#                       reason (pass==true, recomputeMismatches==0).
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -141,15 +141,16 @@ EXPECT_MAYREQUIRE=0
 # the dirty-set gate stays a superset AND the dirty set contains the element-name id. Change.xml is
 # held at run A so the only between-run delta is the P1 def file.
 EXPECT_P1=0
-# --expect-recompute-gap: PROVE a genuine cross-def recompute-fidelity gap (the inverse of the
-# default mode — here a non-zero recomputeMismatches is the PASS). TestMod_Static (UNCHANGED) carries
-# a cross-def PatchOperationConditional whose TEST is on TC_CrossProbe but whose EFFECT is on
-# TC_CrossEffect (CASE 6). TestMod_Change dirties TC_CrossEffect (run-a->run-b), so it is recomputed
-# over a sub-doc that lacks the never-dirty TC_CrossProbe; the conditional takes the wrong branch and
-# the recompute diverges from the full rebuild. Asserts the dirty-set gate STAYS a superset
-# (nonDirtyMismatches==0) AND the recompute genuinely diverged (recomputeMismatches>0, fallback==false)
-# — i.e. the pipeline silently served a wrong value. This is the recall target a future safety
-# predictor / broadened fallback must cover.
+# --expect-recompute-gap: assert the SAFETY PREDICTOR catches a cross-def recompute-fidelity gap and
+# falls back instead of silently serving a wrong value. TestMod_Static (UNCHANGED) carries a cross-def
+# PatchOperationConditional whose TEST is on TC_CrossProbe but whose EFFECT is on TC_CrossEffect
+# (CASE 6). TestMod_Change dirties TC_CrossEffect (run-a->run-b); recomputing it over a sub-doc that
+# lacks the never-dirty TC_CrossProbe would take the wrong branch and diverge from the full rebuild.
+# RecomputeSafetyPredictor detects this from the graph (a conditional reads a def absent from the
+# sub-doc whose branch modifies a dirty def) and forces a full-rebuild fallback. Asserts the dirty-set
+# gate stays a superset (nonDirtyMismatches==0) AND fallback==true with a cross-def-conditional reason
+# (pass==true, recomputeMismatches==0). Before the predictor this mode asserted the gap REPRODUCED
+# (recomputeMismatches>0); the flip is the proof the fix works.
 EXPECT_GAP=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
@@ -442,20 +443,26 @@ PYEOF
 }
 
 parse_recompute_gap() {
-    # --expect-recompute-gap only: the INVERSE of the normal recompute gate. Here the pipeline is
-    # EXPECTED to silently produce a wrong value, so PASS = the recompute genuinely ran (fallback
-    # ==false) AND diverged from the full rebuild (recomputeMismatches>0). A zero here would mean the
-    # gap did NOT reproduce (the sub-doc somehow contained the probe, or the conditional matched
-    # anyway) — the whole premise of the run. The divergent ids are printed so the gap is legible.
+    # --expect-recompute-gap only: assert the SAFETY PREDICTOR caught the cross-def conditional gap
+    # and fell back, rather than silently serving the wrong value. PASS =
+    #   fallback==true && pass==true && recomputeMismatches==0   (predictor declined; full rebuild stands)
+    # AND the fallbackReason names a cross-def conditional (so it is the PREDICTOR's fallback, not the
+    # changed-mod container-op fallback or anything else). Before RecomputeSafetyPredictor existed this
+    # mode instead asserted the gap REPRODUCED (fallback==false && recomputeMismatches>0); a regression
+    # in either the fixture or the predictor now surfaces here — a broken predictor lets the recompute
+    # run and mismatch (fallback!=true => FAIL); a broken fixture yields a clean recompute with no
+    # fallback (fallback!=true => FAIL).
     python3 - "$RECOMPUTE_REPORT" <<'PYEOF'
 import sys, json
 try:
     data = json.load(open(sys.argv[1]))
-    fallback = data.get("fallback", True)
-    mismatches = data.get("recomputeMismatches", 0)
-    ids = data.get("mismatchIds", []) or []
-    print(f"  fallback={fallback}  recomputeMismatches={mismatches}  mismatchIds={ids}")
-    ok = (not fallback) and (mismatches > 0)
+    passed = data.get("pass", False)
+    fallback = data.get("fallback", False)
+    mismatches = data.get("recomputeMismatches", -1)
+    reason = data.get("fallbackReason", None) or ""
+    print(f"  pass={passed}  fallback={fallback}  recomputeMismatches={mismatches}")
+    print(f"  fallbackReason={reason}")
+    ok = passed and fallback and (mismatches == 0) and ("conditional" in reason.lower())
     sys.exit(0 if ok else 1)
 except Exception as e:
     print(f"  ERROR parsing RecomputeReport.json: {e}", file=sys.stderr)
@@ -907,7 +914,7 @@ fi
 # superset (nonDirtyMismatches==0) — the gap is a recompute-fidelity failure, not a dirty-set one.
 gap_ok=1
 if [[ $EXPECT_GAP -eq 1 ]]; then
-    log "Recompute-gap result (non-zero mismatches EXPECTED):"
+    log "Recompute-gap result (predictor fallback EXPECTED):"
     gap_ok=0; parse_recompute_gap && gap_ok=1 || gap_ok=0
     recompute_required=0
 fi
@@ -931,7 +938,7 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     echo "  LIVE TEST HARNESS: PASS"
     echo "  dirty-set gate:  nonDirtyMismatches = 0 (proven superset)"
     if [[ $EXPECT_GAP -eq 1 ]]; then
-        echo "  recompute-gap:   recomputeMismatches > 0, fallback=false — cross-def gap REPRODUCED"
+        echo "  recompute-gap:   fallback=true (cross-def conditional) — safety predictor CAUGHT the gap"
     elif [[ $recompute_required -eq 1 ]]; then
         echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
     else
