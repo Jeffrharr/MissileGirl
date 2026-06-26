@@ -1,0 +1,4 @@
+# Minimal toastyman-removal repro for the recompute-fidelity predictor recall test.
+# toastyman patches abstract Core terrain bases via PatchOperationConditional; removing it
+# changes the inherited affordance lists of concrete water/marsh terrains (SILENT_RECOMP case).
+toastyman.moreritualseats

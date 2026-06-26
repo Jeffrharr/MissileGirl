@@ -229,6 +229,24 @@ namespace Gagarin
             return sb.ToString();
         }
 
+        // fallback — the recompute allowlist (or SubDocExpander) declined the incremental path and
+        // the authoritative full rebuild stands. category is the machine-readable blocking cause
+        // (unknown-op-kind / positional-xpath / conditional-cross-def / capture-gap / container-op),
+        // reason a human-readable detail. Aggregating these JSONL records over real loads yields a
+        // frequency-ranked backlog of what to allowlist next (widen the fast path, never risk
+        // correctness). dirtyCount sizes the load the fallback applied to.
+        public static string BuildFallback(Envelope env, string category, string reason, int dirtyCount)
+        {
+            var sb = new StringBuilder(256);
+            sb.Append('{');
+            AppendEnvelope(sb, env, "fallback");
+            sb.Append(",\"category\":"); AppendQuoted(sb, category);
+            sb.Append(",\"reason\":"); AppendQuoted(sb, reason);
+            sb.Append(",\"dirtyCount\":").Append(dirtyCount);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
         // ---- Append (the only IO) ---------------------------------------------------------
 
         // Append one already-built JSON line to the resolved log path. NEVER throws: any failure
