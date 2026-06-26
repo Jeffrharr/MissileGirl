@@ -526,10 +526,22 @@ namespace Gagarin
             // fixed parts around the value and solve for a count whose own digit
             // width is consistent (converges in one or two steps since the
             // total's digit count is stable).
+            // Capture-completeness signal (issue #25): ops the index walk could not attribute are
+            // bucketed under an "unindexed#" patchId by RecordPatch (dynamically-generated ops, or a
+            // missed child). The recompute allowlist treats any such producing op as a capture-gap
+            // fallback, so surfacing the count lets us TRACK completeness toward zero — a precondition
+            // for ever serving the incremental cache (the allowlist is blind to ops absent entirely,
+            // and conservative on ops it cannot attribute).
+            int unindexedEdgeCount = 0;
+            foreach (string id in patchEdges.Keys)
+                if (id != null && id.StartsWith("unindexed#", StringComparison.Ordinal))
+                    unindexedEdgeCount++;
+
             string before = sb.ToString() + "\"metrics\":{" +
                 $"\"nodeCount\":{nodes.Count}," +
                 $"\"abstractNodeCount\":{AbstractNodeCount}," +
                 $"\"patchEdgeCount\":{patchEdges.Count}," +
+                $"\"unindexedEdgeCount\":{unindexedEdgeCount}," +
                 $"\"inheritanceEdgeCount\":{inheritanceEdges.Count}," +
                 $"\"inheritanceResolvedCount\":{InheritanceResolvedCount}," +
                 $"\"mayRequirePackageCount\":{MayRequirePackageCount}," +

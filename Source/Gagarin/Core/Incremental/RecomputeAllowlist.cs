@@ -152,6 +152,21 @@ namespace Gagarin
                     return false;
                 }
 
+                // Capture gap: an UNATTRIBUTED op. ProvenanceRecorder buckets any op it could not
+                // map to a stable patchId (a child the index walk missed, or — the real case — an op
+                // GENERATED dynamically during a parent op's Apply) under "unindexed#{type}". Such an
+                // op keeps a real OperationType (e.g. PatchOperationReplace), so without this check it
+                // would sail through the safe-leaf test below and be admitted — but its faithfulness
+                // over a sub-doc is exactly what we CANNOT vouch for: we don't know what generated it
+                // or what it reads. Treat it as a capture gap and fall back. (Observed: 3 dynamically
+                // generated apparel ops on a ~100-mod capture, all previously mis-admitted.)
+                if (IsUnattributed(edge.PatchId))
+                {
+                    Block("capture-gap",
+                        $"producing op {edge.PatchId} is unattributed (dynamically generated or unindexed) — cannot prove recompute-safe", out blockReason, out blockCategory);
+                    return false;
+                }
+
                 // Not a known-safe leaf op (custom op, Insert, AddIf/ReplaceIf/RemoveIf, FindMod, …).
                 if (!SafeLeafOps.Contains(edge.OperationType))
                 {
@@ -219,6 +234,12 @@ namespace Gagarin
                     return false;
             return true;
         }
+
+        // ProvenanceRecorder.RecordPatch buckets any op missing from the patch-id index under the
+        // literal id "unindexed#{type}" (see its comment). The prefix is fixed and a real packageId
+        // can never be "unindexed" with no dots before '#', so a prefix test is unambiguous.
+        private static bool IsUnattributed(string patchId) =>
+            patchId != null && patchId.StartsWith("unindexed#", StringComparison.Ordinal);
 
         private static bool IsConditional(string opType) =>
             !string.IsNullOrEmpty(opType) &&
