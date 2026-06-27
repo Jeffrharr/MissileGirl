@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Target for the generative op (CASE: apply-time attribution). The dynamically-generated
+       PatchOperationAdd adds <genTag> to this def; capture must attribute that op to
+       joof.testharness.genop as a ".generated[N]" edge, not "unindexed#". -->
+  <ThingDef>
+    <defName>TC_GenTarget</defName>
+    <label>test gen target</label>
+  </ThingDef>
+</Defs>

@@ -64,6 +64,19 @@ namespace Gagarin
         private static readonly Dictionary<Type, FieldInfo[]> patchFieldCache =
             new Dictionary<Type, FieldInfo[]>();
 
+        // The stack of currently-applying operations' ids (Apply hook pushes on entry, pops on exit).
+        // RimWorld applies container children recursively, so the top of this stack is always the op
+        // that is (transitively) applying the op now entering Apply. Used to attribute a DYNAMICALLY
+        // GENERATED op — one a parent op's ApplyWorker news up and applies, so it was never in the
+        // static index walk — to its enclosing op instead of the collapsed "unindexed#{type}" bucket.
+        private static readonly Stack<string> applyStack = new Stack<string>();
+
+        // Per-parent counter giving each parent's generated children stable, distinct suffixes
+        // (parentId.generated[0], [1], ...). Application order within a load is deterministic, so the
+        // ids are stable run-to-run for the same content.
+        private static readonly Dictionary<string, int> generatedChildCounters =
+            new Dictionary<string, int>();
+
         private static readonly Stopwatch overhead = new Stopwatch();
 
         // Per-phase breakdown of the total overhead, logged (not serialized) so we
@@ -79,6 +92,8 @@ namespace Gagarin
             graph.Reset();
             patchIds.Clear();
             patchFieldCache.Clear();
+            applyStack.Clear();
+            generatedChildCounters.Clear();
             overhead.Reset();
             registerSw.Reset();
             recordSw.Reset();
@@ -420,6 +435,59 @@ namespace Gagarin
                 recordSw.Stop();
                 overhead.Stop();
             }
+        }
+
+        // Called from the Apply hook's PREFIX, as each PatchOperation.Apply begins. Pushes the op's
+        // id so nested/recursive applies know their enclosing op. The key work: if the op is NOT in
+        // the static index (patchIds), it was generated dynamically during the enclosing op's
+        // ApplyWorker — attribute it to that enclosing op as "{parentId}.generated[N]" and register
+        // it, so RecordPatch (which looks up patchIds) gives it the enclosing op's real sourceMod and
+        // a distinct, hierarchical id instead of the collapsed "unindexed#{type}" bucket. That makes
+        // invisible-op risk attributable PER MOD. Must be balanced with ExitApply (the hook calls
+        // both only when Active, so the stack stays balanced).
+        public static void EnterApply(PatchOperation patch)
+        {
+            if (!Active || patch == null)
+                return;
+            overhead.Start();
+            try
+            {
+                if (patchIds.TryGetValue(patch, out string id))
+                {
+                    applyStack.Push(id);
+                    return;
+                }
+                // Not indexed => generated dynamically by the op currently applying (stack top).
+                string parent = applyStack.Count > 0 ? applyStack.Peek() : null;
+                if (parent != null)
+                {
+                    int n = generatedChildCounters.TryGetValue(parent, out int c) ? c : 0;
+                    generatedChildCounters[parent] = n + 1;
+                    id = parent + ".generated[" + n + "]";
+                    patchIds[patch] = id; // so RecordPatch resolves it (+ recovers sourceMod from the prefix)
+                    applyStack.Push(id);
+                }
+                else
+                {
+                    // A top-level op missing from the index (no enclosing op to attribute to). Rare;
+                    // fall back to the unindexed bucket exactly as before so RecordPatch is consistent.
+                    applyStack.Push("unindexed#" + patch.GetType().Name);
+                }
+            }
+            finally
+            {
+                overhead.Stop();
+            }
+        }
+
+        // Called from the Apply hook's POSTFIX, as each PatchOperation.Apply returns. Pops the id
+        // pushed by EnterApply. Tolerant of an empty stack (never throws into the patch phase).
+        public static void ExitApply()
+        {
+            if (!Active)
+                return;
+            if (applyStack.Count > 0)
+                applyStack.Pop();
         }
 
         // Records matched/modified node ids for a single PatchOperation.Apply. The ids

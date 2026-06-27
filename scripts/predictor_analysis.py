@@ -196,10 +196,13 @@ def allowlist_analysis(graph):
         pid = e.get('patchId') or ''
         if not op:
             return 'capture-gap'
-        # Unattributed op (RecordPatch's "unindexed#" bucket — dynamically generated / unindexed):
-        # keeps a real op type but we cannot vouch for its faithfulness. Mirrors RecomputeAllowlist.
+        # Unattributed op (RecordPatch's "unindexed#" bucket — no enclosing op to attribute to).
         if pid.startswith('unindexed#'):
             return 'capture-gap'
+        # Dynamically-generated op ("{parent}.generated[N]" — created at runtime by an opaque enclosing
+        # op). Attributed to a mod, but still not recompute-safe. Mirrors RecomputeAllowlist.
+        if '.generated[' in (pid.split('#', 1)[1] if '#' in pid else pid):
+            return 'dynamic-op'
         if op not in ALLOWLIST_LEAF_OPS:
             return 'unknown-op-kind'
         if POSITIONAL_XPATH.search(e.get('xpath') or ''):

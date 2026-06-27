@@ -112,6 +112,7 @@ ADDED_MOD_DIR="$SCRIPT_DIR/TestMod_Added"
 MAYREQUIRE_MOD_DIR="$SCRIPT_DIR/TestMod_MayRequire"
 GATE_MOD_DIR="$SCRIPT_DIR/TestMod_Gate"
 P1_MOD_DIR="$SCRIPT_DIR/TestMod_P1"
+GENOP_MOD_DIR="$SCRIPT_DIR/TestMod_GenOp"
 
 NO_TEARDOWN=0
 # --expect-fallback: exercise the changed-mod container-op fallback instead of the default
@@ -273,6 +274,7 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-mayrequire"
     rm -f "$MODS_DIR/joof-testharness-gate"
     rm -f "$MODS_DIR/joof-testharness-p1"
+    rm -f "$MODS_DIR/joof-testharness-genop"
     log "Symlinks removed."
 
     # Reset the P1 def file to its committed Run A value so a --expect-p1 run doesn't leave the git
@@ -581,6 +583,11 @@ ln -sfn "$GATE_MOD_DIR"       "$MODS_DIR/joof-testharness-gate"
 # The P1 fixture (custom namespaced-def assembly) is symlinked unconditionally; only --expect-p1
 # activates it in ModsConfig.
 ln -sfn "$P1_MOD_DIR"         "$MODS_DIR/joof-testharness-p1"
+# The generated-op fixture (custom PatchOperation assembly) is in the BASE modlist (below): it is
+# inert in every mode (TC_GenTarget is never dirtied), but on every capture it generates a child op
+# at Apply time so capture's apply-time attribution is continuously exercised — its edge must record
+# as joof.testharness.genop#N.generated[0], never unindexed#.
+ln -sfn "$GENOP_MOD_DIR"      "$MODS_DIR/joof-testharness-genop"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -651,7 +658,7 @@ if extra_file:
 # Test-harness mods always load last, in dependency order.
 #   defs -> static -> change. The added mod (P2) is inserted before run B, not here.
 #   --expect-mayrequire: gate + mayrequire are active for run A; gate is removed before run B.
-test_mods = ["joof.testharness.defs", "joof.testharness.static", "joof.testharness.change"]
+test_mods = ["joof.testharness.defs", "joof.testharness.static", "joof.testharness.change", "joof.testharness.genop"]
 if os.environ.get("EXPECT_MAYREQUIRE", "0") == "1":
     test_mods += ["joof.testharness.gate", "joof.testharness.mayrequire"]
 if os.environ.get("EXPECT_P1", "0") == "1":
