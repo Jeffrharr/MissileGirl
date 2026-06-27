@@ -11,4 +11,18 @@
       <genTag>generated</genTag>
     </value>
   </Operation>
+
+  <!-- A /Defs-root ADD: the common real-world cause of documentPathFallbacks (mods adding a def via
+       a patch). The matched node is the <Defs> root, which has no def identity, so capture keys it by
+       document path ("Defs") — an unkeyable, unattributable-to-a-def producer. The edge's sourceMod
+       is still this mod, so riskyMods must list joof.testharness.genop for this reason too. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs</xpath>
+    <value>
+      <ThingDef>
+        <defName>TC_GenAddedViaPatch</defName>
+        <label>added to Defs root via patch</label>
+      </ThingDef>
+    </value>
+  </Operation>
 </Patch>

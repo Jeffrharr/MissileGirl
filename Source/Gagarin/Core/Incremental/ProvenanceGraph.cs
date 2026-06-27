@@ -520,6 +520,31 @@ namespace Gagarin
             }
             sb.Append("},");
 
+            // riskyMods (issue #26): the mods that own an op with INVISIBLE-OP RISK — a producer the
+            // recompute allowlist cannot vouch for. Two attributable kinds, both keyed to the owning
+            // mod and read straight off the edges:
+            //   - a DYNAMICALLY-GENERATED op (patchId "...generated[N]", attributed by the apply-stack);
+            //   - an op that touches an UNKEYABLE node (a matched/modified id that is a positional
+            //     document path, i.e. a /Defs-root match — the documentPathFallback case), so its
+            //     effect cannot be tied to a stable def.
+            // This is the per-mod signal the deterministic changed-mod-scoped serve rule consumes:
+            // a CHANGED mod listed here has an unbounded blast radius -> full-rebuild fallback. (Ops we
+            // cannot attribute to any real mod stay counted in unindexedEdgeCount below, not here.)
+            var riskyMods = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (PatchEdge edge in patchEdges.Values)
+            {
+                string mod = edge.sourceMod;
+                if (string.IsNullOrEmpty(mod) || mod == "unindexed")
+                    continue;
+                if (riskyMods.Contains(mod))
+                    continue;
+                if (IsGeneratedPatchId(edge.patchId) || TouchesDocPath(edge))
+                    riskyMods.Add(mod);
+            }
+            sb.Append("\"riskyMods\":");
+            AppendArr(sb, riskyMods);
+            sb.Append(',');
+
             // serializedBytes is the UTF-8 length of the complete document,
             // including the serializedBytes field itself. The value is therefore
             // self-referential: writing it changes the length. We measure the
@@ -565,7 +590,7 @@ namespace Gagarin
             return before + total + after;
         }
 
-        private static void AppendArr(StringBuilder sb, HashSet<string> ids)
+        private static void AppendArr(StringBuilder sb, IEnumerable<string> ids)
         {
             sb.Append('[');
             bool first = true;
@@ -577,6 +602,35 @@ namespace Gagarin
             }
             sb.Append(']');
         }
+
+        // True when a patchId names a DYNAMICALLY-GENERATED op (apply-stack id "...generated[N]").
+        // Look only after '#' so a packageId containing the literal cannot false-positive.
+        private static bool IsGeneratedPatchId(string patchId)
+        {
+            if (string.IsNullOrEmpty(patchId))
+                return false;
+            int hash = patchId.IndexOf('#');
+            string suffix = hash >= 0 ? patchId.Substring(hash + 1) : patchId;
+            return suffix.IndexOf(".generated[", StringComparison.Ordinal) >= 0;
+        }
+
+        // True when an edge matched/modified an UNKEYABLE node — a node id that is a positional
+        // document path rather than a stable def id (the documentPathFallback case).
+        private static bool TouchesDocPath(PatchEdge edge)
+        {
+            foreach (string id in edge.modifiedNodeIds)
+                if (IsDocPathKey(id)) return true;
+            foreach (string id in edge.matchedNodeIds)
+                if (IsDocPathKey(id)) return true;
+            return false;
+        }
+
+        // Mirrors WildcardRematch.IsDocumentPath: KeyForNode falls back to a positional document path
+        // (always starting with the <Defs> root wrapper) for a node outside any def, e.g. a /Defs-root
+        // add; a real def id starts with the def TYPE ("ThingDef/Steel"). Such an id is an unstable,
+        // unattributable-to-a-def producer.
+        private static bool IsDocPathKey(string id)
+            => id != null && (id == "Defs" || id.StartsWith("Defs/", StringComparison.Ordinal));
 
         // Appends a JSON string literal (with escaping) directly into sb.
         // Null serializes as JSON null.

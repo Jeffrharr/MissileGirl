@@ -427,5 +427,26 @@ namespace Gagarin.Tests
             Assert.That(mayRequire.ValueKind, Is.EqualTo(JsonValueKind.Object));
             Assert.That(mayRequire.EnumerateObject().Any(), Is.False);
         }
+
+        [Test]
+        public void Serialize_RiskyMods_ListsGeneratedAndDocPathOwnersOnly()
+        {
+            var g = new ProvenanceGraph();
+            // A normal safe-leaf op keyed to a def -> its mod is NOT risky.
+            g.AddPatchEdge("modA#0", "modA", "PatchOperationReplace",
+                "Defs/ThingDef[defName=\"X\"]/label", new[] { "ThingDef/X" }, new[] { "ThingDef/X" });
+            // A dynamically-generated op (apply-stack id) -> modB is risky.
+            g.AddPatchEdge("modB#1.generated[0]", "modB", "PatchOperationAdd",
+                "Defs/ThingDef[defName=\"Y\"]", new[] { "ThingDef/Y" }, new[] { "ThingDef/Y" });
+            // A /Defs-root add (documentPathFallback: node id is the "Defs" doc path) -> modC is risky.
+            g.AddPatchEdge("modC#2", "modC", "PatchOperationAdd", "Defs",
+                new[] { "Defs" }, new[] { "Defs" });
+
+            List<string> risky = JsonDocument.Parse(g.Serialize(0))
+                .RootElement.GetProperty("riskyMods").EnumerateArray()
+                .Select(e => e.GetString()).ToList();
+
+            Assert.That(risky, Is.EqualTo(new[] { "modB", "modC" })); // sorted, modA excluded
+        }
     }
 }

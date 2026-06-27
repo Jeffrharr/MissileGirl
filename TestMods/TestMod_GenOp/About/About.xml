@@ -20,7 +20,5 @@ attributable per mod. No game content — dev/QA use only.</description>
     <li>Ludeon.RimWorld.Biotech</li>
     <li>Ludeon.RimWorld.Anomaly</li>
     <li>brrainz.harmony</li>
-    <!-- Must load after its own defs so the generative patch's target exists. -->
-    <li>joof.testharness.genop</li>
   </loadAfter>
 </ModMetaData>
