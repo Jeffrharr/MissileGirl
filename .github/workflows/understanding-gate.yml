@@ -1,9 +1,8 @@
 # Understanding Gate — arms the `understanding-check` status as `pending` on every PR push.
-# Clear it by running `/understanding-check` in Claude Code; that flips the status to success.
+# Clear it by running `/check-my-vibe` in Claude Code; that flips the status to success.
 #
-# Vendored into this repo by the Understanding Gate toolkit:
-#   Jeffrharr/ClaudeCIQuestions :: scripts/install-into.sh
-# The companion writer lives at .understanding/set-status.sh (single source of truth).
+# Installed into this repo by the CheckMyVibe toolkit:
+#   https://github.com/Jeffrharr/CheckMyVibe
 name: Understanding Gate
 
 on:
@@ -12,14 +11,9 @@ on:
 
 permissions:
   statuses: write
-  contents: read
 
 jobs:
   arm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Arm understanding-check (pending)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: ./.understanding/set-status.sh pending --sha "${{ github.event.pull_request.head.sha }}" --repo "${{ github.repository }}"
+      - uses: Jeffrharr/CheckMyVibe@main

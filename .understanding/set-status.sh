@@ -4,7 +4,7 @@
 # Single source of truth for the gate's context string AND the unblock copy the
 # engineer sees. Used in two places:
 #   • CI (the gate workflow) arms `pending` on every PR push.
-#   • The local /understanding-check skill flips it to `success` after the interview.
+#   • The local /check-my-vibe skill flips it to `success` after the interview.
 set -euo pipefail
 
 # Configuration — precedence: built-in default < .understanding/config < environment.
@@ -24,9 +24,9 @@ _env_docs="${UNDERSTANDING_DOCS_URL:-}"
 [[ -n "$_env_context" ]] && UNDERSTANDING_CONTEXT="$_env_context"
 [[ -n "$_env_docs" ]]    && UNDERSTANDING_DOCS_URL="$_env_docs"
 
-SKILL="${UNDERSTANDING_SKILL:-understanding-check}"
+SKILL="${UNDERSTANDING_SKILL:-check-my-vibe}"
 CONTEXT="${UNDERSTANDING_CONTEXT:-understanding-check}"
-DOCS_URL="${UNDERSTANDING_DOCS_URL:-https://github.com/Jeffrharr/ClaudeCIQuestions#unblocking-a-pr}"
+DOCS_URL="${UNDERSTANDING_DOCS_URL:-https://github.com/Jeffrharr/CheckMyVibe#unblocking-a-pr}"
 
 usage() {
   cat <<'EOF'
@@ -35,7 +35,7 @@ Usage: set-status.sh <pending|success|failure> [--sha <sha>] [--pr <num>] [--rep
 Writes the `understanding-check` commit status on a pull request's head commit.
 
   pending   gate is armed; the PR cannot merge until cleared (set by CI on each push)
-  success   understanding confirmed; unblocks merge (set by /understanding-check)
+  success   understanding confirmed; unblocks merge (set by /check-my-vibe)
   failure   explicitly mark the check failed
 
 Targeting (first match wins):
@@ -46,7 +46,7 @@ Targeting (first match wins):
   --repo owner/name  override the repo (default: $GITHUB_REPOSITORY, else `gh repo view`)
 
 Config (.understanding/config, overridable by env):
-  UNDERSTANDING_SKILL       slash command shown in the unblock message (default: understanding-check)
+  UNDERSTANDING_SKILL       slash command shown in the unblock message (default: check-my-vibe)
   UNDERSTANDING_CONTEXT     status check name; must match branch protection (default: understanding-check)
   UNDERSTANDING_DOCS_URL    the "Details" link on the status
 
