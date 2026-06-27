@@ -186,6 +186,18 @@ namespace Gagarin.Tests
             Assert.That(cat, Is.EqualTo("capture-gap"));
         }
 
+        // A dynamically-generated op (attributed as "{parent}.generated[N]") carries a real op type +
+        // sourceMod but is still recompute-unsafe (opaque generator) -> DECLINED, category dynamic-op
+        // (distinct from capture-gap: the risk IS attributed to a mod).
+        [Test]
+        public void GeneratedOp_Declined_AsDynamicOp()
+        {
+            var g = Graph(Edge("mod.x#3.generated[0]", "PatchOperationReplace",
+                "Defs/ThingDef[defName=\"A\"]/x", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("dynamic-op"));
+        }
+
         // An unsafe op on an ANCESTOR of a dirty def declines: the dirty descendant inherits the
         // ancestor's (cross-def-conditional) value, so it cannot be recomputed faithfully either.
         [Test]

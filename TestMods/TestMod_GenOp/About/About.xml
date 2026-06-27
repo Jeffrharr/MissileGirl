@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Generated Op</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.genop</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Exercises apply-time enclosing-op attribution live. Ships a C# assembly with a custom
+`JoofTest.PatchOperationGenerative : PatchOperationPathed` whose ApplyWorker NEWS UP a
+PatchOperationAdd at runtime and applies it — a child op that was never in the static patch index
+(the real-world "unindexed" case: an op generated dynamically during a parent op's Apply). Capture
+must attribute that generated child to its enclosing op as "joof.testharness.genop#N.generated[0]"
+with this mod's sourceMod, NOT the collapsed "unindexed#" bucket — so invisible-op risk is
+attributable per mod. No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Must load after its own defs so the generative patch's target exists. -->
+    <li>joof.testharness.genop</li>
+  </loadAfter>
+</ModMetaData>

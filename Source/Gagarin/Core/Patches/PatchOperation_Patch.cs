@@ -132,6 +132,10 @@ namespace Gagarin
                 // Open a sink for this operation; the Select* hooks fill it with the ids
                 // of whatever RimWorld selects while Apply runs.
                 sinks.Push(new List<string>());
+                // Push this op onto the apply-stack so nested/recursive applies know their enclosing
+                // op — and so an op generated dynamically inside this one's ApplyWorker is attributed
+                // to it rather than the "unindexed" bucket. Balanced by ExitApply in the Postfix.
+                ProvenanceRecorder.EnterApply(__instance);
             }
 
             public static void Postfix(PatchOperation __instance, bool __result)
@@ -140,6 +144,11 @@ namespace Gagarin
                     return;
 
                 List<string> matched = sinks.Count > 0 ? sinks.Pop() : null;
+                // Pop the apply-stack for EVERY op (balances EnterApply in the Prefix), BEFORE the
+                // non-pathed early-return below — otherwise a non-pathed op (sequence, custom
+                // container) would leak its push and corrupt attribution for everything after.
+                // RecordPatch reads patchIds, not the stack, so popping here is safe.
+                ProvenanceRecorder.ExitApply();
                 if (!(__instance is PatchOperationPathed))
                     return;
 

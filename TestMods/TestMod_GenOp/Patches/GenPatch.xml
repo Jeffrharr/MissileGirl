@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- The generative op: at Apply time it news up a PatchOperationAdd (a child NOT in the static
+       patch tree) and applies it, adding genTag to TC_GenTarget. Capture must attribute that
+       dynamically-generated child to this op as joof.testharness.genop#0.generated[0] with sourceMod
+       joof.testharness.genop (NOT unindexed#PatchOperationAdd), so unindexedEdgeCount stays 0 and the
+       invisible-op risk is keyed to this mod. -->
+  <Operation Class="JoofTest.PatchOperationGenerative">
+    <xpath>Defs/ThingDef[defName="TC_GenTarget"]</xpath>
+    <value>
+      <genTag>generated</genTag>
+    </value>
+  </Operation>
+</Patch>
