@@ -118,8 +118,33 @@ namespace Gagarin
 
             string snapshot = SnapshotPath;
             string rebuilt = GagarinEnvironmentInfo.UnifiedXmlFilePath;
-            if (!File.Exists(snapshot) || !File.Exists(rebuilt))
-                return; // no prior cache to gate against (e.g. first cold load)
+            if (!File.Exists(rebuilt))
+                return; // nothing was rebuilt this load — nothing to fingerprint or gate
+
+            // Parse the rebuild ONCE: it feeds both the per-def fingerprint (written every load) and
+            // the gate diff below.
+            Dictionary<string, string> rebuild;
+            try
+            {
+                rebuild = UnifiedCacheDiff.IndexById(LoadCache(rebuilt));
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("GAGARIN: dirty-set gate failed to read rebuild", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "gate", e.GetType().Name, e.Message));
+                return;
+            }
+
+            // Per-def content fingerprint — written on EVERY cache-writing load, COLD INCLUDED, because
+            // it is a capture artifact: the next changed load reads THIS load's fingerprint as its
+            // prior. It must run even though the gate proper is skipped on a cold load (no prior to
+            // diff) — otherwise a cold load leaves no baseline and the next load's cross-check no-ops.
+            WriteDefHashesFingerprint(rebuild);
+
+            if (!File.Exists(snapshot))
+                return; // no prior cache to gate against (e.g. first cold load) — fingerprint done
 
             HashSet<string> dirty = DirtySetDiagnostic.LastDirtySet;
             if (dirty == null)
@@ -141,7 +166,6 @@ namespace Gagarin
                 var sw = Stopwatch.StartNew();
                 XmlDocument baselineDoc = LoadCache(snapshot);
                 Dictionary<string, string> baseline = UnifiedCacheDiff.IndexById(baselineDoc);
-                Dictionary<string, string> rebuild = UnifiedCacheDiff.IndexById(LoadCache(rebuilt));
                 List<string> mismatches = UnifiedCacheDiff.NonDirtyMismatches(baseline, rebuild, dirty);
                 sw.Stop();
 
@@ -155,11 +179,11 @@ namespace Gagarin
                 Emit(baseline.Count, rebuild.Count, dirty.Count, mismatches, unattributed,
                     sw.ElapsedMilliseconds);
 
-                // Persist this load's per-def content fingerprint (id -> hash) and, if last run left
-                // one in the sidecar, report the hash-based content-change set as an independent
-                // cross-check of the Unified-diff gate. Compact + durable substrate for staleness work
-                // (issue #26). Additive + best-effort; never affects what is served.
-                WriteAndCheckDefHashes(rebuild, dirty);
+                // Cross-check: the hash-based content-change set (this load's fingerprint vs last
+                // load's, carried in the sidecar) as an INDEPENDENT confirmation of the Unified-diff
+                // gate. notCoveredByDirtySet should equal nonDirtyMismatches; a divergence means one of
+                // the two is wrong. Best-effort; never affects what is served.
+                CrossCheckDefHashes(rebuild, dirty);
 
                 // M2b-2b — real-engine recompute proof: recompute the dirty defs, splice them
                 // onto the prior cache, and require the spliced doc to byte-match the full
@@ -283,44 +307,56 @@ namespace Gagarin
         private const string DefHashesFileName = "DefHashes.tsv";
 
         // Writes this load's per-def content fingerprint (id -> FNV-1a hash of the rebuilt def's
-        // serialized value) to the cache, and — when last run's fingerprint survives in the sidecar —
-        // logs the hash-based content-change set (changed/added/removed) as an independent cross-check
-        // of the gate's Unified diff. The compact TSV is what later staleness work reads instead of
-        // keeping the full prior Unified.xml around (issue #26). Best-effort: any failure is swallowed,
-        // and this never influences the served cache.
-        private static void WriteAndCheckDefHashes(Dictionary<string, string> rebuild, HashSet<string> dirty)
+        // serialized value) to the cache. Runs on EVERY cache-writing load (cold included): it is a
+        // capture artifact that becomes the NEXT load's prior baseline (carried to the sidecar by
+        // PriorStateSnapshot). The compact TSV is what later staleness work reads instead of keeping
+        // the full prior Unified.xml (issue #26). Best-effort; never influences the served cache.
+        private static void WriteDefHashesFingerprint(Dictionary<string, string> rebuild)
         {
             try
             {
-                Dictionary<string, string> current = DefContentHash.HashAll(rebuild);
                 File.WriteAllText(
                     Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, DefHashesFileName),
-                    DefContentHash.Serialize(current));
+                    DefContentHash.Serialize(DefContentHash.HashAll(rebuild)));
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("GAGARIN: def-hash fingerprint write failed", exception: e);
+                if (GagarinPrefs.Metrics)
+                    MetricsLog.Append(MetricsLog.BuildError(
+                        CurrentEnvelope(), "gate.defHashes", e.GetType().Name, e.Message));
+            }
+        }
 
+        // When last load left a fingerprint in the sidecar, logs the hash-based content-change set
+        // (this load's hashes vs the prior's) as an INDEPENDENT cross-check of the Unified-diff gate:
+        // a changed/removed def the dirty set did NOT cover is a hash-based staleness miss, the same
+        // property nonDirtyMismatches measures via the Unified diff. They should agree. Best-effort.
+        private static void CrossCheckDefHashes(Dictionary<string, string> rebuild, HashSet<string> dirty)
+        {
+            try
+            {
                 string priorPath = PriorStateSnapshot.PriorDefHashesPath;
                 if (!PriorStateSnapshot.Available || !File.Exists(priorPath))
                 {
-                    Log.Warning("GAGARIN: <color=white>Staleness fingerprint</color> written (" +
-                        current.Count + " defs); no prior fingerprint yet for a hash diff.");
+                    Log.Warning("GAGARIN: <color=white>Staleness (hash-based)</color> skipped — " +
+                        "no prior fingerprint in the sidecar yet.");
                     return;
                 }
-
+                Dictionary<string, string> current = DefContentHash.HashAll(rebuild);
                 Dictionary<string, string> prior = DefContentHash.Parse(File.ReadAllText(priorPath));
                 DefContentHash.Diff(prior, current,
                     out List<string> changed, out List<string> added, out List<string> removed);
-                // A changed/removed def that the dirty set did NOT cover is a (hash-based) staleness
-                // miss — the same property the Unified-diff gate's nonDirtyMismatches measures, derived
-                // independently. They should agree; a divergence means one of the two is wrong.
                 int missed = 0;
                 foreach (string id in changed) if (!dirty.Contains(id)) missed++;
                 foreach (string id in removed) if (!dirty.Contains(id)) missed++;
                 Log.Warning("GAGARIN: <color=white>Staleness (hash-based)</color> " +
                     $"changed={changed.Count} added={added.Count} removed={removed.Count} " +
-                    $"notCoveredByDirtySet={missed}");
+                    $"notCoveredByDirtySet={missed} (cross-check of nonDirtyMismatches)");
             }
             catch (Exception e)
             {
-                Logger.Debug("GAGARIN: def-hash fingerprint failed", exception: e);
+                Logger.Debug("GAGARIN: def-hash cross-check failed", exception: e);
                 if (GagarinPrefs.Metrics)
                     MetricsLog.Append(MetricsLog.BuildError(
                         CurrentEnvelope(), "gate.defHashes", e.GetType().Name, e.Message));
