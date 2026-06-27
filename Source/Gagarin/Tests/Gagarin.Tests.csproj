@@ -35,6 +35,7 @@
     <Compile Include="..\Core\Incremental\SubDocExpander.cs" Link="SubDocExpander.cs" />
     <Compile Include="..\Core\Incremental\RecomputeAllowlist.cs" Link="RecomputeAllowlist.cs" />
     <Compile Include="..\Core\Incremental\PatchCoverageAudit.cs" Link="PatchCoverageAudit.cs" />
+    <Compile Include="..\Core\Incremental\DefContentHash.cs" Link="DefContentHash.cs" />
     <Compile Include="..\Core\Incremental\MayRequireGate.cs" Link="MayRequireGate.cs" />
     <Compile Include="..\Core\Incremental\WildcardRematch.cs" Link="WildcardRematch.cs" />
     <Compile Include="..\Core\Incremental\UnifiedCacheDiff.cs" Link="UnifiedCacheDiff.cs" />

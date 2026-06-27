@@ -62,6 +62,7 @@ namespace Gagarin
         private const string HashFileName = "AssetsHash.xml";
         private const string HashIntFileName = "AssetsHashInt.xml";
         private const string GraphFileName = "DependencyGraph.json";
+        private const string DefHashesFileName = "DefHashes.tsv";
 
         // The directory the sidecar copies live in: .../MissileGirl/Incremental/prior/.
         // RocketEnvironmentInfo.CustomConfigFolderPath is .../MissileGirl, and CacheFolderPath is
@@ -76,6 +77,8 @@ namespace Gagarin
         public static string PriorUnifiedPath => Path.Combine(PriorDir, UnifiedFileName);
         public static string PriorHashPath => Path.Combine(PriorDir, HashFileName);
         public static string PriorGraphPath => Path.Combine(PriorDir, GraphFileName);
+        // Prior per-def content fingerprint (id -> hash), for the staleness diff. Written by the gate.
+        public static string PriorDefHashesPath => Path.Combine(PriorDir, DefHashesFileName);
 
         // True when the master toggle is ON and a usable sidecar exists. Callers use this to
         // decide whether to redirect their prior reads to the sidecar (toggle ON + sidecar
@@ -105,6 +108,11 @@ namespace Gagarin
                 PriorStateSnapshotPaths.CopyIfExists(
                     Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, GraphFileName),
                     Path.Combine(priorDir, GraphFileName));
+                // Per-def content fingerprint (written by the gate this load) -> next run's prior, so
+                // the staleness diff has a compact baseline without keeping the full prior Unified.xml.
+                PriorStateSnapshotPaths.CopyIfExists(
+                    Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, DefHashesFileName),
+                    Path.Combine(priorDir, DefHashesFileName));
 
                 Logger.Debug("GAGARIN: prior-state sidecar captured to " + priorDir);
             }
