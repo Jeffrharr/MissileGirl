@@ -27,6 +27,7 @@
 // hooks are installed only when capture is enabled (dev-only), so the shipped fast
 // path is never touched.
 
+using System;
 using System.Collections.Generic;
 using System.Xml;
 using HarmonyLib;
@@ -158,6 +159,32 @@ namespace Gagarin
                 // selection. A failed match modifies nothing.
                 IEnumerable<string> modified = __result ? matched : null;
                 ProvenanceRecorder.RecordPatch(__instance, xpath, matched, modified);
+            }
+
+            // Harmony runs this Finalizer after the Postfix on success, and INSTEAD of the
+            // Postfix when PatchOperation.Apply (i.e. ApplyWorker) throws — Harmony skips
+            // Postfixes on exception. RimWorld's LoadedModManager.ApplyPatches wraps each
+            // top-level op in try/catch, so a throw propagates up through every enclosing
+            // sequence to that catch; none of those ops' Postfixes run, and each would leak
+            // the sink + apply-stack frame its Prefix pushed — corrupting attribution (and
+            // growing both stacks) for everything captured afterwards.
+            //
+            // So on the THROW path only (__exception != null, meaning the Postfix did NOT
+            // run) we discard this op's sink and pop its apply-stack frame, leaving both
+            // stacks balanced at every depth. No RecordPatch — the op failed, so it
+            // correctly contributes no edge. On the SUCCESS path the Postfix already
+            // balanced them, so we must do nothing here or we would double-pop.
+            //
+            // The parameter is taken BY VALUE (not ref) and the method returns void, so it
+            // is a transparent observer: the original exception keeps propagating unchanged
+            // and ApplyPatches still logs-and-continues exactly as upstream.
+            public static void Finalizer(Exception __exception)
+            {
+                if (!ProvenanceRecorder.Active || __exception == null)
+                    return;
+                if (sinks.Count > 0)
+                    sinks.Pop();
+                ProvenanceRecorder.ExitApply();
             }
         }
     }
