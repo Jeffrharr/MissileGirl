@@ -85,6 +85,16 @@ namespace Gagarin
         private static readonly Stopwatch recordSw = new Stopwatch();
         private static readonly Stopwatch serializeSw = new Stopwatch();
 
+        // Number of KeyMatched calls (one per matched node). This is the hottest path in
+        // the whole capture — the Select* hooks key every node every patch op matches, so
+        // on a large modlist it fires billions of times (issue #31). We deliberately do NOT
+        // wrap it in the per-call Stopwatch the other phases use: on mono-Linux Stopwatch
+        // (QueryPerformanceCounter) costs enough per call that, multiplied by this volume,
+        // the meter dominated the very recordMs it was measuring. A monotonic long counter
+        // is effectively free and still surfaces the keying VOLUME — which is the real
+        // driver of the super-linear cost — in the capture log for #31 re-measurement.
+        private static long keyMatchedCount;
+
         public static bool Active => GagarinPrefs.CaptureProvenance && !Context.IsUsingCache;
 
         public static void Reset()
@@ -98,6 +108,7 @@ namespace Gagarin
             registerSw.Reset();
             recordSw.Reset();
             serializeSw.Reset();
+            keyMatchedCount = 0;
         }
 
         // Assigns deterministic patchIds to every PatchOperation in active-mod
@@ -424,17 +435,12 @@ namespace Gagarin
             if (!Active || node == null)
                 return null;
 
-            overhead.Start();
-            recordSw.Start();
-            try
-            {
-                return graph.KeyForNode(node);
-            }
-            finally
-            {
-                recordSw.Stop();
-                overhead.Stop();
-            }
+            // HOT PATH — once per matched node, billions of times at scale (issue #31).
+            // No per-call Stopwatch here on purpose (see keyMatchedCount): the timer was
+            // costing more than the work it timed. KeyForNode is memoized, so the real
+            // remaining cost is the call volume, which keyMatchedCount makes visible.
+            keyMatchedCount++;
+            return graph.KeyForNode(node);
         }
 
         // Called from the Apply hook's PREFIX, as each PatchOperation.Apply begins. Pushes the op's
@@ -565,7 +571,10 @@ namespace Gagarin
                     $"bytes={Encoding.UTF8.GetByteCount(json)} overheadMs={overhead.ElapsedMilliseconds} " +
                     $"[registerMs={registerSw.ElapsedMilliseconds} " +
                     $"recordMs={recordSw.ElapsedMilliseconds} " +
-                    $"serializeMs={serializeSw.ElapsedMilliseconds}]");
+                    $"serializeMs={serializeSw.ElapsedMilliseconds} " +
+                    // keyings is the KeyMatched call volume (per matched node) — the driver
+                    // of the super-linear capture cost (#31), now counted instead of timed.
+                    $"keyings={keyMatchedCount}]");
             }
             catch (Exception er)
             {
