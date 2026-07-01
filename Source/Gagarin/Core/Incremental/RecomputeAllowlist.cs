@@ -129,17 +129,24 @@ namespace Gagarin
                     cur = parent;
             }
 
-            // Parent conditional id -> its test READ set, so a branch child can be checked against it.
+            // Conditional id -> its own test READ set, so a branch child can be checked against its
+            // IMMEDIATE gating conditional. Keyed by every conditional edge's OWN PatchId — including a
+            // conditional nested inside another conditional's branch, whose id (e.g. "mod#1.match") also
+            // looks like a branch child of its OUTER parent. That outer-branch-child-ness is irrelevant
+            // here: what matters is that THIS op is a Conditional, so it has its own read set to record.
             var conditionalReads = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             foreach (GraphPatchEdge edge in graph.PatchEdges)
-                if (IsConditional(edge.OperationType) && !IsBranchChild(edge.PatchId))
+                if (IsConditional(edge.OperationType))
                     conditionalReads[edge.PatchId] = edge.MatchedNodeIds;
 
             foreach (GraphPatchEdge edge in graph.PatchEdges)
             {
-                // Skip parent conditional TEST edges — they modify nothing (their spurious self-mark is
-                // not a real effect); the effect is in their .match/.nomatch children, checked below.
-                if (IsConditional(edge.OperationType) && !IsBranchChild(edge.PatchId))
+                // Skip conditional TEST edges entirely — they modify nothing (their spurious self-mark is
+                // not a real effect); the effect is in their .match/.nomatch children, checked below. This
+                // must skip EVERY conditional, not just top-level ones: a nested conditional's own id can
+                // also look like a branch child of its outer parent (see conditionalReads above), but it
+                // is still a test edge, not a producing edge.
+                if (IsConditional(edge.OperationType))
                     continue;
 
                 if (!TouchesRelevant(edge.ModifiedNodeIds, relevantTargets))
@@ -283,15 +290,20 @@ namespace Gagarin
 
         // The parent conditional id of a branch child ("<parentId>.match[...]" / ".nomatch[...]"), or
         // null when it is not a child of a known conditional parent.
+        //
+        // Must cut at the LAST ".match"/".nomatch" segment, not the first: a conditional nested inside
+        // another conditional's branch (or inside a sequence inside that branch) produces an id like
+        // "mod#1.match.match" or "mod#1.match.operations[2].nomatch". Cutting at the first occurrence
+        // would resolve to the OUTER conditional and check its (possibly in-sub-doc) read set instead of
+        // the immediate gating conditional's — silently admitting a cross-def conditional nested under a
+        // same-def one. That is a false "safe to recompute", not just an over-conservative fallback.
         private static string BranchParentId(string patchId, Dictionary<string, List<string>> parents)
         {
             if (string.IsNullOrEmpty(patchId) || !IsBranchChild(patchId))
                 return null;
-            int match = patchId.IndexOf(".match", StringComparison.Ordinal);
-            int nomatch = patchId.IndexOf(".nomatch", StringComparison.Ordinal);
-            int cut = match >= 0 ? match : nomatch;
-            if (nomatch >= 0 && (match < 0 || nomatch < match))
-                cut = nomatch;
+            int match = patchId.LastIndexOf(".match", StringComparison.Ordinal);
+            int nomatch = patchId.LastIndexOf(".nomatch", StringComparison.Ordinal);
+            int cut = Math.Max(match, nomatch);
             string parentId = patchId.Substring(0, cut);
             return parents.ContainsKey(parentId) ? parentId : null;
         }
