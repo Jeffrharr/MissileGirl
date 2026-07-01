@@ -133,6 +133,33 @@ namespace Gagarin.Tests
             Assert.That(cat, Is.EqualTo("conditional-cross-def"));
         }
 
+        // A conditional nested inside another conditional's branch: outer test is same-def (safe), but
+        // the immediate (inner) conditional gating the leaf is cross-def -> must DECLINE. Regression for
+        // BranchParentId cutting at the FIRST ".match"/".nomatch" segment (the outer, safe conditional)
+        // instead of the LAST (the immediate, unsafe one) — which would wrongly ADMIT this.
+        [Test]
+        public void NestedConditional_InnerCrossDef_Declined()
+        {
+            var g = Graph(
+                Conditional("mod#1", "Defs/ThingDef[defName=\"D\"]/trigger", "ThingDef/D"),
+                Conditional("mod#1.match", "Defs/ThingDef[defName=\"Probe\"]/flag", "ThingDef/Probe"),
+                Edge("mod#1.match.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
+            Assert.That(Can(g, Set("ThingDef/D"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("conditional-cross-def"));
+        }
+
+        // Same nesting shape, but the immediate (inner) conditional's read is also in the sub-doc ->
+        // both levels are same-def -> ADMITTED.
+        [Test]
+        public void NestedConditional_BothSameDef_Admitted()
+        {
+            var g = Graph(
+                Conditional("mod#1", "Defs/ThingDef[defName=\"D\"]/trigger", "ThingDef/D"),
+                Conditional("mod#1.match", "Defs/ThingDef[defName=\"D\"]/other", "ThingDef/D"),
+                Edge("mod#1.match.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
+            Assert.That(Can(g, Set("ThingDef/D"), Set(), out _), Is.True);
+        }
+
         // An unknown / unmodelled op kind producing the dirty def -> DECLINED (unknown-op-kind). This
         // is the safe-by-default property: anything we have not proven falls back.
         [Test]
