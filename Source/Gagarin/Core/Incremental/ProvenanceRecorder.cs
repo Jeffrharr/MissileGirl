@@ -30,6 +30,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Xml;
+using HarmonyLib;
 using MissileGirl;
 using Verse;
 
@@ -63,6 +64,25 @@ namespace Gagarin
         // surface of each operation type, so we don't re-sort fields per instance.
         private static readonly Dictionary<Type, FieldInfo[]> patchFieldCache =
             new Dictionary<Type, FieldInfo[]>();
+
+        // Caches, per PatchOperation type, whether it declares a field literally named
+        // "match" or "nomatch" (any accessibility, any declaring level in the type
+        // hierarchy). Used by MaybeRecordUnresolvedGate (issue #40) to decide whether an
+        // unrecognized type shares PatchOperationFindMod/Conditional's branch convention
+        // without re-walking the type hierarchy on every Apply.
+        private static readonly Dictionary<Type, bool> branchFieldCache =
+            new Dictionary<Type, bool>();
+
+        // Reflective access to PatchOperationFindMod's private fields (issue #40). mods
+        // holds mod DISPLAY NAMES (not packageIds) tested via ModLister.HasActiveModWithName
+        // -- confirmed by decompiling Verse.PatchOperationFindMod.ApplyWorker; match/nomatch
+        // are the branch children RimWorld applies depending on that test's result.
+        private static readonly AccessTools.FieldRef<PatchOperationFindMod, List<string>> FindModModsRef =
+            AccessTools.FieldRefAccess<PatchOperationFindMod, List<string>>("mods");
+        private static readonly AccessTools.FieldRef<PatchOperationFindMod, PatchOperation> FindModMatchRef =
+            AccessTools.FieldRefAccess<PatchOperationFindMod, PatchOperation>("match");
+        private static readonly AccessTools.FieldRef<PatchOperationFindMod, PatchOperation> FindModNomatchRef =
+            AccessTools.FieldRefAccess<PatchOperationFindMod, PatchOperation>("nomatch");
 
         // The stack of currently-applying operations' ids (Apply hook pushes on entry, pops on exit).
         // RimWorld applies container children recursively, so the top of this stack is always the op
@@ -102,6 +122,7 @@ namespace Gagarin
             graph.Reset();
             patchIds.Clear();
             patchFieldCache.Clear();
+            branchFieldCache.Clear();
             applyStack.Clear();
             generatedChildCounters.Clear();
             overhead.Reset();
@@ -423,6 +444,139 @@ namespace Gagarin
                 if (pkg.Length > 0)
                     graph.AddMayRequire(pkg, nodeId);
             }
+        }
+
+        // PatchOperationFindMod capture reader (issue #40). Called from the Apply hook's
+        // postfix whenever the just-applied operation is a PatchOperationFindMod. Feeds
+        // the SAME mayRequire index Seed 6 (MayRequire flips) already consumes, so no
+        // DirtySetComputer change is needed: whichever branch (match/nomatch) actually ran
+        // this load had its matched node ids already recorded by the ordinary Apply
+        // postfix/RecordPatch path (FindMod's ApplyWorker calls that branch's Apply
+        // synchronously before returning, so by the time THIS postfix runs the branch's own
+        // capture is already complete) — we just need to look them up by the branch's
+        // already-assigned patch id and union them into mayRequire under the resolved
+        // packageId(s). See the file-header comment on FindModCapture for the full
+        // root-cause rationale.
+        public static void IndexFindMod(PatchOperationFindMod findMod)
+        {
+            if (!Active || findMod == null)
+                return;
+
+            List<string> modNames = FindModModsRef(findMod);
+            if (modNames == null || modNames.Count == 0)
+                return;
+
+            List<string> packageIds = FindModCapture.ResolvePackageIds(modNames, ModNameToPackageId);
+            if (packageIds.Count == 0)
+                return;
+
+            // Replay the exact test ApplyWorker just ran (Verse.PatchOperationFindMod:
+            // ModLister.HasActiveModWithName(name), any match wins) to learn which branch
+            // fired. We don't have ApplyWorker's local result handed to us, but the test is
+            // deterministic and side-effect free, so re-running it here is exact and safe.
+            bool anyActive = false;
+            foreach (string name in modNames)
+            {
+                if (ModLister.HasActiveModWithName(name))
+                {
+                    anyActive = true;
+                    break;
+                }
+            }
+
+            PatchOperation branch = anyActive ? FindModMatchRef(findMod) : FindModNomatchRef(findMod);
+            if (branch == null)
+                return; // e.g. nomatch omitted in XML -- no content depends on the gating mod on this branch
+
+            var nodeIds = new HashSet<string>();
+            CollectMatchedNodeIds(branch, nodeIds, new HashSet<PatchOperation>());
+            if (nodeIds.Count == 0)
+                return;
+
+            foreach (string pkg in packageIds)
+                foreach (string nodeId in nodeIds)
+                    graph.AddMayRequire(pkg, nodeId);
+        }
+
+        // Resolves a mod's display Name (as ModLister.HasActiveModWithName compares it) to
+        // its packageId via the currently running mods list, matching case-sensitively by
+        // exact Name equality -- mirroring the decompiled ApplyWorker's own comparison so we
+        // gate on precisely the same mod it does, no more and no less.
+        private static string ModNameToPackageId(string displayName)
+        {
+            if (string.IsNullOrEmpty(displayName))
+                return null;
+            foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
+                if (mod != null && mod.Name == displayName)
+                    return mod.PackageId;
+            return null;
+        }
+
+        // Walks a branch subtree (the op itself plus every nested child reachable via
+        // GetChildPatches, e.g. a PatchOperationSequence's operations[i]) pulling each
+        // already-indexed patch id's recorded matched node ids into "into". visited guards
+        // against a shared/cyclic child re-walking (mirrors PatchIdWalker's first-visit-wins
+        // guard); patch trees are finite in practice, but this keeps it provably safe.
+        private static void CollectMatchedNodeIds(
+            PatchOperation op, HashSet<string> into, HashSet<PatchOperation> visited)
+        {
+            if (op == null || !visited.Add(op))
+                return;
+
+            if (patchIds.TryGetValue(op, out string id))
+                foreach (string nodeId in graph.GetMatchedNodeIds(id))
+                    into.Add(nodeId);
+
+            foreach ((string _, PatchOperation child) in GetChildPatches(op))
+                CollectMatchedNodeIds(child, into, visited);
+        }
+
+        // Generic fallback for unrecognized branch constructs (issue #40, part 2). Called
+        // from the Apply hook's postfix for every operation that is NOT a
+        // PatchOperationFindMod. If its type carries the match/nomatch field convention but
+        // isn't one of the types we have a dedicated reader for (FindMod here;
+        // PatchOperationConditional via issue #25's RecomputeAllowlist, which already
+        // consumes the generic .match/.nomatch ids the capture walk assigns it), we cannot
+        // resolve WHICH nodes it depends on -- only flag that its owning mod has an
+        // unbounded blast radius, mirroring riskyMods' precedent. Capture-only: no
+        // DirtySetComputer seed consumes unresolvedGateMods yet (deferred follow-up).
+        public static void MaybeRecordUnresolvedGate(PatchOperation patch)
+        {
+            if (!Active || patch == null)
+                return;
+
+            Type type = patch.GetType();
+            if (!FindModCapture.NeedsGenericFallback(type.Name, HasBranchFields(type)))
+                return;
+
+            if (!patchIds.TryGetValue(patch, out string id))
+                return; // unindexed op -- no sourceMod to attribute this to
+            string sourceMod = id.Contains("#") ? id.Substring(0, id.IndexOf('#')) : null;
+            if (!string.IsNullOrEmpty(sourceMod))
+                graph.AddUnresolvedGateMod(sourceMod);
+        }
+
+        // True if type (or a base type) declares an instance field literally named "match"
+        // or "nomatch" -- the shared convention PatchOperationFindMod and
+        // PatchOperationConditional both use for their branch children. Cached per type
+        // since MaybeRecordUnresolvedGate runs on every Apply.
+        private static bool HasBranchFields(Type type)
+        {
+            if (branchFieldCache.TryGetValue(type, out bool cached))
+                return cached;
+
+            bool has = HasField(type, "match") || HasField(type, "nomatch");
+            branchFieldCache[type] = has;
+            return has;
+        }
+
+        private static bool HasField(Type type, string name)
+        {
+            for (Type t = type; t != null && t != typeof(object); t = t.BaseType)
+                if (t.GetField(name,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance) != null)
+                    return true;
+            return false;
         }
 
         // Keys a matched node to its stable id at selection time — called from the XML

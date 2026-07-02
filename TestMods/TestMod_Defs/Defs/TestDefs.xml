@@ -112,4 +112,22 @@
     <label>test seq-nested probe</label>
     <probeFlag>yes</probeFlag>
   </ThingDef>
+
+  <!-- CASE 9: PatchOperationConditional whose xpath-existence test target belongs to a THIRD,
+       unrelated mod (docs/patch-operations-coverage.md's open "Open nuance" line under
+       PatchOperationConditional). TC_ThirdModProbe is supplied ONLY by TestMod_ThirdMod, which is
+       present for Run A and REMOVED before Run B — a pure mod-list change, not a content edit.
+       TestMod_Static's conditional tests `Defs/ThingDef[defName="TC_ThirdModProbe"]` for mere
+       existence and mutates TC_CondTarget accordingly:
+         Run A (TestMod_ThirdMod present):  match branch fires   -> condThirdModTag=third-mod-present
+         Run B (TestMod_ThirdMod removed):  nomatch branch fires -> condThirdModTag=third-mod-absent
+       Neither TestMod_Static (the conditional owner) nor TestMod_Defs (TC_CondTarget's owner)
+       changes between runs, and TC_CondTarget's OWN patch file never changes either — so nothing
+       drives Seed 1/2 to mark it dirty via the mechanisms the earlier CASEs rely on. This isolates
+       whether the allowlist/dirty-set pipeline has ANY mechanism connecting a conditional's
+       xpath-existence read set to a third mod's add/remove. See expect-conditional-thirdmod. -->
+  <ThingDef>
+    <defName>TC_CondTarget</defName>
+    <label>test third-mod conditional target</label>
+  </ThingDef>
 </Defs>

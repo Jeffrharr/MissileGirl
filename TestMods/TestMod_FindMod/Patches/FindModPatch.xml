@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Reproduces the #40 bug shape: PatchOperationFindMod tests joof.testharness.gate's DISPLAY
+       NAME ("Test Harness — MayRequire Gate", from TestMod_Gate/About/About.xml), NOT its
+       packageId — mirroring the real-world nals.facialanimation/oppey.eyegenes2 pair exactly
+       (see docs/patch-operations-coverage.md row 11 and the wiki's own ApplyWorker note:
+       ModLister.HasActiveModWithName, a name lookup). The <match> branch — evaluated only when
+       the gate mod is active (Run A) — wraps a PatchOperationSequence containing a single
+       PatchOperationRemove that strips TC_FM_Host's GatedTag. There is no <nomatch>: when the
+       gate mod is absent (Run B) the branch simply does not run, and GatedTag survives.
+
+       Wrapping the Remove in a Sequence (rather than putting it directly in <match>) exercises
+       the same nested-child-id path the real bug did (34 PatchOperationRemove ops living inside
+       one PatchOperationSequence) and proves FindModCapture.CollectMatchedNodeIds walks INTO a
+       child container under the branch, not just a bare leaf op directly under <match>. -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Test Harness — MayRequire Gate</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <operations>
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/ThingDef[defName="TC_FM_Host"]/tradeTags/li[text()="GatedTag"]</xpath>
+        </li>
+      </operations>
+    </match>
+  </Operation>
+</Patch>

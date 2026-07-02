@@ -161,4 +161,36 @@
       </li>
     </operations>
   </Operation>
+
+  <!-- CASE 9: PatchOperationConditional whose xpath-EXISTENCE test target is supplied by a THIRD,
+       unrelated mod (docs/patch-operations-coverage.md's open "Open nuance" for
+       PatchOperationConditional — the untested add/remove counterpart to CASES 6-8, which all used
+       content-field flips within an unchanged mod set). TC_ThirdModProbe comes from TestMod_ThirdMod,
+       distinct from BOTH this conditional's owner (TestMod_Static, unchanged) and TC_CondTarget's
+       owner (TestMod_Defs, unchanged). TestMod_ThirdMod is present for Run A and REMOVED before
+       Run B — a pure mod-list change, not a patch-file edit — so TC_ThirdModProbe's def node itself
+       disappears from the patched doc between runs while nothing else here changes.
+
+       Unlike CASES 6-8 (whose read set is a field WITHIN an existing, never-removed def), this test
+       is on the EXISTENCE of the def node itself, driven purely by mod presence — the same shape as
+       issue #40's PatchOperationFindMod gap, but for a conditional's node-existence test instead of
+       an explicit mod-name check. Nothing dirties TC_CondTarget via Seed 1/2 (its own patch file
+       never changes); this fixture's purpose is to reveal whether ANY existing mechanism (e.g. a
+       MayRequire-style seed) already covers this case, or whether it's a genuine new gap. See
+       expect-conditional-thirdmod. -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="TC_ThirdModProbe"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>Defs/ThingDef[defName="TC_CondTarget"]</xpath>
+      <value>
+        <condThirdModTag>third-mod-present</condThirdModTag>
+      </value>
+    </match>
+    <nomatch Class="PatchOperationAdd">
+      <xpath>Defs/ThingDef[defName="TC_CondTarget"]</xpath>
+      <value>
+        <condThirdModTag>third-mod-absent</condThirdModTag>
+      </value>
+    </nomatch>
+  </Operation>
 </Patch>

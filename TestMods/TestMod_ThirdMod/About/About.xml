@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Third-Mod Conditional Probe</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.thirdmod</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>The "third mod" for the CASE 9 live fixture (docs/patch-operations-coverage.md's
+open PatchOperationConditional nuance). Supplies exactly one def, TC_ThirdModProbe, and nothing
+else. It is neither the mod that owns the conditional (TestMod_Static) nor the mod whose content
+the conditional's branch mutates (TestMod_Defs) — it exists solely so its xpath-existence test has
+something to test. Present in Run A's modlist, REMOVED before Run B (a pure mod-list change, same
+shape as TestMod_Gate for P4), so TC_ThirdModProbe disappears entirely between runs while both
+TestMod_Static and TestMod_Defs are unchanged. No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+</ModMetaData>

@@ -68,6 +68,12 @@ namespace Gagarin
         public readonly Dictionary<string, List<string>> MayRequireIndex =
             new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
 
+        // unresolvedGateMods (issue #40): packageIds owning a match/nomatch-shaped branch
+        // op the generic reflection fallback could not interpret (see ProvenanceGraph's
+        // field comment). Capture-only today -- no DirtySetComputer seed consumes this
+        // yet. Empty when the graph predates issue #40 (field simply absent).
+        public readonly List<string> UnresolvedGateMods = new List<string>();
+
         public static DependencyGraphData Load(string path)
         {
             return Parse(File.ReadAllText(path));
@@ -131,6 +137,10 @@ namespace Gagarin
                 AddStrings(ids, kv.Value);
                 data.MayRequireIndex[kv.Key] = ids;
             }
+
+            // unresolvedGateMods (issue #40). Absent in pre-#40 graphs, in which case
+            // AddStrings simply leaves the list empty.
+            AddStrings(data.UnresolvedGateMods, Get(root, "unresolvedGateMods"));
 
             return data;
         }
