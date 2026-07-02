@@ -65,6 +65,31 @@
 #                       direct read of the archived DependencyGraph.json asserting an edge with a
 #                       PatchId ending in ".operations[0]" has a non-empty MatchedNodeIds — proving
 #                       capture (not just the allowlist decision) saw the sequence-nested conditional.
+#     --expect-findmod  Live fixture for issue #40 (PatchOperationFindMod capture). joof.testharness.findmod
+#                       (UNCHANGED, byte-identical between runs) carries a PatchOperationFindMod that tests
+#                       joof.testharness.gate's DISPLAY NAME (mirroring the real oppey.eyegenes2 /
+#                       nals.facialanimation shape) and, when active, strips a tag from its own TC_FM_Host
+#                       via a Sequence nested in the <match> branch. The gate mod is active for Run A and
+#                       REMOVED before Run B (a pure mod-list change, same toggle as --expect-mayrequire),
+#                       so TC_FM_Host's resolved content flips with neither mod's files changing. Asserts
+#                       the dirty-set gate stays a superset (nonDirtyMismatches==0) AND the MayRequire seed
+#                       fired (seeds.mayRequire > 0 in DirtySet.json) — proof FindModCapture.IndexFindMod
+#                       fed the same Seed 6 index the P4 fixture exercises. Recompute is informational (not
+#                       yet asserted required) since no recompute-fidelity predictor has been validated for
+#                       FindMod-gated content the way MayRequireGate was for P4.
+#     --expect-conditional-thirdmod  Live fixture for the OPEN nuance noted in
+#                       docs/patch-operations-coverage.md's PatchOperationConditional row (CASE 9,
+#                       distinct from CASES 6-8): the conditional's xpath-EXISTENCE test target
+#                       (TC_ThirdModProbe) is supplied by a THIRD mod (TestMod_ThirdMod) — neither
+#                       the conditional's owner (TestMod_Static, unchanged) nor the branch-mutated
+#                       def's owner (TestMod_Defs, unchanged). TestMod_ThirdMod is present for Run A
+#                       and REMOVED before Run B — a pure mod-list change, not a patch-file edit — so
+#                       TC_ThirdModProbe's def node disappears entirely between runs. Change.xml is
+#                       held at run A for both runs (same pattern as --expect-mayrequire/--remove), so
+#                       the mod removal is the ONLY between-run delta. This mode does NOT assume the
+#                       outcome: it asserts only the dirty-set superset gate (nonDirtyMismatches==0);
+#                       the recompute gate is informational, since whether TC_CondTarget even shows up
+#                       dirty is exactly the open question this fixture exists to answer.
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -134,6 +159,16 @@ MAYREQUIRE_MOD_DIR="$SCRIPT_DIR/TestMod_MayRequire"
 GATE_MOD_DIR="$SCRIPT_DIR/TestMod_Gate"
 P1_MOD_DIR="$SCRIPT_DIR/TestMod_P1"
 GENOP_MOD_DIR="$SCRIPT_DIR/TestMod_GenOp"
+FINDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_FindMod"
+THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
+
+# --expect-findmod: exercise the #40 PatchOperationFindMod capture fix. joof.testharness.findmod (an
+# UNCHANGED mod) carries a PatchOperationFindMod gated on joof.testharness.gate's DISPLAY NAME (the
+# real-world shape: oppey.eyegenes2's patch gated on nals.facialanimation's presence). The gate mod is
+# active for run A (so the match branch's Remove strips TC_FM_Host's GatedTag and FindModCapture indexes
+# it) and REMOVED before run B (a pure mod-list change). TC_FM_Host must show up dirty via the MayRequire
+# seed (DirtySet.json seeds.mayRequire > 0), same as P4, since FindModCapture feeds the same index.
+EXPECT_FINDMOD=0
 
 NO_TEARDOWN=0
 # --expect-fallback: exercise the changed-mod container-op fallback instead of the default
@@ -190,13 +225,29 @@ EXPECT_NESTED=0
 # --expect-nested-conditional, PLUS a direct check that DependencyGraph.json holds an edge whose
 # PatchId ends in ".operations[0]" with a non-empty MatchedNodeIds.
 EXPECT_SEQNESTED=0
+# --expect-conditional-thirdmod: CASE 9, the open nuance in docs/patch-operations-coverage.md. See
+# the header comment above for the full scenario. TestMod_ThirdMod (present run A, removed run B)
+# supplies TC_ThirdModProbe, the sole target of TestMod_Static's xpath-existence conditional test;
+# neither TestMod_Static nor TestMod_Defs (TC_CondTarget's owner) changes between runs. Change.xml
+# is held at run A for both runs, so the mod removal is the only between-run delta. Only the
+# dirty-set gate is asserted (nonDirtyMismatches==0); recompute is informational — this fixture's
+# purpose is to reveal whether the pipeline already covers this case, not to assume it does.
+EXPECT_THIRDMOD=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
-# specific problem set captured from a prior run. Hard-capped at 100 mods total — the whole point of
-# the harness is a small, deterministic load; an 815-mod ambient list crashes RimWorld's GC during
-# unrelated mod init (zero of our code runs), which is not a test result.
+# specific problem set captured from a prior run. Hard-capped at MAX_MODS total (default 150) — the
+# whole point of the harness is a small, deterministic load; an 815-mod ambient list crashes
+# RimWorld's GC during unrelated mod init (zero of our code runs), which is not a test result.
+#
+# --modlist-verbatim=FILE: like --modlist=, but the file's line order IS the final load order —
+# Core/DLC/Harmony/Gagarin are NOT prepended. Use this when the file already came from a real,
+# dependency-aware sort (e.g. RimSort) that placed load-order-sensitive mods (prepatcher,
+# loadthemlast, etc.) around Core/Harmony rather than after them; the --modlist= prepend-then-append
+# scheme would silently break that ordering. Must already contain ludeon.rimworld + vr.missilegirl;
+# test-harness mods are still appended at the end.
 MODLIST_FILE=""
-MAX_MODS=100
+MODLIST_VERBATIM=""
+MAX_MODS=200
 # --remove=PACKAGEID: a real-mod removal scenario. Run A loads the full --modlist; before run B this
 # mod is removed from ModsConfig (a pure mod-list change), reproducing real add/remove failures (e.g.
 # the vmemese case: removing it drops VFE Props' IfModActive loadFolders prop defs -> P1, and flips
@@ -221,8 +272,14 @@ for arg in "$@"; do
         EXPECT_NESTED=1
     elif [[ "$arg" == "--expect-nested-in-sequence" ]]; then
         EXPECT_SEQNESTED=1
+    elif [[ "$arg" == "--expect-conditional-thirdmod" ]]; then
+        EXPECT_THIRDMOD=1
+    elif [[ "$arg" == "--expect-findmod" ]]; then
+        EXPECT_FINDMOD=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
+    elif [[ "$arg" == --modlist-verbatim=* ]]; then
+        MODLIST_VERBATIM="${arg#--modlist-verbatim=}"
     elif [[ "$arg" == --remove=* ]]; then
         REMOVE_MOD="${arg#--remove=}"
     fi
@@ -233,7 +290,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -255,8 +312,12 @@ if [[ -n "$REMOVE_MOD" ]] && (( $(sum_expect_flags) > 0 )); then
     echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
-if [[ -n "$REMOVE_MOD" && -z "$MODLIST_FILE" ]]; then
-    echo "[run_test] WARN: --remove=$REMOVE_MOD with no --modlist= — the mod must already be in the minimal base or nothing is removed." >&2
+if [[ -n "$REMOVE_MOD" && -z "$MODLIST_FILE" && -z "$MODLIST_VERBATIM" ]]; then
+    echo "[run_test] WARN: --remove=$REMOVE_MOD with no --modlist=/--modlist-verbatim= — the mod must already be in the minimal base or nothing is removed." >&2
+fi
+if [[ -n "$MODLIST_FILE" && -n "$MODLIST_VERBATIM" ]]; then
+    echo "[run_test] FAIL: --modlist= and --modlist-verbatim= are mutually exclusive." >&2
+    exit 2
 fi
 
 # Pick the change-file pair for this run mode. Default: the leaf-op fixtures that drive a real
@@ -282,11 +343,13 @@ elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
     # sequence-nested conditional TestMod_Static carries.
     RUN_A_CHANGE="Change_RunA_SeqNestedConditional.xml"
     RUN_B_CHANGE="Change_RunB_SeqNestedConditional.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || -n "$REMOVE_MOD" ]]; then
-    # P2 / P4 / P1 / --remove: hold Change.xml at run A for BOTH runs so the change vehicle's patch
-    # file does NOT change. The only between-run delta is mode-specific (P2: a mod added before run B;
-    # P4: the gate mod removed; P1: the JoofTest.PropDef def file swapped; --remove: a real mod removed
-    # before run B), so the dirty set is driven purely by that channel rather than a patch-file edit.
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" ]]; then
+    # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove: hold Change.xml at run A for BOTH runs so the
+    # change vehicle's patch file does NOT change. The only between-run delta is mode-specific (P2: a
+    # mod added before run B; P4: the gate mod removed; P1: the JoofTest.PropDef def file swapped;
+    # CASE 9: TestMod_ThirdMod removed; #40: the gate mod removed (same toggle as P4); --remove: a
+    # real mod removed before run B), so the dirty set is driven purely by that channel rather than a
+    # patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
     RUN_B_CHANGE="Change_RunA.xml"
 else
@@ -341,6 +404,8 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-gate"
     rm -f "$MODS_DIR/joof-testharness-p1"
     rm -f "$MODS_DIR/joof-testharness-genop"
+    rm -f "$MODS_DIR/joof-testharness-thirdmod"
+    rm -f "$MODS_DIR/joof-testharness-findmod"
     log "Symlinks removed."
 
     # Reset the P1 def file to its committed Run A value so a --expect-p1 run doesn't leave the git
@@ -681,6 +746,12 @@ ln -sfn "$P1_MOD_DIR"         "$MODS_DIR/joof-testharness-p1"
 # at Apply time so capture's apply-time attribution is continuously exercised — its edge must record
 # as joof.testharness.genop#N.generated[0], never unindexed#.
 ln -sfn "$GENOP_MOD_DIR"      "$MODS_DIR/joof-testharness-genop"
+# The third-mod fixture (CASE 9) is symlinked unconditionally; only --expect-conditional-thirdmod
+# activates it in ModsConfig for run A (and removes it before run B).
+ln -sfn "$THIRDMOD_MOD_DIR"   "$MODS_DIR/joof-testharness-thirdmod"
+# The FindMod fixture (#40) is symlinked unconditionally; only --expect-findmod activates it (and the
+# shared gate mod) in ModsConfig for run A.
+ln -sfn "$FINDMOD_MOD_DIR"    "$MODS_DIR/joof-testharness-findmod"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -711,12 +782,13 @@ log "Backup saved to $MODSCONFIG_BAK"
 # In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
 # absent from run A's baseline graph so run B sees them as genuinely added.
 EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" EXPECT_P1="$EXPECT_P1" \
-MODLIST_FILE="$MODLIST_FILE" MAX_MODS="$MAX_MODS" \
+EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" \
+MODLIST_FILE="$MODLIST_FILE" MODLIST_VERBATIM="$MODLIST_VERBATIM" MAX_MODS="$MAX_MODS" \
 RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
 
 path = sys.argv[1]
-max_mods = int(os.environ.get("MAX_MODS", "100"))
+max_mods = int(os.environ.get("MAX_MODS", "200"))
 
 # Preserve <version> + <knownExpansions> from the existing file; replace <activeMods> wholesale.
 orig = open(path, encoding="utf-8").read()
@@ -736,17 +808,33 @@ DLC = [
 data_dir = os.path.join(os.environ["RIMWORLD"], "Data")
 dlc_ids = [pid for (name, pid) in DLC if os.path.isdir(os.path.join(data_dir, name))]
 
-# Base load order: Core, DLCs, Harmony, then Gagarin (the mod under test).
-active = ["ludeon.rimworld"] + dlc_ids + ["brrainz.harmony", "vr.missilegirl"]
-
-# Optional captured problem set, on top of the base, before the test mods.
+verbatim_file = os.environ.get("MODLIST_VERBATIM", "")
 extra_file = os.environ.get("MODLIST_FILE", "")
-if extra_file:
-    with open(extra_file, encoding="utf-8") as fh:
+if verbatim_file:
+    # The file's own order IS the load order (e.g. a RimSort export) — no Core/DLC/Harmony
+    # prefix is injected, since that would reorder load-order-sensitive mods placed around Core.
+    active = []
+    with open(verbatim_file, encoding="utf-8") as fh:
         for line in fh:
             pid = line.split("#", 1)[0].strip()
             if pid and pid not in active:
                 active.append(pid)
+    for required in ("ludeon.rimworld", "vr.missilegirl"):
+        if required not in active:
+            print(f"  ERROR: --modlist-verbatim file is missing required '{required}'.",
+                  file=sys.stderr)
+            sys.exit(3)
+else:
+    # Base load order: Core, DLCs, Harmony, then Gagarin (the mod under test).
+    active = ["ludeon.rimworld"] + dlc_ids + ["brrainz.harmony", "vr.missilegirl"]
+
+    # Optional captured problem set, on top of the base, before the test mods.
+    if extra_file:
+        with open(extra_file, encoding="utf-8") as fh:
+            for line in fh:
+                pid = line.split("#", 1)[0].strip()
+                if pid and pid not in active:
+                    active.append(pid)
 
 # Test-harness mods always load last, in dependency order.
 #   defs -> static -> change. The added mod (P2) is inserted before run B, not here.
@@ -756,6 +844,14 @@ if os.environ.get("EXPECT_MAYREQUIRE", "0") == "1":
     test_mods += ["joof.testharness.gate", "joof.testharness.mayrequire"]
 if os.environ.get("EXPECT_P1", "0") == "1":
     test_mods += ["joof.testharness.p1"]
+# CASE 9 (--expect-conditional-thirdmod): the third mod is active for run A only — removed before
+# run B in Step 4 below (same present-then-removed pattern as the gate mod for P4).
+if os.environ.get("EXPECT_THIRDMOD", "0") == "1":
+    test_mods += ["joof.testharness.thirdmod"]
+# --expect-findmod (#40): gate + findmod are active for run A; gate is removed before run B (same
+# toggle shape as --expect-mayrequire, reusing the same gate mod).
+if os.environ.get("EXPECT_FINDMOD", "0") == "1":
+    test_mods += ["joof.testharness.gate", "joof.testharness.findmod"]
 active += test_mods
 
 if len(active) > max_mods:
@@ -829,7 +925,7 @@ launch_rimworld
 
 # Wait for ProvenanceRecorder to finish (writes DependencyGraph.json, logs the marker).
 # This is the end of the cold load. 10-minute timeout; a normal cold load is ~4 min.
-wait_for_marker "Provenance captured" "Provenance captured (Run A done)" 600
+wait_for_marker "Provenance captured" "Provenance captured (Run A done)" 1800
 
 log "Run A complete. Killing RimWorldLinux..."
 kill_rimworld
@@ -904,7 +1000,7 @@ fi
 # what flips the gated content (TC_MR_Gated dropped, TC_MR_Host's gated li stripped) for run B, so
 # the MayRequire seed must dirty those defs. (Teardown still restores the original from the step-1
 # backup.)
-if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
+if [[ $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_FINDMOD -eq 1 ]]; then
     log "Removing joof.testharness.gate from ModsConfig for Run B (the mod-list change)..."
     python3 - "$MODSCONFIG" <<'PYEOF'
 import sys, re
@@ -922,22 +1018,27 @@ print("ModsConfig.xml updated for Run B.")
 PYEOF
 fi
 
-# --remove=ID: remove the named real mod from ModsConfig for run B (case-insensitive), AFTER run A
-# captured the baseline graph with it. This is the real-mod add/remove change under test.
+# --remove=ID[,ID...]: remove the named real mod(s) from ModsConfig for run B (case-insensitive),
+# AFTER run A captured the baseline graph with them present. This is the real-mod add/remove change
+# under test. Comma-separate to remove a mod together with its dependents in one Run B (e.g. an
+# addon that requires the mod being removed) — a single-variable "remove this feature" change even
+# when it spans more than one packageId.
 if [[ -n "$REMOVE_MOD" ]]; then
     log "Removing $REMOVE_MOD from ModsConfig for Run B (the mod-list change)..."
     REMOVE_MOD="$REMOVE_MOD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
 path = sys.argv[1]
-pkg = os.environ["REMOVE_MOD"]
+pkgs = [p.strip() for p in os.environ["REMOVE_MOD"].split(",") if p.strip()]
 content = open(path, encoding="utf-8").read()
-# Case-insensitive <li> match (RimWorld treats packageIds case-insensitively).
-new = re.sub(r"[ \t]*<li>" + re.escape(pkg) + r"</li>\s*\n", "", content, count=1, flags=re.I)
-if new != content:
-    print(f"  {pkg}: removed (run-B mod-list change)")
-else:
-    print(f"  {pkg}: WARNING not found in active mods — was it in --modlist for run A?")
-open(path, "w", encoding="utf-8").write(new)
+for pkg in pkgs:
+    # Case-insensitive <li> match (RimWorld treats packageIds case-insensitively).
+    new = re.sub(r"[ \t]*<li>" + re.escape(pkg) + r"</li>\s*\n", "", content, count=1, flags=re.I)
+    if new != content:
+        print(f"  {pkg}: removed (run-B mod-list change)")
+    else:
+        print(f"  {pkg}: WARNING not found in active mods — was it in --modlist for run A?")
+    content = new
+open(path, "w", encoding="utf-8").write(content)
 print("ModsConfig.xml updated for Run B.")
 PYEOF
 fi
@@ -956,7 +1057,7 @@ launch_rimworld
 # dirty-set gate (both inside the same ParseAndProcessXML postfix, once the full rebuild
 # saved the new Unified.xml), so this marker means BOTH gates have run and written their
 # reports. 10-minute timeout.
-wait_for_marker "Recompute gate" "Recompute gate verdict (Run B done)" 600
+wait_for_marker "Recompute gate" "Recompute gate verdict (Run B done)" 1800
 
 log "Run B complete. Killing RimWorldLinux..."
 kill_rimworld
@@ -998,6 +1099,18 @@ recompute_required=1
 if [[ $EXPECT_MAYREQUIRE -eq 1 ]]; then
     log "MayRequire channel result:"
     mayrequire_ok=0; parse_dirtyset_mayrequire && mayrequire_ok=1 || mayrequire_ok=0
+fi
+
+# --expect-findmod (#40): require the SAME MayRequire seed to have fired (seeds.mayRequire > 0) —
+# proof FindModCapture.IndexFindMod resolved the gate mod's display name and fed TC_FM_Host's node
+# id into the shared mayRequire index, so Seed 6's existing XOR check dirtied it on gate removal.
+# Recompute is informational (not yet asserted required): no recompute-fidelity predictor has been
+# validated for FindMod-gated content the way MayRequireGate was for P4.
+findmod_ok=1
+if [[ $EXPECT_FINDMOD -eq 1 ]]; then
+    log "FindMod channel result (#40):"
+    findmod_ok=0; parse_dirtyset_mayrequire && findmod_ok=1 || findmod_ok=0
+    recompute_required=0
 fi
 
 # --expect-p1 (P1): require the changed namespaced def to be dirtied under its element-name node id.

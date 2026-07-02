@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- TC_ThirdModProbe: the sole content of the "third mod". Its only role is to exist (or not)
+       so TestMod_Static's CASE 9 conditional has an xpath-existence test target whose presence
+       is controlled purely by mod-list membership, not by any patch. See TestMod_ThirdMod's
+       About.xml and StaticPatches.xml CASE 9 for the full scenario. -->
+  <ThingDef>
+    <defName>TC_ThirdModProbe</defName>
+    <label>test third-mod probe</label>
+  </ThingDef>
+</Defs>

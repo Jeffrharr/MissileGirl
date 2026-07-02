@@ -241,6 +241,39 @@ namespace Gagarin.Tests
             Assert.That(r.Nodes, Does.Not.Contain("ThingDef/Gene_X"));
         }
 
+        // Issue #40 proxy: PatchOperationFindMod ("oppey.eyegenes2" wraps a 34-op Sequence
+        // in a FindMod testing FacialAnimation's presence) feeds ITS captured branch node
+        // ids into this SAME mayRequire index (see ProvenanceRecorder.IndexFindMod). The
+        // actual reflection capture is RimWorld-coupled and can only be verified live
+        // (--expect-* live fixture, follow-up); this test locks in the "index reuse"
+        // contract Seed 6 already provides once fed -- exercised here at real-world scale
+        // (33 GeneDefs, matching the live-run archived gate miss) rather than a toy count.
+        private static DependencyGraphData BuildFindModGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            var geneIds = new List<string>();
+            for (int i = 0; i < 33; i++)
+                geneIds.Add($"GeneDef/Eyes_Color{i}");
+            g.MayRequireIndex["nals.facialanimation"] = geneIds;
+            return g;
+        }
+
+        [Test]
+        public void MayRequireFlip_FindModGatedSequence_DirtiesAllBranchDefs()
+        {
+            // oppey.eyegenes2 (the mod OWNING the FindMod op) never changes -- only the
+            // gating mod (FacialAnimation) leaves the load, exactly like the live gate miss.
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("oppey.eyegenes2", "nals.facialanimation"),
+                CurrentLoadOrder = Order("oppey.eyegenes2")   // FacialAnimation removed
+            };
+            var r = DirtySetComputer.Compute(BuildFindModGraph(), change);
+            Assert.That(r.SeedMayRequire, Is.EqualTo(33));
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Color0"));
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Color32"));
+        }
+
         [Test]
         public void MayRequireFlip_AddedMod_DirtiesGatedDefs()
         {

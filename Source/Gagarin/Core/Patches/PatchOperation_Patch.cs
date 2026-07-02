@@ -150,6 +150,16 @@ namespace Gagarin
                 // container) would leak its push and corrupt attribution for everything after.
                 // RecordPatch reads patchIds, not the stack, so popping here is safe.
                 ProvenanceRecorder.ExitApply();
+
+                // Branch-shaped constructs (issue #40) are checked BEFORE the pathed-only
+                // early return below: PatchOperationFindMod/Conditional never carry their
+                // own xpath (they only route to match/nomatch), so the early return would
+                // otherwise skip them entirely.
+                if (__instance is PatchOperationFindMod findMod)
+                    ProvenanceRecorder.IndexFindMod(findMod);
+                else
+                    ProvenanceRecorder.MaybeRecordUnresolvedGate(__instance);
+
                 if (!(__instance is PatchOperationPathed))
                     return;
 

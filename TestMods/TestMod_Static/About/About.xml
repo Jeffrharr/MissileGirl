@@ -19,5 +19,8 @@ No game content — dev/QA use only.</description>
     <li>brrainz.harmony</li>
     <!-- Must load after base defs so the defs exist when patches are applied -->
     <li>joof.testharness.defs</li>
+    <!-- Soft dep for CASE 9 (expect-conditional-thirdmod): loads after when present so its def
+         node exists in time for the conditional's existence test; harmless when absent (Run B). -->
+    <li>joof.testharness.thirdmod</li>
   </loadAfter>
 </ModMetaData>

@@ -90,6 +90,17 @@ namespace Gagarin
         private readonly Dictionary<string, HashSet<string>> mayRequire =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        // unresolvedGateMods (issue #40, generic fallback): packageIds owning a
+        // PatchOperation that carries the match/nomatch branching convention but is
+        // NOT one of the types we have a dedicated reader for (PatchOperationFindMod,
+        // PatchOperationConditional). We cannot resolve WHICH nodes such a branch
+        // depends on -- only that it exists and belongs to this mod, i.e. an
+        // unbounded blast radius, mirroring riskyMods' precedent (issue #26). No
+        // DirtySetComputer seed consumes this yet; it is capture-only, surfaced for a
+        // future conservative consumer once we see whether it fires in practice.
+        private readonly SortedSet<string> unresolvedGateMods =
+            new SortedSet<string>(StringComparer.Ordinal);
+
         // ParentName resolution is keyed by a composite "{defType}:{name}" rather than a
         // bare name. RimWorld's inheritance is defType-scoped: a TerrainDef with
         // ParentName="HotSpring" inherits the TerrainDef named HotSpring, NOT a ThoughtDef
@@ -199,6 +210,7 @@ namespace Gagarin
             nameAttrToNodeIdAny.Clear();
             pendingInheritance.Clear();
             mayRequire.Clear();
+            unresolvedGateMods.Clear();
             keyCache.Clear();
             DocumentPathFallbackCount = 0;
         }
@@ -275,6 +287,27 @@ namespace Gagarin
                 mayRequire[packageId] = ids;
             }
             ids.Add(nodeId);
+        }
+
+        // Records that packageId owns a branch-shaped op the generic fallback could not
+        // interpret (see unresolvedGateMods above). Idempotent (SortedSet).
+        public void AddUnresolvedGateMod(string packageId)
+        {
+            if (!string.IsNullOrEmpty(packageId))
+                unresolvedGateMods.Add(packageId);
+        }
+
+        public int UnresolvedGateModCount => unresolvedGateMods.Count;
+
+        // Returns the matched node ids already recorded for one patch edge (empty if the
+        // edge is unknown or matched nothing). Used by the PatchOperationFindMod reader
+        // (issue #40) to pull a branch subtree's already-captured selections into the
+        // mayRequire index without re-scanning the document a second time.
+        public IEnumerable<string> GetMatchedNodeIds(string patchId)
+        {
+            if (patchId != null && patchEdges.TryGetValue(patchId, out PatchEdge edge))
+                return edge.matchedNodeIds;
+            return Array.Empty<string>();
         }
 
         // Records matched/modified node ids for a single PatchOperation. The ids are
@@ -543,6 +576,11 @@ namespace Gagarin
             }
             sb.Append("\"riskyMods\":");
             AppendArr(sb, riskyMods);
+            sb.Append(',');
+
+            // unresolvedGateMods (issue #40): capture-only for now, see field comment above.
+            sb.Append("\"unresolvedGateMods\":");
+            AppendArr(sb, unresolvedGateMods);
             sb.Append(',');
 
             // serializedBytes is the UTF-8 length of the complete document,

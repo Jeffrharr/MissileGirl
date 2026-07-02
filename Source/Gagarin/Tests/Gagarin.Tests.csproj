@@ -42,6 +42,7 @@
     <Compile Include="..\Core\Incremental\UnifiedCacheSplice.cs" Link="UnifiedCacheSplice.cs" />
     <Compile Include="..\Core\Incremental\MetricsLog.cs" Link="MetricsLog.cs" />
     <Compile Include="..\Core\Incremental\PriorStateSnapshotPaths.cs" Link="PriorStateSnapshotPaths.cs" />
+    <Compile Include="..\Core\Incremental\FindModCapture.cs" Link="FindModCapture.cs" />
   </ItemGroup>
 
   <ItemGroup>

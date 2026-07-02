@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — FindMod Bridge</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.findmod</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>The UNCHANGED "bridge" mod for the PatchOperationFindMod live fixture (issue #40).
+Reproduces the real-world shape (oppey.eyegenes2's patch gated on nals.facialanimation's DISPLAY
+NAME): this mod's patch tests whether joof.testharness.gate is ACTIVE — by mod NAME, not
+packageId, exactly like PatchOperationFindMod's real ApplyWorker (ModLister.HasActiveModWithName)
+— and, only when it is, strips a tag from its own TC_FM_Host def via a PatchOperationSequence
+wrapped in the FindMod's &lt;match&gt; branch. This mod, its Defs, and its Patch file are BYTE
+IDENTICAL between Run A and Run B; the gate mod (joof.testharness.gate) is what flips between
+runs. Any divergence in TC_FM_Host's resolved content is therefore driven ENTIRELY by the FindMod
+branch evaluation reacting to the mod-list change — the same shape as the real #40 bug, where
+removing nals.facialanimation silently changed oppey.eyegenes2's resolved defs with neither mod's
+own files changing. Reuses joof.testharness.gate (the existing P4 fixture's toggle mod) as its
+gate, rather than adding a second throwaway "presence" mod, since the two fixtures need the exact
+same on/off toggle shape. No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Not a hard requirement (FindMod's test result differs depending on load order only in that
+         the gate's Name must be resolvable when this mod's patches apply — RimWorld resolves mod
+         Names for ALL active mods before any patch runs, so strict ordering isn't required here),
+         but declaring it keeps the harness's load order deterministic and self-documenting. -->
+    <li>joof.testharness.gate</li>
+  </loadAfter>
+</ModMetaData>
