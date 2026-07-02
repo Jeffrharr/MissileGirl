@@ -228,16 +228,30 @@ for arg in "$@"; do
     fi
 done
 
+# Single source of truth for "how many --expect-* modes are active" — both the mutual-exclusivity
+# check and the --remove= incompatibility check must agree on this set, so they read the same array
+# instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
+# forget one of the two sums, and the new mode just silently combines with another instead of
+# erroring).
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED)
+sum_expect_flags() {
+    local sum=0
+    for f in "${EXPECT_FLAGS[@]}"; do
+        sum=$(( sum + f ))
+    done
+    echo "$sum"
+}
+
 # A single timestamp for this whole run, used for every archived artifact (reports AND the exact
 # modlist that produced them) so a failing run is fully reproducible from one set of files.
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
 
-if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED + EXPECT_SEQNESTED > 1 )); then
+if (( $(sum_expect_flags) > 1 )); then
     echo "[run_test] FAIL: the --expect-* flags are mutually exclusive." >&2
     exit 2
 fi
-if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED + EXPECT_SEQNESTED > 0 )); then
+if [[ -n "$REMOVE_MOD" ]] && (( $(sum_expect_flags) > 0 )); then
     echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
