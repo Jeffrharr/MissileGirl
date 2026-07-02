@@ -297,6 +297,10 @@ namespace Gagarin
         // would resolve to the OUTER conditional and check its (possibly in-sub-doc) read set instead of
         // the immediate gating conditional's — silently admitting a cross-def conditional nested under a
         // same-def one. That is a false "safe to recompute", not just an over-conservative fallback.
+        //
+        // Ids build outer-to-inner left-to-right, so the LAST ".match"/".nomatch" is the boundary right
+        // before the leaf's own position — like a file path, the immediate parent is the last segment,
+        // not the first. See RecomputeAllowlistTests.NestedConditional_InnerCrossDef_Declined.
         private static string BranchParentId(string patchId, Dictionary<string, List<string>> parents)
         {
             if (string.IsNullOrEmpty(patchId) || !IsBranchChild(patchId))
