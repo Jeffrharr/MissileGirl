@@ -95,4 +95,21 @@
     <label>test nested probe</label>
     <probeFlag>yes</probeFlag>
   </ThingDef>
+
+  <!-- CASE 8: conditional nested inside a PatchOperationSequence (issue #25 item 3 — proving
+       capture, not just allowlist decision logic, records a conditional's own test edge when it
+       lives under a sequence's ".operations[i]" label rather than another conditional's
+       ".match"/".nomatch" label). TC_SeqNestedTarget is dirtied directly by TestMod_Change.
+       TestMod_Static wraps a cross-def PatchOperationConditional (test on TC_SeqNestedProbe) inside
+       a PatchOperationSequence targeting TC_SeqNestedTarget. -->
+  <ThingDef>
+    <defName>TC_SeqNestedTarget</defName>
+    <label>test seq-nested target</label>
+  </ThingDef>
+
+  <ThingDef>
+    <defName>TC_SeqNestedProbe</defName>
+    <label>test seq-nested probe</label>
+    <probeFlag>yes</probeFlag>
+  </ThingDef>
 </Defs>
