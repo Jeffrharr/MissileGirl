@@ -1,9 +1,9 @@
-# Understanding Gate — arms the `understanding-check` status as `pending` on every PR push.
+# CheckMyVibe Gate — arms the `check-my-vibe-protection` status as `pending` on every PR push.
 # Clear it by running `/check-my-vibe` in Claude Code; that flips the status to success.
 #
 # Installed into this repo by the CheckMyVibe toolkit:
 #   https://github.com/Jeffrharr/CheckMyVibe
-name: Understanding Gate
+name: CheckMyVibe Gate
 
 on:
   pull_request:
