@@ -76,4 +76,23 @@
     <defName>TC_CrossEffect</defName>
     <label>test cross effect</label>
   </ThingDef>
+
+  <!-- CASE 7: nested conditional (RecomputeAllowlist.BranchParentId regression, issue #25 / PR #37).
+       TC_NestedTarget is dirtied directly by TestMod_Change (a plain leaf op, same mechanism as
+       TC_CrossEffect in CASE 6). TestMod_Static's OUTER conditional tests TC_NestedTarget itself
+       (same-def, in sub-doc); its match branch is an INNER conditional whose test is on
+       TC_NestedProbe (cross-def, never dirty). The bug: BranchParentId used to cut a branch child's
+       id at the FIRST ".match"/".nomatch" segment, resolving the inner leaf's gating parent to the
+       OUTER (same-def) conditional instead of the INNER (cross-def) one — wrongly admitting a
+       recompute that a sub-doc lacking TC_NestedProbe would silently get wrong. -->
+  <ThingDef>
+    <defName>TC_NestedTarget</defName>
+    <label>test nested target</label>
+  </ThingDef>
+
+  <ThingDef>
+    <defName>TC_NestedProbe</defName>
+    <label>test nested probe</label>
+    <probeFlag>yes</probeFlag>
+  </ThingDef>
 </Defs>
