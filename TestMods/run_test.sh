@@ -44,6 +44,16 @@
 #                       allowlisted and forces a full rebuild. Asserts nonDirtyMismatches==0 (dirty
 #                       set still a superset) AND fallback==true with a cross-def-conditional reason
 #                       (pass==true, recomputeMismatches==0).
+#     --expect-nested-conditional  Asserts the allowlist correctly resolves a conditional NESTED
+#                       inside another conditional's branch (CASE 7, RecomputeAllowlist.BranchParentId
+#                       regression, PR #37). TestMod_Static's outer conditional (same-def, in-sub-doc
+#                       test) wraps an inner conditional (cross-def test on TC_NestedProbe) whose
+#                       branch modifies TC_NestedTarget. TestMod_Change dirties TC_NestedTarget. Before
+#                       the fix, BranchParentId resolved the leaf's gating parent to the OUTER
+#                       (same-def) conditional instead of the INNER (cross-def) one and wrongly
+#                       admitted the recompute, silently diverging from the rebuild. Same assertion
+#                       shape as --expect-recompute-gap: nonDirtyMismatches==0 AND fallback==true with
+#                       a conditional reason (pass==true, recomputeMismatches==0).
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -154,6 +164,13 @@ EXPECT_P1=0
 # recomputeMismatches==0). Before the allowlist this mode asserted the gap REPRODUCED
 # (recomputeMismatches>0); the flip is the proof the fix works.
 EXPECT_GAP=0
+# --expect-nested-conditional: exercise the BranchParentId nested-conditional fix (CASE 7, PR #37,
+# issue #25). TestMod_Static (UNCHANGED) carries an OUTER conditional (same-def test on
+# TC_NestedTarget) whose match branch is an INNER conditional (cross-def test on TC_NestedProbe)
+# that modifies TC_NestedTarget. TestMod_Change dirties TC_NestedTarget (run-a->run-b). Same
+# assertion shape as --expect-recompute-gap: the allowlist must resolve the leaf's IMMEDIATE
+# (inner, cross-def) gating parent, not the outer one, and decline.
+EXPECT_NESTED=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at 100 mods total — the whole point of
@@ -181,6 +198,8 @@ for arg in "$@"; do
         EXPECT_P1=1
     elif [[ "$arg" == "--expect-recompute-gap" ]]; then
         EXPECT_GAP=1
+    elif [[ "$arg" == "--expect-nested-conditional" ]]; then
+        EXPECT_NESTED=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --remove=* ]]; then
@@ -193,11 +212,11 @@ done
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
 
-if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP > 1 )); then
+if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED > 1 )); then
     echo "[run_test] FAIL: the --expect-* flags are mutually exclusive." >&2
     exit 2
 fi
-if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP > 0 )); then
+if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED > 0 )); then
     echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
@@ -216,6 +235,12 @@ elif [[ $EXPECT_GAP -eq 1 ]]; then
     # TC_CrossEffect is seeded dirty (Seed 2) and thus recomputed over a sub-doc missing TC_CrossProbe.
     RUN_A_CHANGE="Change_RunA_CrossDef.xml"
     RUN_B_CHANGE="Change_RunB_CrossDef.xml"
+elif [[ $EXPECT_NESTED -eq 1 ]]; then
+    # --expect-nested-conditional: same shape as --expect-recompute-gap — the change file MUST differ
+    # between runs so TC_NestedTarget is seeded dirty (Seed 2) and recomputed under the nested
+    # conditional TestMod_Static carries.
+    RUN_A_CHANGE="Change_RunA_NestedConditional.xml"
+    RUN_B_CHANGE="Change_RunB_NestedConditional.xml"
 elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || -n "$REMOVE_MOD" ]]; then
     # P2 / P4 / P1 / --remove: hold Change.xml at run A for BOTH runs so the change vehicle's patch
     # file does NOT change. The only between-run delta is mode-specific (P2: a mod added before run B;
@@ -927,6 +952,16 @@ if [[ $EXPECT_GAP -eq 1 ]]; then
     recompute_required=0
 fi
 
+# --expect-nested-conditional: identical assertion shape to --expect-recompute-gap (parse_recompute_gap
+# checks fallback==true && pass==true && recomputeMismatches==0 && a "conditional" fallbackReason) —
+# CASE 7 is a different fixture shape (nested conditionals) proving the same allowlist property.
+nested_ok=1
+if [[ $EXPECT_NESTED -eq 1 ]]; then
+    log "Nested-conditional result (allowlist fallback EXPECTED):"
+    nested_ok=0; parse_recompute_gap && nested_ok=1 || nested_ok=0
+    recompute_required=0
+fi
+
 # --remove (real-mod removal): the claim is purely that the dirty set stays a SUPERSET over real
 # content (nonDirtyMismatches==0). Recompute is informational — a real removal typically includes
 # MayRequire-gated defs the recompute-fidelity gap cannot yet reproduce.
@@ -940,13 +975,15 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
     echo "  dirty-set gate:  nonDirtyMismatches = 0 (proven superset)"
     if [[ $EXPECT_GAP -eq 1 ]]; then
         echo "  recompute-gap:   fallback=true (cross-def conditional) — recompute allowlist DECLINED the gap"
+    elif [[ $EXPECT_NESTED -eq 1 ]]; then
+        echo "  nested-conditional: fallback=true (immediate cross-def parent resolved) — allowlist DECLINED correctly"
     elif [[ $recompute_required -eq 1 ]]; then
         echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
     else
@@ -971,7 +1008,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  recompute-gap pass=$gap_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1

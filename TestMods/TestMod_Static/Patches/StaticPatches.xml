@@ -88,4 +88,43 @@
       </value>
     </nomatch>
   </Operation>
+
+  <!-- CASE 7: NESTED PatchOperationConditional — RecomputeAllowlist.BranchParentId regression
+       (issue #25 / PR #37).
+       OUTER conditional's test is on TC_NestedTarget itself (its own defName — always true, so the
+       match branch always fires) — same-def, in sub-doc once TC_NestedTarget is dirty.
+       Its match branch is an INNER conditional whose test is cross-def:
+         TEST   — does TC_NestedProbe carry <probeFlag>?  (a different, never-dirty def)
+         EFFECT — add <nestedTag> to TC_NestedTarget (match: probe-present, nomatch: probe-absent).
+       Full load / full rebuild: TC_NestedProbe is present → inner match → nestedTag=probe-present.
+       Before the BranchParentId fix: when the expect-nested-conditional mode dirties
+       TC_NestedTarget, the leaf op's id (".../match.match") resolved to the OUTER conditional's
+       (same-def, in-sub-doc) read set instead of the INNER one's (cross-def, absent from the
+       sub-doc) — wrongly ADMITTING the recompute. The sub-doc then lacks TC_NestedProbe, the inner
+       test finds nothing, takes nomatch, and the recomputed def DIVERGES from the full rebuild
+       (nestedTag=probe-absent instead of probe-present) — silently wrong, not just declined.
+       After the fix, BranchParentId resolves the immediate (inner, cross-def) parent and the
+       allowlist declines, forcing a full-rebuild fallback that preserves the correct value.
+
+       This file is the UNCHANGED static mod, so SubDocExpander's changed-mod container-op fallback
+       does NOT fire on its own — the case isolates the allowlist's nested-parent resolution. Inert
+       in every other mode because nothing dirties TC_NestedTarget there. -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="TC_NestedTarget"]</xpath>
+    <match Class="PatchOperationConditional">
+      <xpath>Defs/ThingDef[defName="TC_NestedProbe"]/probeFlag</xpath>
+      <match Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_NestedTarget"]</xpath>
+        <value>
+          <nestedTag>probe-present</nestedTag>
+        </value>
+      </match>
+      <nomatch Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_NestedTarget"]</xpath>
+        <value>
+          <nestedTag>probe-absent</nestedTag>
+        </value>
+      </nomatch>
+    </match>
+  </Operation>
 </Patch>
