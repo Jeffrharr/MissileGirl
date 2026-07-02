@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run A for the expect-nested-in-sequence mode (CASE 8). The change vehicle adds a baseline
+       changeTag to TC_SeqNestedTarget via an exact-defName Add. The ONLY purpose is to give Run B
+       something to Replace so TC_SeqNestedTarget's patch file changes (Seed 2 / seedDefs), marking
+       it dirty. Deliberately minimal — this mode isolates whether capture recorded the
+       sequence-nested conditional's own test edge, so it touches no other test def. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_SeqNestedTarget"]</xpath>
+    <value>
+      <changeTag>run-a</changeTag>
+    </value>
+  </Operation>
+</Patch>

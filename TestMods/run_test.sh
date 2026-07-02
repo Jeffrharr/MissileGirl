@@ -54,6 +54,17 @@
 #                       admitted the recompute, silently diverging from the rebuild. Same assertion
 #                       shape as --expect-recompute-gap: nonDirtyMismatches==0 AND fallback==true with
 #                       a conditional reason (pass==true, recomputeMismatches==0).
+#     --expect-nested-in-sequence  Asserts CAPTURE records a conditional's own test edge when it is
+#                       nested inside a PatchOperationSequence's <operations> list (CASE 8, issue #25
+#                       item 3 — the ".operations[i]" id-label path, distinct from CASE 7's
+#                       ".match"/".nomatch" label path). TestMod_Static wraps a cross-def conditional
+#                       (test on TC_SeqNestedProbe) inside a sequence targeting TC_SeqNestedTarget.
+#                       TestMod_Change dirties TC_SeqNestedTarget. Same gate assertion shape as
+#                       --expect-recompute-gap/--expect-nested-conditional (nonDirtyMismatches==0 AND
+#                       fallback==true with a conditional reason, recomputeMismatches==0), PLUS a
+#                       direct read of the archived DependencyGraph.json asserting an edge with a
+#                       PatchId ending in ".operations[0]" has a non-empty MatchedNodeIds — proving
+#                       capture (not just the allowlist decision) saw the sequence-nested conditional.
 #
 # What this build proves (M2b-2b, sub-doc sibling expansion):
 #   - Dirty-set gate: the dirty set is a true superset (no non-dirty def silently changed).
@@ -171,6 +182,14 @@ EXPECT_GAP=0
 # assertion shape as --expect-recompute-gap: the allowlist must resolve the leaf's IMMEDIATE
 # (inner, cross-def) gating parent, not the outer one, and decline.
 EXPECT_NESTED=0
+# --expect-nested-in-sequence: prove CAPTURE (not just the allowlist) records a conditional's own
+# test edge when it lives inside a PatchOperationSequence's <operations> list (CASE 8, issue #25
+# item 3). TestMod_Static (UNCHANGED) carries a PatchOperationSequence whose operations[0] is a
+# cross-def conditional (test on TC_SeqNestedProbe) that modifies TC_SeqNestedTarget.
+# TestMod_Change dirties TC_SeqNestedTarget (run-a->run-b). Same gate assertion shape as
+# --expect-nested-conditional, PLUS a direct check that DependencyGraph.json holds an edge whose
+# PatchId ends in ".operations[0]" with a non-empty MatchedNodeIds.
+EXPECT_SEQNESTED=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at 100 mods total — the whole point of
@@ -200,6 +219,8 @@ for arg in "$@"; do
         EXPECT_GAP=1
     elif [[ "$arg" == "--expect-nested-conditional" ]]; then
         EXPECT_NESTED=1
+    elif [[ "$arg" == "--expect-nested-in-sequence" ]]; then
+        EXPECT_SEQNESTED=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --remove=* ]]; then
@@ -212,11 +233,11 @@ done
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 METRICS_DIR="/home/deck/Developer/RimWorldMods/MissileGirl-metrics"
 
-if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED > 1 )); then
+if (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED + EXPECT_SEQNESTED > 1 )); then
     echo "[run_test] FAIL: the --expect-* flags are mutually exclusive." >&2
     exit 2
 fi
-if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED > 0 )); then
+if [[ -n "$REMOVE_MOD" ]] && (( EXPECT_FALLBACK + EXPECT_ADDED + EXPECT_MAYREQUIRE + EXPECT_P1 + EXPECT_GAP + EXPECT_NESTED + EXPECT_SEQNESTED > 0 )); then
     echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
@@ -241,6 +262,12 @@ elif [[ $EXPECT_NESTED -eq 1 ]]; then
     # conditional TestMod_Static carries.
     RUN_A_CHANGE="Change_RunA_NestedConditional.xml"
     RUN_B_CHANGE="Change_RunB_NestedConditional.xml"
+elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
+    # --expect-nested-in-sequence: same shape as --expect-nested-conditional — the change file MUST
+    # differ between runs so TC_SeqNestedTarget is seeded dirty (Seed 2) and recomputed under the
+    # sequence-nested conditional TestMod_Static carries.
+    RUN_A_CHANGE="Change_RunA_SeqNestedConditional.xml"
+    RUN_B_CHANGE="Change_RunB_SeqNestedConditional.xml"
 elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || -n "$REMOVE_MOD" ]]; then
     # P2 / P4 / P1 / --remove: hold Change.xml at run A for BOTH runs so the change vehicle's patch
     # file does NOT change. The only between-run delta is mode-specific (P2: a mod added before run B;
@@ -494,6 +521,33 @@ try:
     sys.exit(0 if ok else 1)
 except Exception as e:
     print(f"  ERROR parsing RecomputeReport.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
+parse_dependency_graph_edge() {
+    # --expect-nested-in-sequence only: direct proof that CAPTURE (not just the allowlist's
+    # decision, and not just an inferred fallbackReason string) recorded an edge for the
+    # sequence-nested conditional. Reads the just-recaptured Run B DependencyGraph.json (a changed
+    # load always triggers a full rebuild + recapture — see CLAUDE.md "Graph self-heals on a
+    # changed load") and asserts a patchEdge exists whose patchId ends in the given suffix with a
+    # non-empty matchedNodeIds (its read set on TC_SeqNestedProbe).
+    local id_suffix="$1"
+    python3 - "$CACHE_DIR/DependencyGraph.json" "$id_suffix" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    suffix = sys.argv[2]
+    edges = data.get("patchEdges", [])
+    match = next((e for e in edges if (e.get("patchId") or "").endswith(suffix)), None)
+    if match is None:
+        print(f"  No patchEdge found with patchId ending in '{suffix}' ({len(edges)} edges total)")
+        sys.exit(1)
+    matched = match.get("matchedNodeIds") or []
+    print(f"  Found patchEdge patchId={match.get('patchId')} operationType={match.get('operationType')} matchedNodeIds={matched}")
+    sys.exit(0 if len(matched) > 0 else 1)
+except Exception as e:
+    print(f"  ERROR parsing DependencyGraph.json: {e}", file=sys.stderr)
     sys.exit(2)
 PYEOF
 }
@@ -962,6 +1016,20 @@ if [[ $EXPECT_NESTED -eq 1 ]]; then
     recompute_required=0
 fi
 
+# --expect-nested-in-sequence: same gate assertion shape as --expect-nested-conditional (CASE 7),
+# PLUS a direct DependencyGraph.json check that capture recorded the sequence-nested conditional's
+# own edge (patchId ending in ".operations[0]") with a non-empty read set. That second check is the
+# actual claim CASE 8 exists to prove — the gate/recompute pass would also happen with an EMPTY read
+# set (still cross-def-safe, still declines), so it alone doesn't prove capture saw the edge.
+seqnested_ok=1
+if [[ $EXPECT_SEQNESTED -eq 1 ]]; then
+    log "Nested-in-sequence result (allowlist fallback EXPECTED):"
+    seqnested_ok=0; parse_recompute_gap && seqnested_ok=1 || seqnested_ok=0
+    log "Nested-in-sequence capture check (DependencyGraph.json):"
+    parse_dependency_graph_edge "#4.operations[0]" || seqnested_ok=0
+    recompute_required=0
+fi
+
 # --remove (real-mod removal): the claim is purely that the dirty set stays a SUPERSET over real
 # content (nonDirtyMismatches==0). Recompute is informational — a real removal typically includes
 # MayRequire-gated defs the recompute-fidelity gap cannot yet reproduce.
@@ -975,7 +1043,7 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -984,6 +1052,8 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
         echo "  recompute-gap:   fallback=true (cross-def conditional) — recompute allowlist DECLINED the gap"
     elif [[ $EXPECT_NESTED -eq 1 ]]; then
         echo "  nested-conditional: fallback=true (immediate cross-def parent resolved) — allowlist DECLINED correctly"
+    elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
+        echo "  nested-in-sequence: fallback=true AND DependencyGraph.json has a populated read-set edge for the sequence-nested conditional — capture proven (issue #25 item 3)"
     elif [[ $recompute_required -eq 1 ]]; then
         echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
     else
@@ -1008,7 +1078,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1

@@ -127,4 +127,38 @@
       </nomatch>
     </match>
   </Operation>
+
+  <!-- CASE 8: PatchOperationConditional nested inside a PatchOperationSequence (issue #25 item 3).
+       CASE 6 proved a TOP-LEVEL cross-def conditional's test edge is captured; CASE 7 proved a
+       conditional nested inside ANOTHER conditional's branch (".match.match" id) is captured. This
+       case proves the remaining shape issue #25 calls out by name: a conditional living inside a
+       sequence's <operations> list (".operations[0].match" id) — the OTHER branch of
+       ProvenanceRecorder.GetChildPatches' label scheme (".{field}[{i}]" vs ".{field}").
+
+       Cross-def test/effect split, same shape as CASE 6:
+         TEST   — does TC_SeqNestedProbe carry <probeFlag>?  (a different, never-dirty def)
+         EFFECT — add <seqNestedTag> to TC_SeqNestedTarget (match: probe-present, nomatch: probe-absent).
+       TestMod_Change dirties TC_SeqNestedTarget directly (Seed 2). This file is the UNCHANGED
+       static mod, so SubDocExpander's changed-mod container-op fallback does NOT fire on its own —
+       the case isolates whether capture recorded the sequence-nested conditional's own read set at
+       all. Inert in every other mode because nothing dirties TC_SeqNestedTarget there. -->
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationConditional">
+        <xpath>Defs/ThingDef[defName="TC_SeqNestedProbe"]/probeFlag</xpath>
+        <match Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="TC_SeqNestedTarget"]</xpath>
+          <value>
+            <seqNestedTag>probe-present</seqNestedTag>
+          </value>
+        </match>
+        <nomatch Class="PatchOperationAdd">
+          <xpath>Defs/ThingDef[defName="TC_SeqNestedTarget"]</xpath>
+          <value>
+            <seqNestedTag>probe-absent</seqNestedTag>
+          </value>
+        </nomatch>
+      </li>
+    </operations>
+  </Operation>
 </Patch>

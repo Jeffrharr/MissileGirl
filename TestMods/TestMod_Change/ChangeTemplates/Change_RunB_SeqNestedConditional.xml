@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-nested-in-sequence mode (CASE 8). Replaces TC_SeqNestedTarget's
+       changeTag value (run-a -> run-b). The changed op type + value means the patch file hash
+       differs from Run A, so the diagnostic seeds TC_SeqNestedTarget as dirty (Seed 2).
+       TC_SeqNestedTarget's producing leaf op sits under a cross-def conditional's match branch,
+       itself inside TestMod_Static's PatchOperationSequence — the sequence-nested-conditional
+       shape this mode exercises (issue #25 item 3).
+
+       Note this is a plain LEAF op on the changed mod (not a container), so SubDocExpander does NOT
+       fall back on its own: it is capture (did the sequence-nested conditional's test edge get
+       recorded at all?) that this mode proves, not the changed-mod container-op path. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_SeqNestedTarget"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>
