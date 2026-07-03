@@ -96,6 +96,18 @@ namespace Gagarin
         // capture produced — a clean composition rather than a replacement.
         public static bool IncrementalCache = false;
 
+        // Testing-only flag (NOT part of the incremental-cache contract above). Verse.Log
+        // silently disables ALL logging -- Debug.unityLogger.logEnabled = false -- once
+        // Verse.Log.Notify_MessageReceivedThreadedInternal has seen 10000 total messages from
+        // ANY source (any mod, Harmony, RimWorld itself). On a heavy live-test run (hundreds of
+        // real mods) that cap can trip mid-load, silently swallowing our own "Provenance
+        // captured"/"Recompute gate" markers that the live-test harness polls Player.log for --
+        // making a run that's actually fine (or actually stuck; the cap makes it impossible to
+        // tell which) look like a hang after the harness's marker-wait timeout. When ON, a
+        // Harmony patch (Log_Patch.cs) skips Notify_MessageReceivedThreadedInternal's body
+        // entirely, so the cap never trips. Default OFF; only the live-test harness sets this.
+        public static bool DisableLogCap = false;
+
         // Dev-only: let the live test harness flip the four incremental-cache diagnostic flags
         // at launch via environment variables, instead of requiring a bespoke build with the
         // defaults edited. The static ctor runs on first access to any field (i.e. before the
@@ -112,6 +124,7 @@ namespace Gagarin
         //   GAGARIN_DIRTYSET_RECOMPUTE   -> DirtySetRecompute
         //   GAGARIN_METRICS              -> Metrics
         //   GAGARIN_INCREMENTAL_CACHE    -> IncrementalCache (the master toggle)
+        //   GAGARIN_DISABLE_LOG_CAP      -> DisableLogCap (testing-only; see field comment)
         static GagarinPrefs()
         {
             CaptureProvenance  = EnvFlag("GAGARIN_CAPTURE_PROVENANCE",  CaptureProvenance);
@@ -121,6 +134,7 @@ namespace Gagarin
             DirtySetRecompute  = EnvFlag("GAGARIN_DIRTYSET_RECOMPUTE",  DirtySetRecompute);
             Metrics            = EnvFlag("GAGARIN_METRICS",             Metrics);
             IncrementalCache   = EnvFlag("GAGARIN_INCREMENTAL_CACHE",   IncrementalCache);
+            DisableLogCap      = EnvFlag("GAGARIN_DISABLE_LOG_CAP",     DisableLogCap);
         }
 
         // Returns the env-var override for a flag, or the current value when the var is unset.
