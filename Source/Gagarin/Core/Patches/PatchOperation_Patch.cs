@@ -151,6 +151,11 @@ namespace Gagarin
                 // RecordPatch reads patchIds, not the stack, so popping here is safe.
                 ProvenanceRecorder.ExitApply();
 
+                // Drain this op's own MayRequire gate (issue #40 case 3), if
+                // DirectXmlToObject_Patch stashed one for it, into the shared mayRequire
+                // index — keyed by exactly the nodes this operation itself matched.
+                ProvenanceRecorder.IndexOperationGate(__instance, matched);
+
                 // Branch-shaped constructs (issue #40) are checked BEFORE the pathed-only
                 // early return below: PatchOperationFindMod/Conditional never carry their
                 // own xpath (they only route to match/nomatch), so the early return would
