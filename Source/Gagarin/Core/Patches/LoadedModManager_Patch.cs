@@ -50,7 +50,12 @@ namespace Gagarin
                 {
                     Context.XmlAssets = new Dictionary<string, LoadableXmlAsset>();
                     foreach (KeyValuePair<string, LoadableXmlAsset> pair in __result.Select(a => new KeyValuePair<string, LoadableXmlAsset>(a.FullFilePath, a)))
-                        Context.XmlAssets.Add(pair.Key, pair.Value);
+                        // Some mods' LoadFolders resolution can yield the same FullFilePath twice
+                        // (e.g. a def folder pulled in via more than one LoadFolders rule); .Add()
+                        // throws ArgumentException on the duplicate key, which propagates to
+                        // RimWorld's PlayDataLoader and forces a ModsConfig.Reset()+retry loop.
+                        // Last-wins indexer assignment tolerates the duplicate instead.
+                        Context.XmlAssets[pair.Key] = pair.Value;
 
                     if (Context.IsUsingCache && Context.Assets.Count != Context.AssetsHashes.Count)
                     {
