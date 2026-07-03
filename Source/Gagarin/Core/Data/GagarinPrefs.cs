@@ -30,6 +30,14 @@ namespace Gagarin
         // and the shipped cache are unaffected. Not scribed to settings.
         public static bool CaptureProvenance = false;
 
+        // Dev-only flag for diagnosing the capture instrumentation itself (issue #40
+        // MayRequire-gate indexing). When ON (alongside CaptureProvenance), logs why a
+        // gate did or didn't get indexed for a given operation -- e.g. a MayRequire-gated
+        // container op that matched zero nodes, or a FindMod display-Name that resolves to
+        // more than one active mod. Noisy (per-operation), so it is its own flag rather than
+        // folded into CaptureProvenance. Default OFF; never affects cache behaviour.
+        public static bool CaptureVerbose = false;
+
         // Dev-only flag for Piece D Milestone 1. When ON, and a prior DependencyGraph.json
         // (from a CaptureProvenance run) + asset hashes exist, Gagarin computes — alongside
         // its normal rebuild — which defs WOULD need recomputing given what changed, and
@@ -98,6 +106,7 @@ namespace Gagarin
         // diagnostics; see each flag's header). Accepted truthy values: "1" or "true".
         //
         //   GAGARIN_CAPTURE_PROVENANCE   -> CaptureProvenance
+        //   GAGARIN_CAPTURE_VERBOSE      -> CaptureVerbose
         //   GAGARIN_DIRTYSET_DIAGNOSTIC  -> DirtySetDiagnostic
         //   GAGARIN_DIRTYSET_GATE        -> DirtySetGate
         //   GAGARIN_DIRTYSET_RECOMPUTE   -> DirtySetRecompute
@@ -106,6 +115,7 @@ namespace Gagarin
         static GagarinPrefs()
         {
             CaptureProvenance  = EnvFlag("GAGARIN_CAPTURE_PROVENANCE",  CaptureProvenance);
+            CaptureVerbose     = EnvFlag("GAGARIN_CAPTURE_VERBOSE",     CaptureVerbose);
             DirtySetDiagnostic = EnvFlag("GAGARIN_DIRTYSET_DIAGNOSTIC", DirtySetDiagnostic);
             DirtySetGate       = EnvFlag("GAGARIN_DIRTYSET_GATE",       DirtySetGate);
             DirtySetRecompute  = EnvFlag("GAGARIN_DIRTYSET_RECOMPUTE",  DirtySetRecompute);
