@@ -34,6 +34,8 @@ namespace Gagarin
                 // AssetHashingUtility.Dump) throws DirectoryNotFoundException, and Gagarin gives
                 // up mid-retry -- collapsing the whole load instead of recovering from it.
                 Directory.CreateDirectory(GagarinEnvironmentInfo.CacheFolderPath);
+
+                Logger.Debug("GAGARIN: Recreated cache folder ahead of the retry pass.");
                 if (File.Exists(RocketEnvironmentInfo.DevKeyFilePath))
                 {
                     File.Delete(RocketEnvironmentInfo.DevKeyFilePath);
