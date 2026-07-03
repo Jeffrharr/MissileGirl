@@ -193,13 +193,19 @@ namespace Gagarin
             // The parameter is taken BY VALUE (not ref) and the method returns void, so it
             // is a transparent observer: the original exception keeps propagating unchanged
             // and ApplyPatches still logs-and-continues exactly as upstream.
-            public static void Finalizer(Exception __exception)
+            public static void Finalizer(PatchOperation __instance, Exception __exception)
             {
                 if (!ProvenanceRecorder.Active || __exception == null)
                     return;
                 if (sinks.Count > 0)
                     sinks.Pop();
                 ProvenanceRecorder.ExitApply();
+                // The op failed, so it matched/indexed nothing -- but if
+                // DirectXmlToObject_Patch stashed a MayRequire gate for it (issue #40 case
+                // 3), that stash would otherwise never be drained (only the Postfix, which
+                // does not run on a throw, calls IndexOperationGate). Discard it here so it
+                // does not leak for the life of the process.
+                ProvenanceRecorder.DiscardOperationGate(__instance);
             }
         }
     }

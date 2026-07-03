@@ -125,6 +125,15 @@ namespace Gagarin
             branchFieldCache.Clear();
             applyStack.Clear();
             generatedChildCounters.Clear();
+            // pendingOperationGates: an entry stashed by RecordOperationGate for a
+            // constructed-but-never-Applied gated operation (an untaken FindMod/Conditional
+            // branch, or an op whose Apply threw -- Harmony skips the Postfix on a throw, so
+            // IndexOperationGate never drains it) would otherwise persist across capture
+            // sessions in the same process. Bound it to one session here.
+            if (GagarinPrefs.CaptureVerbose && pendingOperationGates.Count > 0)
+                Logger.Debug($"GAGARIN: Discarding {pendingOperationGates.Count} " +
+                    "never-applied MayRequire gate(s) on Reset.");
+            pendingOperationGates.Clear();
             overhead.Reset();
             registerSw.Reset();
             recordSw.Reset();
@@ -436,13 +445,23 @@ namespace Gagarin
 
         private static void AddPackages(string attrValue, string nodeId)
         {
+            foreach (string pkg in SplitPackages(attrValue))
+                graph.AddMayRequire(pkg, nodeId);
+        }
+
+        // Splits a MayRequire/MayRequireAnyOf attribute value into trimmed, non-empty
+        // packageIds. The single parsing rule both AddPackages (doc-scan / P4) and
+        // CollectPackages (per-operation gate / issue #40 case 3) build on, so a future
+        // change to separator/trim/empty-filter rules only has one place to change.
+        private static IEnumerable<string> SplitPackages(string attrValue)
+        {
             if (string.IsNullOrEmpty(attrValue))
-                return;
+                yield break;
             foreach (string raw in attrValue.Split(PackageIdSeparators))
             {
                 string pkg = raw.Trim();
                 if (pkg.Length > 0)
-                    graph.AddMayRequire(pkg, nodeId);
+                    yield return pkg;
             }
         }
 
@@ -468,19 +487,30 @@ namespace Gagarin
             CollectPackages(mayRequire, packages);
             CollectPackages(mayRequireAnyOf, packages);
             if (packages.Count > 0)
+            {
                 pendingOperationGates[op] = packages;
+                if (GagarinPrefs.CaptureVerbose)
+                    Logger.Debug($"GAGARIN: Stashed MayRequire gate on {op.GetType().Name} " +
+                        $"({string.Join(",", packages)}), pending={pendingOperationGates.Count}.");
+            }
         }
 
         private static void CollectPackages(string attrValue, List<string> into)
         {
-            if (string.IsNullOrEmpty(attrValue))
+            into.AddRange(SplitPackages(attrValue));
+        }
+
+        // Drops a stashed gate for an operation whose Apply threw (PatchOperation_Patch's
+        // Finalizer) without indexing anything -- the op failed, so nothing it would have
+        // matched was actually applied. Without this, a throw leaves the pendingOperationGates
+        // entry behind forever, since only IndexOperationGate (called from the Postfix, which
+        // Harmony skips on a throw) ever removes it.
+        public static void DiscardOperationGate(PatchOperation op)
+        {
+            if (op == null)
                 return;
-            foreach (string raw in attrValue.Split(PackageIdSeparators))
-            {
-                string pkg = raw.Trim();
-                if (pkg.Length > 0)
-                    into.Add(pkg);
-            }
+            if (pendingOperationGates.Remove(op) && GagarinPrefs.CaptureVerbose)
+                Logger.Debug($"GAGARIN: Discarded MayRequire gate on {op.GetType().Name} -- Apply threw.");
         }
 
         // Drains a just-applied operation's own MayRequire gate (if RecordOperationGate
@@ -497,10 +527,28 @@ namespace Gagarin
             if (!pendingOperationGates.TryGetValue(op, out List<string> packages))
                 return;
             pendingOperationGates.Remove(op);
-            if (matchedNodeIds == null)
-                return;
-            foreach (string pkg in packages)
+
+            // matchedNodeIds is only the op's OWN direct selection (its sink), which is
+            // empty for container ops (PatchOperationSequence etc.) that never select
+            // nodes themselves -- only their children do, each in a separately-pushed
+            // sink layer. Walk the subtree too, so a gated container indexes everything
+            // its children matched, not just its own (possibly empty) selection.
+            var nodeIds = new HashSet<string>();
+            if (matchedNodeIds != null)
                 foreach (string nodeId in matchedNodeIds)
+                    nodeIds.Add(nodeId);
+            CollectMatchedNodeIds(op, nodeIds, new HashSet<PatchOperation>());
+
+            if (nodeIds.Count == 0)
+            {
+                if (GagarinPrefs.CaptureVerbose)
+                    Logger.Debug($"GAGARIN: MayRequire gate on {op.GetType().Name} " +
+                        $"({string.Join(",", packages)}) matched no nodes (direct or nested) -- nothing indexed.");
+                return;
+            }
+
+            foreach (string pkg in packages)
+                foreach (string nodeId in nodeIds)
                     graph.AddMayRequire(pkg, nodeId);
         }
 
@@ -526,7 +574,12 @@ namespace Gagarin
 
             List<string> packageIds = FindModCapture.ResolvePackageIds(modNames, ModNameToPackageId);
             if (packageIds.Count == 0)
+            {
+                if (GagarinPrefs.CaptureVerbose)
+                    Logger.Debug($"GAGARIN: FindMod names [{string.Join(",", modNames)}] " +
+                        "resolved to zero packageIds -- nothing indexed.");
                 return;
+            }
 
             // Replay the exact test ApplyWorker just ran (Verse.PatchOperationFindMod:
             // ModLister.HasActiveModWithName(name), any match wins) to learn which branch
@@ -544,12 +597,23 @@ namespace Gagarin
 
             PatchOperation branch = anyActive ? FindModMatchRef(findMod) : FindModNomatchRef(findMod);
             if (branch == null)
+            {
+                if (GagarinPrefs.CaptureVerbose)
+                    Logger.Debug($"GAGARIN: FindMod [{string.Join(",", packageIds)}] took the " +
+                        $"{(anyActive ? "match" : "nomatch")} branch, which is absent from the XML " +
+                        "-- nothing indexed.");
                 return; // e.g. nomatch omitted in XML -- no content depends on the gating mod on this branch
+            }
 
             var nodeIds = new HashSet<string>();
             CollectMatchedNodeIds(branch, nodeIds, new HashSet<PatchOperation>());
             if (nodeIds.Count == 0)
+            {
+                if (GagarinPrefs.CaptureVerbose)
+                    Logger.Debug($"GAGARIN: FindMod [{string.Join(",", packageIds)}] branch matched " +
+                        "zero nodes (direct or nested) -- nothing indexed.");
                 return;
+            }
 
             foreach (string pkg in packageIds)
                 foreach (string nodeId in nodeIds)
@@ -564,10 +628,25 @@ namespace Gagarin
         {
             if (string.IsNullOrEmpty(displayName))
                 return null;
+            string packageId = null;
+            int matches = 0;
             foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
-                if (mod != null && mod.Name == displayName)
-                    return mod.PackageId;
-            return null;
+            {
+                if (mod == null || mod.Name != displayName)
+                    continue;
+                if (matches == 0)
+                    packageId = mod.PackageId;
+                matches++;
+            }
+            // Two active mods sharing a display Name is a real (if rare) modlist shape --
+            // e.g. a Workshop copy and a manually-installed fork. ApplyWorker's own
+            // ModLister.HasActiveModWithName test can't distinguish them either (any match
+            // wins), so which one we attribute the gate to is inherently ambiguous; at least
+            // make the ambiguity visible instead of silently picking the load-order-first one.
+            if (matches > 1 && GagarinPrefs.CaptureVerbose)
+                Logger.Debug($"GAGARIN: FindMod display name \"{displayName}\" matched " +
+                    $"{matches} active mods; attributing its gate to \"{packageId}\" (first in load order).");
+            return packageId;
         }
 
         // Walks a branch subtree (the op itself plus every nested child reachable via
