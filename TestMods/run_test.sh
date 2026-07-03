@@ -149,6 +149,12 @@ export GAGARIN_DIRTYSET_RECOMPUTE=1
 # (verified: GagarinPrefs.IncrementalCache is referenced nowhere else), so it does not alter the
 # full-rebuild path the gates compare against.
 export GAGARIN_INCREMENTAL_CACHE=1
+# Testing-only: Verse.Log silently disables ALL logging after 10000 total messages from ANY
+# source, which would swallow the "Provenance captured"/"Recompute gate" markers this script
+# polls Player.log for on a heavy (hundreds-of-real-mods) run, making a fine (or genuinely
+# stuck — the cap makes it impossible to tell which) run look like a hang. See
+# GagarinPrefs.DisableLogCap / Log_Patch.cs.
+export GAGARIN_DISABLE_LOG_CAP=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHANGE_MOD_DIR="$SCRIPT_DIR/TestMod_Change"
