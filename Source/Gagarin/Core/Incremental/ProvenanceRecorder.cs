@@ -446,6 +446,64 @@ namespace Gagarin
             }
         }
 
+        // Stashes the MayRequire/MayRequireAnyOf packageId(s) gating a just-constructed
+        // PatchOperation, keyed by object identity (issue #40 case 3). Populated by
+        // DirectXmlToObject_Patch's postfix on ObjectFromXml<PatchOperation>: RimWorld's
+        // ListFromXml tests these attributes on the <li> BEFORE calling ObjectFromXml, so an
+        // operation only reaches this call at all once its own gate has already passed --
+        // meaning any node it goes on to match depends on that gating mod exactly as the P4
+        // mayRequire index already models. Drained (and removed) by IndexOperationGate once
+        // the operation's matched nodes are known.
+        private static readonly Dictionary<PatchOperation, List<string>> pendingOperationGates =
+            new Dictionary<PatchOperation, List<string>>();
+
+        public static void RecordOperationGate(PatchOperation op, string mayRequire, string mayRequireAnyOf)
+        {
+            if (!Active || op == null)
+                return;
+            if (string.IsNullOrEmpty(mayRequire) && string.IsNullOrEmpty(mayRequireAnyOf))
+                return;
+
+            var packages = new List<string>();
+            CollectPackages(mayRequire, packages);
+            CollectPackages(mayRequireAnyOf, packages);
+            if (packages.Count > 0)
+                pendingOperationGates[op] = packages;
+        }
+
+        private static void CollectPackages(string attrValue, List<string> into)
+        {
+            if (string.IsNullOrEmpty(attrValue))
+                return;
+            foreach (string raw in attrValue.Split(PackageIdSeparators))
+            {
+                string pkg = raw.Trim();
+                if (pkg.Length > 0)
+                    into.Add(pkg);
+            }
+        }
+
+        // Drains a just-applied operation's own MayRequire gate (if RecordOperationGate
+        // stashed one) into the shared mayRequire index, keyed by the nodes THIS operation
+        // itself matched -- the <li Class="PatchOperationRemove" MayRequire="X"> case (issue
+        // #40): the removed node's own patch edge already tracks the mod that ADDED the <li>,
+        // but nothing previously recorded that the removal depends on X being active, so
+        // removing X (with the target mod present) silently missed the dirty def. Called from
+        // Apply's postfix for every operation; a cheap no-op when no gate was stashed.
+        public static void IndexOperationGate(PatchOperation op, IEnumerable<string> matchedNodeIds)
+        {
+            if (!Active || op == null)
+                return;
+            if (!pendingOperationGates.TryGetValue(op, out List<string> packages))
+                return;
+            pendingOperationGates.Remove(op);
+            if (matchedNodeIds == null)
+                return;
+            foreach (string pkg in packages)
+                foreach (string nodeId in matchedNodeIds)
+                    graph.AddMayRequire(pkg, nodeId);
+        }
+
         // PatchOperationFindMod capture reader (issue #40). Called from the Apply hook's
         // postfix whenever the just-applied operation is a PatchOperationFindMod. Feeds
         // the SAME mayRequire index Seed 6 (MayRequire flips) already consumes, so no
