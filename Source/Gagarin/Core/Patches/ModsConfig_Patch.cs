@@ -28,6 +28,12 @@ namespace Gagarin
 
                     Logger.Debug("GAGARIN: Removed cache to recover from error!");
                 }
+                // RimWorld calls ModsConfig.Reset() as part of its own play-data-load recovery
+                // (Verse.PlayDataLoader), then immediately retries the load on the same pass.
+                // Leaving the folder missing means the very next Cache/ write (e.g.
+                // AssetHashingUtility.Dump) throws DirectoryNotFoundException, and Gagarin gives
+                // up mid-retry -- collapsing the whole load instead of recovering from it.
+                Directory.CreateDirectory(GagarinEnvironmentInfo.CacheFolderPath);
                 if (File.Exists(RocketEnvironmentInfo.DevKeyFilePath))
                 {
                     File.Delete(RocketEnvironmentInfo.DevKeyFilePath);
