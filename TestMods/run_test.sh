@@ -436,6 +436,17 @@ launch_rimworld() {
         attempt=$((attempt + 1))
         log "Launching RimWorld (attempt $attempt / $max_retries)..."
 
+        # Safety net: a prior attempt's death-check can misfire (see below) and leave a
+        # still-live RimWorldLinux behind while we launch another. Two instances racing on
+        # the same Player.log/ModsConfig.xml/Cache dir silently corrupts the run and roughly
+        # doubles memory pressure. Guarantee a clean slate before every attempt, including
+        # the first (in case a previous invocation of this script was killed mid-run).
+        if pgrep -x RimWorldLinux >/dev/null 2>&1; then
+            log "Found a stray RimWorldLinux process — killing it before launching."
+            pkill -9 -x RimWorldLinux 2>/dev/null || true
+            sleep 2
+        fi
+
         # Clear the player log + stderr capture so we get a fresh read each attempt.
         # RimWorld rewrites Player.log on launch, but there can be leftover content
         # from a previous launch that could confuse our grep.
@@ -452,9 +463,24 @@ launch_rimworld() {
         RIMWORLD_PID=$!
         log "RimWorldLinux PID: $RIMWORLD_PID"
 
-        # Wait a bit and then check: did it crash during native init (a fatal signal before
-        # any GAGARIN output = the known flaky prestarter crash)?
-        sleep 60
+        # Poll for death every 5s across the 60s crash window instead of a single point-in-time
+        # check — a single "sleep 60; kill -0" can race the exact moment a crashing process
+        # finishes exiting, and if it misjudges "dead" while the process is actually still
+        # alive, the next attempt launches a SECOND live instance alongside it (observed live:
+        # two RimWorldLinux PIDs running simultaneously, fighting over the same log/config/cache
+        # and doubling memory use). Polling shrinks that race window and also lets us exit early
+        # once GAGARIN: proves the mod is up, instead of always waiting the full 60s.
+        local waited=0
+        while (( waited < 60 )); do
+            if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+                break
+            fi
+            if grep -q "GAGARIN:" "$PLAYER_LOG" 2>/dev/null; then
+                break
+            fi
+            sleep 5
+            waited=$((waited + 5))
+        done
         if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
             # Process already dead. If it died before our mod loaded ("GAGARIN:" absent), treat
             # it as the flaky early-startup crash and retry — whether or not a recognised
