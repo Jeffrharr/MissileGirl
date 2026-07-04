@@ -90,6 +90,19 @@ namespace Gagarin
         private readonly Dictionary<string, HashSet<string>> mayRequire =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        // defOverrides (issue #43): packageId -> node ids whose def that packageId's own
+        // Defs file re-declares under the same defName, entirely replacing an earlier
+        // registration (Verse.DefDatabase<T>.Add: "if (defsByName.TryGetValue(...)) Remove(value);
+        // Add(def);" -- last-loaded mod with a given defName wins, with NO PatchOperation
+        // involved). AddNode below detects this at capture time and updates the node's
+        // sourceMod/sourceFile to the overriding mod (last-write-wins, mirroring the real
+        // DefDatabase), while also indexing it here so a dirty-set seed can fire when the
+        // OWNING mod enters or leaves the load -- otherwise such a def lives in an untouched
+        // vanilla/earlier-mod file and no structural seed (changed file, patch edge,
+        // MayRequire) ever reaches it.
+        private readonly Dictionary<string, HashSet<string>> defOverrides =
+            new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
         // unresolvedGateMods (issue #40, generic fallback): packageIds owning a
         // PatchOperation that carries the match/nomatch branching convention but is
         // NOT one of the types we have a dedicated reader for (PatchOperationFindMod,
@@ -211,6 +224,7 @@ namespace Gagarin
             pendingInheritance.Clear();
             mayRequire.Clear();
             unresolvedGateMods.Clear();
+            defOverrides.Clear();
             keyCache.Clear();
             DocumentPathFallbackCount = 0;
         }
@@ -230,7 +244,7 @@ namespace Gagarin
             if (id == null)
                 return;
 
-            if (!nodes.ContainsKey(id))
+            if (!nodes.TryGetValue(id, out var existing))
             {
                 nodes[id] = new NodeRecord
                 {
@@ -240,6 +254,21 @@ namespace Gagarin
                     sourceMod = sourceMod,
                     sourceFile = sourceFile
                 };
+            }
+            else if (!string.Equals(existing.sourceMod, sourceMod, StringComparison.OrdinalIgnoreCase))
+            {
+                // A later mod re-declares the same defName (issue #43): the real
+                // DefDatabase drops the earlier registration and keeps this one, so mirror
+                // that here (last-write-wins) instead of leaving the node permanently
+                // attributed to whichever mod happened to register it first.
+                existing.sourceMod = sourceMod;
+                existing.sourceFile = sourceFile;
+                if (!string.IsNullOrEmpty(sourceMod))
+                {
+                    if (!defOverrides.TryGetValue(sourceMod, out var owned))
+                        defOverrides[sourceMod] = owned = new HashSet<string>(StringComparer.Ordinal);
+                    owned.Add(id);
+                }
             }
 
             // Populate the resolution maps keyed by defType so a same-defType ParentName
@@ -544,6 +573,23 @@ namespace Gagarin
             sb.Append("\"mayRequire\":{");
             first = true;
             foreach (KeyValuePair<string, HashSet<string>> kv in mayRequire)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                AppendQ(sb, kv.Key);
+                sb.Append(':');
+                AppendArr(sb, kv.Value);
+            }
+            sb.Append("},");
+
+            // defOverrides (issue #43): { "<packageId>": ["<nodeId>", ...], ... }. Object
+            // keyed the same way as mayRequire so DirtySetComputer's Seed 7 can look a
+            // packageId up directly when it enters/leaves the load. packageId is whichever
+            // mod's Defs file was the LAST to register that node id (see AddNode) -- the one
+            // whose content actually wins in the real DefDatabase.
+            sb.Append("\"defOverrides\":{");
+            first = true;
+            foreach (KeyValuePair<string, HashSet<string>> kv in defOverrides)
             {
                 if (!first) sb.Append(',');
                 first = false;

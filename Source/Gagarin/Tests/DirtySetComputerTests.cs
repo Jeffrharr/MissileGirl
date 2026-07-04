@@ -360,6 +360,87 @@ namespace Gagarin.Tests
             Assert.That(g.MayRequireIndex, Is.Empty);
         }
 
+        // Issue #43: a def replaced outright by a later mod re-declaring the same defName
+        // (no PatchOperation involved -- Verse.DefDatabase<T>.Add: last-loaded registration
+        // wins). "oppey.eyegenes2" owns (last-registered) two vanilla GeneDefs it never
+        // patches; an unrelated mod owns an unrelated def.
+        private static DependencyGraphData BuildDefOverrideGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.DefOverrides["oppey.eyegenes2"] = new List<string>
+            {
+                "GeneDef/Eyes_Red", "GeneDef/Eyes_Gray"
+            };
+            g.DefOverrides["ludeon.rimworld.biotech"] = new List<string> { "GeneDef/Gene_X" };
+            return g;
+        }
+
+        [Test]
+        public void DefOverride_RemovedOwningMod_DirtiesOverriddenDefs()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats")   // eyegenes2 removed
+            };
+            var r = DirtySetComputer.Compute(BuildDefOverrideGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Gray"));
+            Assert.That(r.SeedDefOverride, Is.EqualTo(2));
+            // A def owned by a DIFFERENT mod, present in neither load, must stay clean.
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/Gene_X"));
+        }
+
+        [Test]
+        public void DefOverride_AddedOwningMod_DirtiesOverriddenDefs()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2")
+            };
+            var r = DirtySetComputer.Compute(BuildDefOverrideGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Gray"));
+        }
+
+        [Test]
+        public void DefOverride_OwningModPresentInBoth_NoFlip()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("oppey.eyegenes2", "toastyman.moreritualseats")
+            };
+            var r = DirtySetComputer.Compute(BuildDefOverrideGraph(), change);
+            // Owning mod is in BOTH loads (only reordered) -> no flip -> no seed.
+            Assert.That(r.SeedDefOverride, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/Eyes_Red"));
+        }
+
+        [Test]
+        public void DefOverride_EmptyIndex_NoOpAndNoOverDirty()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("modA", "modB"),
+                CurrentLoadOrder = Order("modA", "modB", "modNew")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change);
+            Assert.That(r.SeedDefOverride, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void DependencyGraphData_Parse_PreIssue43Graph_HasEmptyDefOverrides()
+        {
+            // A graph written before #43 has no "defOverrides" field; parsing must yield an
+            // empty map (not throw) so old caches load and Seed 7 simply no-ops.
+            const string json =
+                "{\"version\":1,\"nodes\":[],\"patchEdges\":[],\"inheritanceEdges\":[],\"metrics\":{}}";
+            var g = DependencyGraphData.Parse(json);
+            Assert.That(g.DefOverrides, Is.Empty);
+        }
+
         [Test]
         public void Closure_ReachesGrandchild_ThroughIntermediateAbstractBase()
         {

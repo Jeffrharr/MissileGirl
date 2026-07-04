@@ -70,6 +70,7 @@ namespace Gagarin
         public int SeedWildcardFlip;    // nodes seeded by a wildcard membership flip (M2a)
         public int SeedAddedDefs;       // nodes seeded as newly-added defs absent from baseline (P2)
         public int SeedMayRequire;      // nodes seeded by a MayRequire flip on a mod add/remove (P4)
+        public int SeedDefOverride;     // nodes seeded by a def-override owning-mod add/remove (issue #43)
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int SeedUnresolvedFanout; // children fanned out via the unresolved-edge safety net (Change C)
         public int Iterations;          // inheritance-closure frontier steps
@@ -178,6 +179,31 @@ namespace Gagarin
                     foreach (var id in kv.Value)
                         if (id != null && dirty.Add(id))
                             result.SeedMayRequire++;
+                }
+            }
+
+            // Seed 7 — def-override owning-mod flips (issue #43). A def can be replaced
+            // outright by a later mod re-declaring the same defName (Verse.DefDatabase<T>.Add:
+            // last-loaded registration wins, remove-then-add, no PatchOperation involved). Such
+            // a def lives in an UNCHANGED vanilla/earlier-mod file with no patch edge at all, so
+            // seeds 1-6 never reach it. Mirrors Seed 6's XOR: dirty every def the baseline
+            // recorded as owned (last-registered) by a packageId present in exactly one of the
+            // two load orders.
+            if (graph.DefOverrides != null && graph.DefOverrides.Count > 0)
+            {
+                var prior = new HashSet<string>(
+                    change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                var current = new HashSet<string>(
+                    change.CurrentLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var kv in graph.DefOverrides)
+                {
+                    if (prior.Contains(kv.Key) == current.Contains(kv.Key))
+                        continue;
+                    foreach (var id in kv.Value)
+                        if (id != null && dirty.Add(id))
+                            result.SeedDefOverride++;
                 }
             }
 

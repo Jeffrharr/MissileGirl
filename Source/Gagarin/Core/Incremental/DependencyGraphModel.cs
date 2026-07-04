@@ -68,6 +68,15 @@ namespace Gagarin
         public readonly Dictionary<string, List<string>> MayRequireIndex =
             new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
 
+        // defOverrides (issue #43): packageId -> def node ids whose real DefDatabase
+        // content that packageId's own Defs file supplies by re-declaring the same
+        // defName (last-loaded mod wins; see Verse.DefDatabase<T>.Add). No PatchOperation
+        // is involved, so these defs carry no patch edge at all -- Seed 7 in
+        // DirtySetComputer is the only path that can dirty them on the owning mod's
+        // add/remove. Empty when the graph predates issue #43.
+        public readonly Dictionary<string, List<string>> DefOverrides =
+            new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
+
         // unresolvedGateMods (issue #40): packageIds owning a match/nomatch-shaped branch
         // op the generic reflection fallback could not interpret (see ProvenanceGraph's
         // field comment). Capture-only today -- no DirtySetComputer seed consumes this
@@ -141,6 +150,15 @@ namespace Gagarin
             // unresolvedGateMods (issue #40). Absent in pre-#40 graphs, in which case
             // AddStrings simply leaves the list empty.
             AddStrings(data.UnresolvedGateMods, Get(root, "unresolvedGateMods"));
+
+            // defOverrides (issue #43). Absent in pre-#43 graphs, in which case AsObject
+            // yields an empty map and Seed 7 no-ops.
+            foreach (var kv in AsObject(Get(root, "defOverrides")))
+            {
+                var ids = new List<string>();
+                AddStrings(ids, kv.Value);
+                data.DefOverrides[kv.Key] = ids;
+            }
 
             return data;
         }
