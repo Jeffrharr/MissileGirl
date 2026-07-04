@@ -173,7 +173,13 @@ namespace Gagarin
                 // bodies and seed any newly-matched def, then let the closure propagate them.
                 HashSet<string> wildcardFlips = ComputeWildcardFlips(graph, change.ChangedMods, __result);
 
-                DirtyResult result = DirtySetComputer.Compute(graph, change, wildcardFlips);
+                // issue #43 add-direction: a mod added for the first time this load can
+                // override an existing def; the baseline graph never saw it, so
+                // DirtySetComputer's Seed 7 has nothing to XOR against. Re-test each newly
+                // added mod's current def ids against the baseline's recorded owners.
+                HashSet<string> defOverrideFlips = ComputeDefOverrideFlips(graph, change, __result);
+
+                DirtyResult result = DirtySetComputer.Compute(graph, change, wildcardFlips, defOverrideFlips);
                 LastDirtySet = result.Nodes; // publish for the M2b gate
                 sw.Stop();
 
@@ -326,6 +332,39 @@ namespace Gagarin
             return flips;
         }
 
+        // Newly-detected def-overrides from a mod added for the FIRST time this load (issue
+        // #43 add-direction). Restricted to mods in CurrentLoadOrder but not PriorLoadOrder --
+        // the same add/remove distinction Seed 7 already uses -- so this never rescans the
+        // full mod list, only the small newly-added set.
+        private static HashSet<string> ComputeDefOverrideFlips(DependencyGraphData graph,
+            GraphChange change, IEnumerable<LoadableXmlAsset> defAssets)
+        {
+            var prior = new HashSet<string>(
+                change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+            var newlyAddedMods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var packageId in change.CurrentLoadOrder ?? new List<string>())
+                if (packageId != null && !prior.Contains(packageId))
+                    newlyAddedMods.Add(packageId);
+
+            if (newlyAddedMods.Count == 0)
+                return new HashSet<string>();
+
+            var currentIdOwner = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var kv in CurrentConcreteDefIndex(defAssets))
+            {
+                string mod = OwningMod(kv.Value);
+                if (mod != null)
+                    currentIdOwner[kv.Key] = mod;
+            }
+
+            HashSet<string> flips = DefOverrideRematch.NewlyDetectedOverrides(graph, currentIdOwner, newlyAddedMods);
+
+            Log.Warning($"GAGARIN: <color=white>DefOverride re-test</color> " +
+                $"newlyAddedMods={newlyAddedMods.Count} currentIds={currentIdOwner.Count} flips={flips.Count}");
+            return flips;
+        }
+
         // patchId -> current xpath, for every patch op (including nested container children)
         // declared by a changed mod. Ids use the SAME scheme as the capture
         // ("{sourceMod}#{index}" + hierarchical child labels via ProvenanceRecorder's walker),
@@ -447,7 +486,7 @@ namespace Gagarin
                 $"[seedDefs={result.SeedChangedDefs} seedPatch={result.SeedPatchModified} " +
                 $"seedReorder={result.SeedReorder} seedWildcard={result.SeedWildcardFlip} " +
                 $"seedAdded={result.SeedAddedDefs} seedMayRequire={result.SeedMayRequire} " +
-                $"seedDefOverride={result.SeedDefOverride} " +
+                $"seedDefOverride={result.SeedDefOverride} seedDefOverrideRematch={result.SeedDefOverrideRematch} " +
                 $"inh={result.InheritanceAdded}] computeMs={computeMs}");
 
             try
@@ -467,6 +506,7 @@ namespace Gagarin
                 sb.Append($"\"addedDefs\":{result.SeedAddedDefs},");
                 sb.Append($"\"mayRequire\":{result.SeedMayRequire},");
                 sb.Append($"\"defOverride\":{result.SeedDefOverride},");
+                sb.Append($"\"defOverrideRematch\":{result.SeedDefOverrideRematch},");
                 sb.Append($"\"inheritanceAdded\":{result.InheritanceAdded}}},");
                 sb.Append($"\"computeMs\":{computeMs},");
                 sb.Append("\"dirtyNodeIds\":[");

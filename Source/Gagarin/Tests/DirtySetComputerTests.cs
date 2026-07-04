@@ -464,6 +464,55 @@ namespace Gagarin.Tests
             Assert.That(g.DefOverrides, Is.Empty);
         }
 
+        // Issue #43 add-direction: DefOverrideRematch's own output folded into Compute via the
+        // new defOverrideRematchSeeds parameter (mirrors how wildcardFlipSeeds already folds in).
+        [Test]
+        public void DefOverrideRematch_SeededId_DirtiesNode_AndCounts()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change,
+                defOverrideRematchSeeds: new[] { "GeneDef/Eyes_Red" });
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            Assert.That(r.SeedDefOverrideRematch, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DefOverrideRematch_NullSeeds_NoOp()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change, defOverrideRematchSeeds: null);
+            Assert.That(r.SeedDefOverrideRematch, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void DefOverrideRematch_FoldsBeforeInheritanceClosure()
+        {
+            // Seeding the ABSTRACT parent via the rematch must still fan out to its concrete
+            // children through the normal inheritance-closure step below.
+            var graph = BuildGraph();
+            string abstractParentId = graph.Nodes.First(n => n.Id.Contains("@")).Id;
+            string concreteChildId = graph.InheritanceEdges
+                .First(e => e.ParentNodeId == abstractParentId).ChildNodeId;
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2")
+            };
+            var r = DirtySetComputer.Compute(graph, change,
+                defOverrideRematchSeeds: new[] { abstractParentId });
+            Assert.That(r.Nodes, Contains.Item(abstractParentId));
+            Assert.That(r.Nodes, Contains.Item(concreteChildId));
+        }
+
         [Test]
         public void Closure_ReachesGrandchild_ThroughIntermediateAbstractBase()
         {

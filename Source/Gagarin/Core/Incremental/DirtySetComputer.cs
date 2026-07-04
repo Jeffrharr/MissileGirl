@@ -71,6 +71,7 @@ namespace Gagarin
         public int SeedAddedDefs;       // nodes seeded as newly-added defs absent from baseline (P2)
         public int SeedMayRequire;      // nodes seeded by a MayRequire flip on a mod add/remove (P4)
         public int SeedDefOverride;     // nodes seeded by a def-override owning-mod add/remove (issue #43)
+        public int SeedDefOverrideRematch; // nodes seeded by a newly-added mod's current-content override (issue #43 add-direction)
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int SeedUnresolvedFanout; // children fanned out via the unresolved-edge safety net (Change C)
         public int Iterations;          // inheritance-closure frontier steps
@@ -85,7 +86,8 @@ namespace Gagarin
         // the inheritance closure — a newly-matched abstract parent must still fan out to its
         // descendants. Null/empty for the pure-structural M1 path and its tests.
         public static DirtyResult Compute(DependencyGraphData graph, GraphChange change,
-            IEnumerable<string> wildcardFlipSeeds = null)
+            IEnumerable<string> wildcardFlipSeeds = null,
+            IEnumerable<string> defOverrideRematchSeeds = null)
         {
             var result = new DirtyResult();
             var dirty = result.Nodes;
@@ -188,7 +190,10 @@ namespace Gagarin
             // a def lives in an UNCHANGED vanilla/earlier-mod file with no patch edge at all, so
             // seeds 1-6 never reach it. Mirrors Seed 6's XOR: dirty every def the baseline
             // recorded as owned (last-registered) by a packageId present in exactly one of the
-            // two load orders.
+            // two load orders. NOTE: this only covers REMOVAL -- it requires the BASELINE graph
+            // to already have a defOverrides entry for the flipping mod, true only if that mod
+            // was present when the baseline was captured. For a mod ADDED for the first time
+            // this load, see the defOverrideRematchSeeds fold further below.
             if (graph.DefOverrides != null && graph.DefOverrides.Count > 0)
             {
                 var prior = new HashSet<string>(
@@ -205,6 +210,20 @@ namespace Gagarin
                         if (id != null && dirty.Add(id))
                             result.SeedDefOverride++;
                 }
+            }
+
+            // Seed 7b — def-override REMATCH (issue #43 add-direction). Seed 7 above can only
+            // dirty an override the BASELINE graph already knows about (the overriding mod was
+            // present at capture time). A mod added for the FIRST time this load contributes an
+            // override the baseline graph never saw, so Seed 7 has nothing to XOR against. The
+            // driver re-tests each newly-added mod's CURRENT def ids against the baseline's
+            // recorded owners (see DefOverrideRematch) and passes any newly-detected override
+            // here. Folded in before inheritance closure, like the wildcard-flip seeds.
+            if (defOverrideRematchSeeds != null)
+            {
+                foreach (var id in defOverrideRematchSeeds)
+                    if (id != null && dirty.Add(id))
+                        result.SeedDefOverrideRematch++;
             }
 
             // Propagation — inheritance closure to a fixpoint: dirtying a parent dirties its
