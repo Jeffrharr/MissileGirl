@@ -274,6 +274,45 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void AddNode_LaterModSameDefName_OverwritesSourceModAndIndexesOverride()
+        {
+            // Issue #43: a later mod's Defs file re-declares the same defName as an earlier
+            // one (e.g. a vanilla GeneDef), with no PatchOperation involved -- exactly how
+            // Verse.DefDatabase<T>.Add resolves duplicates (last-loaded registration wins).
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddNode("GeneDef", "Eyes_Red", null, "ludeon.rimworld.biotech",
+                "Data/Biotech/Defs/GeneDefs/GeneDefs_Cosmetic.xml", null);
+            graph.AddNode("GeneDef", "Eyes_Red", null, "oppey.eyegenes2",
+                "1.6/Defs/GeneDefs/GeneDefs_Cosmetic.xml", null);
+
+            JsonElement root = JsonDocument.Parse(graph.Serialize(0)).RootElement;
+            JsonElement node = root.GetProperty("nodes").EnumerateArray()
+                .Single(n => n.GetProperty("id").GetString() == "GeneDef/Eyes_Red");
+            // Last-write-wins: the node now reports the OVERRIDING mod, mirroring what the
+            // real DefDatabase actually serves.
+            Assert.That(node.GetProperty("sourceMod").GetString(), Is.EqualTo("oppey.eyegenes2"));
+
+            JsonElement overrides = root.GetProperty("defOverrides");
+            JsonElement owned = overrides.GetProperty("oppey.eyegenes2");
+            Assert.That(owned.EnumerateArray().Select(e => e.GetString()),
+                Is.EquivalentTo(new[] { "GeneDef/Eyes_Red" }));
+        }
+
+        [Test]
+        public void AddNode_SameModReregisters_DoesNotIndexAsOverride()
+        {
+            // Re-registering under the SAME sourceMod (e.g. the same file processed twice)
+            // is not a real override and must not pollute defOverrides.
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddNode("GeneDef", "Eyes_Red", null, "ludeon.rimworld.biotech", "A.xml", null);
+            graph.AddNode("GeneDef", "Eyes_Red", null, "ludeon.rimworld.biotech", "A.xml", null);
+
+            JsonElement overrides = JsonDocument.Parse(graph.Serialize(0)).RootElement
+                .GetProperty("defOverrides");
+            Assert.That(overrides.EnumerateObject(), Is.Empty);
+        }
+
+        [Test]
         public void InheritanceEdge_ConcreteParentWithNameAttr_ResolvesToConcreteId()
         {
             ProvenanceGraph graph = new ProvenanceGraph();

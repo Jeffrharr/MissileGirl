@@ -447,6 +447,7 @@ namespace Gagarin
                 $"[seedDefs={result.SeedChangedDefs} seedPatch={result.SeedPatchModified} " +
                 $"seedReorder={result.SeedReorder} seedWildcard={result.SeedWildcardFlip} " +
                 $"seedAdded={result.SeedAddedDefs} seedMayRequire={result.SeedMayRequire} " +
+                $"seedDefOverride={result.SeedDefOverride} " +
                 $"inh={result.InheritanceAdded}] computeMs={computeMs}");
 
             try
@@ -465,6 +466,7 @@ namespace Gagarin
                 sb.Append($"\"wildcardFlip\":{result.SeedWildcardFlip},");
                 sb.Append($"\"addedDefs\":{result.SeedAddedDefs},");
                 sb.Append($"\"mayRequire\":{result.SeedMayRequire},");
+                sb.Append($"\"defOverride\":{result.SeedDefOverride},");
                 sb.Append($"\"inheritanceAdded\":{result.InheritanceAdded}}},");
                 sb.Append($"\"computeMs\":{computeMs},");
                 sb.Append("\"dirtyNodeIds\":[");
