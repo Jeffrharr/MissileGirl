@@ -427,6 +427,49 @@ namespace Gagarin.Tests
             Assert.That(r.SeedDefOverride, Is.EqualTo(1));
         }
 
+        // KNOWN GAP (issue #50) — an EXISTING mod's file edit that changes which mod owns an
+        // already-owned def is currently uncaught. Baseline chain modA -> modC (modC owns
+        // GeneDef/Eyes_Red). modB was already present in both loads (not newly added/removed)
+        // but its Defs file is edited this load to newly declare Eyes_Red, and modB now loads
+        // after modC -- a real ownership/content change. None of today's seeds see it:
+        //   - Seed 1 needs the BASELINE node's SourceFile among changedAssets, but baseline
+        //     records modC's file, not modB's -- modB's edit never maps to this id.
+        //   - Seed 5 (added defs) skips ids already present in baseline.
+        //   - Seed 7 needs the owning packageId to flip LOAD PRESENCE; modB's presence didn't
+        //     change.
+        //   - Seed 7b (DefOverrideRematch, #45) is gated on newlyAddedMods; modB isn't newly
+        //     added to the modlist, only its file changed.
+        // This test asserts TODAY'S (gap) behavior -- flip the assertion to Contains.Item once
+        // #50 lands a fix (a rematch seed keyed off change.ChangedMods rather than
+        // newlyAddedMods).
+        [Test]
+        public void KnownGap_ExistingModFileEditChangesOwnership_NotCaughtByAnySeed()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "GeneDef/Eyes_Red",
+                SourceMod = "modC.eyegenes",
+                SourceFile = "/Mods/modC/Defs/GeneDefs.xml"
+            });
+
+            var change = new GraphChange
+            {
+                // modB was present in BOTH loads -- only its file content changed, which
+                // BuildChange cannot express via ChangedNodeIds/AddedNodeIds for an id already
+                // owned (in baseline) by a different mod's file. Left empty here to mirror
+                // exactly what the real diagnostic would compute for this scenario.
+                PriorLoadOrder = Order("modA.eyegenes", "modB.eyegenes", "modC.eyegenes"),
+                CurrentLoadOrder = Order("modA.eyegenes", "modC.eyegenes", "modB.eyegenes")
+            };
+
+            var r = DirtySetComputer.Compute(g, change);
+
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/Eyes_Red"),
+                "Gap reproduced: modB becoming the new real owner of Eyes_Red is invisible to " +
+                "every current seed. See issue #50.");
+        }
+
         [Test]
         public void DefOverride_OwningModPresentInBoth_NoFlip()
         {
