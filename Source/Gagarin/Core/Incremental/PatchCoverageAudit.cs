@@ -63,26 +63,46 @@ namespace Gagarin
             var explained = new HashSet<string>(StringComparer.Ordinal);
             if (modifiedByEdges != null)
                 foreach (string id in modifiedByEdges)
-                    explained.Add(id);
+                    explained.Add(Canonical(id));
             if (rawChangedIds != null)
                 foreach (string id in rawChangedIds)
-                    explained.Add(id);
+                    explained.Add(Canonical(id));
+
+            // An abstract def that also declares a <defName> (e.g. <TerrainDef Name="Carpet_Mindbend"
+            // Abstract="True"><defName>Carpet_Mindbend</defName>...) gets keyed two different ways by
+            // two different capture paths for the SAME node: KeyForNode (patch-edge capture) prefers
+            // defName -> "TerrainDef/Carpet_Mindbend", while RegisterAbstract (inheritance
+            // registration) deliberately forces Name-attr keying for abstract nodes ->
+            // "TerrainDef@Carpet_Mindbend" (see its own comment — needed so a ParentName reference
+            // resolves to the right shape). Both strings name the same node, so canonicalize the
+            // inheritance map to the same '/' form before walking it, or a patch captured under one
+            // spelling never reconciles with an inheritance edge recorded under the other and a
+            // legitimately-explained def is false-flagged as an invisible op (#47).
+            var canonParentOf = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (parentOf != null)
+                foreach (KeyValuePair<string, string> kv in parentOf)
+                    canonParentOf[Canonical(kv.Key)] = Canonical(kv.Value);
 
             foreach (string id in changedIds)
             {
-                if (!IsExplained(id, explained, parentOf))
+                if (!IsExplained(id, explained, canonParentOf))
                     result.Add(id);
             }
             result.Sort(StringComparer.Ordinal);
             return result;
         }
 
+        // Normalizes the two node-id spellings ("{Type}/{name}" vs "{Type}@{name}") for the same
+        // node onto one shape, so membership/parent-map lookups agree regardless of which capture
+        // path produced the id. See the comment in Unattributed for why both forms exist.
+        private static string Canonical(string id) => id?.Replace('@', '/');
+
         // Walk the def and its inheritance ancestors; explained if any is a visible cause. A cycle
         // guard keeps a malformed ParentName chain from looping (mirrors the other walkers).
         private static bool IsExplained(
             string id, HashSet<string> explained, IDictionary<string, string> parentOf)
         {
-            string cur = id;
+            string cur = Canonical(id);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             while (cur != null && seen.Add(cur))
             {
@@ -90,7 +110,7 @@ namespace Gagarin
                     return true;
                 if (parentOf == null || !parentOf.TryGetValue(cur, out string parent))
                     return false;
-                cur = parent;
+                cur = parent; // already canonicalized when canonParentOf was built
             }
             return false;
         }
