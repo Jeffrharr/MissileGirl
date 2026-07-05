@@ -405,6 +405,29 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void DefOverride_ThreeWayChain_RemovingStaleIntermediateOwnerStillDirties()
+        {
+            // Three-way override chain (vanilla -> modA -> modB): modB is the CURRENT owner, but
+            // capture never prunes modA's now-stale defOverrides entry for the same node (see
+            // ProvenanceGraphTests.AddNode_ThreeWayChain_KeepsStaleIntermediateOwnerInDefOverrides).
+            // Removing modA -- even though modB already owns the content either way, so nothing
+            // actually changes -- must still fire Seed 7 via the stale entry. This is a safe
+            // over-approximation (an unnecessary but harmless dirty), not a correctness bug.
+            var g = new DependencyGraphData { Version = 1 };
+            g.DefOverrides["modA.eyegenes"] = new List<string> { "GeneDef/Eyes_Red" };
+            g.DefOverrides["modB.eyegenes2"] = new List<string> { "GeneDef/Eyes_Red" };
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("modA.eyegenes", "modB.eyegenes2"),
+                CurrentLoadOrder = Order("modB.eyegenes2")   // only modA removed; modB stays
+            };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            Assert.That(r.SeedDefOverride, Is.EqualTo(1));
+        }
+
+        [Test]
         public void DefOverride_OwningModPresentInBoth_NoFlip()
         {
             var change = new GraphChange
