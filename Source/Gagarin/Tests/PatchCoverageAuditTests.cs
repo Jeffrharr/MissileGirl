@@ -118,5 +118,56 @@ namespace Gagarin.Tests
                 Set());
             Assert.That(un, Is.EqualTo(new[] { "ThingDef/A" }));
         }
+
+        // Issue #47 regression: an abstract def that ALSO declares a <defName> (e.g. RimWorld's own
+        // <TerrainDef Name="Carpet_Mindbend" Abstract="True"><defName>Carpet_Mindbend</defName>) is
+        // keyed "{Type}/{defName}" by patch-edge capture (KeyForNode) but "{Type}@{Name}" by
+        // inheritance registration (RegisterAbstract) — same node, two spellings. A patch edge
+        // recorded against the '/' spelling must still explain a descendant reached via a '@'-keyed
+        // inheritance edge (this reproduces the live ferny.betterarchitect -> Carpet_Mindbend ->
+        // Carpet_MindbendA chain that #47 mis-flagged as an invisible op).
+        [Test]
+        public void ChangedDescendant_AncestorModifiedUnderAlternateKeySpelling_IsExplained()
+        {
+            var un = PatchCoverageAudit.Unattributed(
+                Set("TerrainDef/Carpet_MindbendA"),
+                Set("TerrainDef/Carpet_Mindbend"),
+                Parents(("TerrainDef/Carpet_MindbendA", "TerrainDef@Carpet_Mindbend")),
+                Set());
+            Assert.That(un, Is.Empty);
+        }
+
+        // Same scenario, multiple levels up (mirrors Mercenary_Slasher_Yttakin -> MercenarySlasherBase
+        // -> MercenaryMidTierBase, where only the mid-level ancestor is '@'-keyed) and multiple
+        // descendants sharing the patched ancestor (mirrors Carpet_MindbendA..E all fanning out from
+        // one patched Carpet_Mindbend edge).
+        [Test]
+        public void ChangedDescendants_AncestorModifiedUnderAlternateKeySpelling_MultiLevelAndFanOut_IsExplained()
+        {
+            var un = PatchCoverageAudit.Unattributed(
+                Set("PawnKindDef/Mercenary_Slasher_Yttakin", "TerrainDef/Carpet_MindbendA",
+                    "TerrainDef/Carpet_MindbendB"),
+                Set("PawnKindDef/MercenaryMidTierBase", "TerrainDef/Carpet_Mindbend"),
+                Parents(
+                    ("PawnKindDef/Mercenary_Slasher_Yttakin", "PawnKindDef@MercenarySlasherBase"),
+                    ("PawnKindDef@MercenarySlasherBase", "PawnKindDef@MercenaryMidTierBase"),
+                    ("TerrainDef/Carpet_MindbendA", "TerrainDef@Carpet_Mindbend"),
+                    ("TerrainDef/Carpet_MindbendB", "TerrainDef@Carpet_Mindbend")),
+                Set());
+            Assert.That(un, Is.Empty);
+        }
+
+        // The alternate-spelling reconciliation must not paper over a REAL invisible op: a descendant
+        // whose ancestor genuinely has no recorded cause (under either spelling) is still flagged.
+        [Test]
+        public void ChangedDescendant_AncestorUnmodifiedUnderEitherSpelling_StillUnattributed()
+        {
+            var un = PatchCoverageAudit.Unattributed(
+                Set("TerrainDef/Carpet_MindbendA"),
+                Set("TerrainDef/SomethingElseEntirely"),
+                Parents(("TerrainDef/Carpet_MindbendA", "TerrainDef@Carpet_Mindbend")),
+                Set());
+            Assert.That(un, Is.EqualTo(new[] { "TerrainDef/Carpet_MindbendA" }));
+        }
     }
 }
