@@ -299,6 +299,37 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void AddNode_ThreeWayChain_KeepsStaleIntermediateOwnerInDefOverrides()
+        {
+            // A three-way override chain (vanilla -> A -> B): AddNode's override branch only
+            // ever ADDS the new owner to defOverrides, it never removes the previous owner's
+            // entry. So after B supersedes A, defOverrides must still list A's now-stale entry
+            // for the same node -- that staleness is what lets Seed 7 correctly dirty the node
+            // if A alone is later removed from the load (B still owns it either way, so the
+            // dirty is a safe over-approximation rather than a miss).
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddNode("GeneDef", "Eyes_Red", null, "ludeon.rimworld.biotech",
+                "Data/Biotech/Defs/GeneDefs/GeneDefs_Cosmetic.xml", null);
+            graph.AddNode("GeneDef", "Eyes_Red", null, "modA.eyegenes",
+                "1.6/Defs/GeneDefs/GeneDefs_Cosmetic.xml", null);
+            graph.AddNode("GeneDef", "Eyes_Red", null, "modB.eyegenes2",
+                "1.6/Defs/GeneDefs/GeneDefs_Cosmetic.xml", null);
+
+            JsonElement root = JsonDocument.Parse(graph.Serialize(0)).RootElement;
+            JsonElement node = root.GetProperty("nodes").EnumerateArray()
+                .Single(n => n.GetProperty("id").GetString() == "GeneDef/Eyes_Red");
+            // Last-write-wins: node reports the FINAL owner, B.
+            Assert.That(node.GetProperty("sourceMod").GetString(), Is.EqualTo("modB.eyegenes2"));
+
+            JsonElement overrides = root.GetProperty("defOverrides");
+            // Both A's stale entry and B's current entry must be present.
+            Assert.That(overrides.GetProperty("modA.eyegenes").EnumerateArray()
+                .Select(e => e.GetString()), Is.EquivalentTo(new[] { "GeneDef/Eyes_Red" }));
+            Assert.That(overrides.GetProperty("modB.eyegenes2").EnumerateArray()
+                .Select(e => e.GetString()), Is.EquivalentTo(new[] { "GeneDef/Eyes_Red" }));
+        }
+
+        [Test]
         public void AddNode_SameModReregisters_DoesNotIndexAsOverride()
         {
             // Re-registering under the SAME sourceMod (e.g. the same file processed twice)
