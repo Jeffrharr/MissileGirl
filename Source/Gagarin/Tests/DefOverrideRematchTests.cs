@@ -13,6 +13,7 @@
 // comparison against baseline node ownership).
 
 using System.Collections.Generic;
+using System.Linq;
 using Gagarin;
 
 namespace Gagarin.Tests
@@ -88,6 +89,50 @@ namespace Gagarin.Tests
             var result = DefOverrideRematch.NewlyDetectedOverrides(Baseline(), currentIdOwner, newlyAddedMods);
 
             Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void NewlyDetectedOverrides_ChainChangedOwnerInsertedBeforeFinalOwner_NoFlip()
+        {
+            // Baseline chain: modA -> modC (modC is the final/current owner per real
+            // DefDatabase<T>.Add last-write-wins semantics; the baseline node already
+            // reflects that). Now modB is newly added, loading BETWEEN modA and modC
+            // (order becomes modA -> modB -> modC). modC still loads last, so it still
+            // fully overwrites modB's registration -- the def's resolved content is
+            // unchanged. Nothing should fire: modB never becomes the owner of this id.
+            var currentIdOwner = new Dictionary<string, string>
+            {
+                ["GeneDef/Eyes_Red"] = "modC.eyegenes" // unchanged: modC is still last-loaded
+            };
+            var newlyAddedMods = new HashSet<string> { "modB.eyegenes" };
+
+            var baseline = Baseline();
+            baseline.Nodes.First(n => n.Id == "GeneDef/Eyes_Red").SourceMod = "modC.eyegenes";
+
+            var result = DefOverrideRematch.NewlyDetectedOverrides(baseline, currentIdOwner, newlyAddedMods);
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void NewlyDetectedOverrides_ChainNewlyAddedModBecomesFinalOwner_ReturnsId()
+        {
+            // Mirror case: baseline chain modA -> modC (modC owns per baseline). modB is
+            // newly added, but this time loading AFTER modC (order becomes
+            // modA -> modC -> modB), so modB now overwrites modC's registration and
+            // becomes the new final owner -- a real content change that must be caught.
+            var currentIdOwner = new Dictionary<string, string>
+            {
+                ["GeneDef/Eyes_Red"] = "modB.eyegenes" // modB now owns it (loaded last)
+            };
+            var newlyAddedMods = new HashSet<string> { "modB.eyegenes" };
+
+            var baseline = Baseline();
+            baseline.Nodes.First(n => n.Id == "GeneDef/Eyes_Red").SourceMod = "modC.eyegenes";
+
+            var result = DefOverrideRematch.NewlyDetectedOverrides(baseline, currentIdOwner, newlyAddedMods);
+
+            Assert.That(result, Contains.Item("GeneDef/Eyes_Red"));
         }
 
         [Test]
