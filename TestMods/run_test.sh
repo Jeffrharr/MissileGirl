@@ -261,6 +261,12 @@ MAX_MODS=200
 # (nonDirtyMismatches==0); recompute is informational (real content includes MayRequire defs that the
 # recompute-fidelity gap can't yet reproduce).
 REMOVE_MOD=""
+# --add=PACKAGEID: the inverse of --remove= — Run A's --modlist/--modlist-verbatim must NOT contain
+# this mod; it is inserted into ModsConfig (just before </activeMods>) before Run B, reproducing a
+# real mod-ADD scenario (as opposed to --expect-added's synthetic joof.testharness.added mod).
+# Comma-separated for multiple. Same gate contract as --remove=: dirty-set superset required,
+# recompute informational.
+ADD_MOD=""
 for arg in "$@"; do
     if [[ "$arg" == "--no-teardown" ]]; then
         NO_TEARDOWN=1
@@ -288,6 +294,8 @@ for arg in "$@"; do
         MODLIST_VERBATIM="${arg#--modlist-verbatim=}"
     elif [[ "$arg" == --remove=* ]]; then
         REMOVE_MOD="${arg#--remove=}"
+    elif [[ "$arg" == --add=* ]]; then
+        ADD_MOD="${arg#--add=}"
     fi
 done
 
@@ -318,8 +326,19 @@ if [[ -n "$REMOVE_MOD" ]] && (( $(sum_expect_flags) > 0 )); then
     echo "[run_test] FAIL: --remove= (real-mod removal) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
+if [[ -n "$ADD_MOD" ]] && (( $(sum_expect_flags) > 0 )); then
+    echo "[run_test] FAIL: --add= (real-mod addition) cannot be combined with an --expect-* mode." >&2
+    exit 2
+fi
+if [[ -n "$REMOVE_MOD" && -n "$ADD_MOD" ]]; then
+    echo "[run_test] FAIL: --remove= and --add= are mutually exclusive (one mod-list-change direction per run)." >&2
+    exit 2
+fi
 if [[ -n "$REMOVE_MOD" && -z "$MODLIST_FILE" && -z "$MODLIST_VERBATIM" ]]; then
     echo "[run_test] WARN: --remove=$REMOVE_MOD with no --modlist=/--modlist-verbatim= — the mod must already be in the minimal base or nothing is removed." >&2
+fi
+if [[ -n "$ADD_MOD" && -z "$MODLIST_FILE" && -z "$MODLIST_VERBATIM" ]]; then
+    echo "[run_test] WARN: --add=$ADD_MOD with no --modlist=/--modlist-verbatim= — there is no symlinked real mod to add." >&2
 fi
 if [[ -n "$MODLIST_FILE" && -n "$MODLIST_VERBATIM" ]]; then
     echo "[run_test] FAIL: --modlist= and --modlist-verbatim= are mutually exclusive." >&2
@@ -349,13 +368,13 @@ elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
     # sequence-nested conditional TestMod_Static carries.
     RUN_A_CHANGE="Change_RunA_SeqNestedConditional.xml"
     RUN_B_CHANGE="Change_RunB_SeqNestedConditional.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" ]]; then
-    # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove: hold Change.xml at run A for BOTH runs so the
-    # change vehicle's patch file does NOT change. The only between-run delta is mode-specific (P2: a
-    # mod added before run B; P4: the gate mod removed; P1: the JoofTest.PropDef def file swapped;
-    # CASE 9: TestMod_ThirdMod removed; #40: the gate mod removed (same toggle as P4); --remove: a
-    # real mod removed before run B), so the dirty set is driven purely by that channel rather than a
-    # patch-file edit.
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
+    # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove / --add: hold Change.xml at run A for BOTH runs
+    # so the change vehicle's patch file does NOT change. The only between-run delta is mode-specific
+    # (P2: a mod added before run B; P4: the gate mod removed; P1: the JoofTest.PropDef def file
+    # swapped; CASE 9: TestMod_ThirdMod removed; #40: the gate mod removed (same toggle as P4);
+    # --remove/--add: a real mod removed/added before run B), so the dirty set is driven purely by
+    # that channel rather than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
     RUN_B_CHANGE="Change_RunA.xml"
 else
@@ -1075,6 +1094,32 @@ print("ModsConfig.xml updated for Run B.")
 PYEOF
 fi
 
+# --add=ID[,ID...]: insert the named real mod(s) into ModsConfig for run B (must NOT have been in
+# the --modlist/--modlist-verbatim used for run A), reproducing the inverse real-mod-add change.
+# Inserted just before </activeMods> — position doesn't matter for the dirty-set superset gate,
+# only presence/absence does.
+if [[ -n "$ADD_MOD" ]]; then
+    log "Adding $ADD_MOD to ModsConfig for Run B (the mod-list change)..."
+    ADD_MOD="$ADD_MOD" python3 - "$MODSCONFIG" <<'PYEOF'
+import os, sys, re
+path = sys.argv[1]
+pkgs = [p.strip() for p in os.environ["ADD_MOD"].split(",") if p.strip()]
+content = open(path, encoding="utf-8").read()
+for pkg in pkgs:
+    if re.search(r"<li>" + re.escape(pkg) + r"</li>", content, flags=re.I):
+        print(f"  {pkg}: WARNING already present — was it excluded from --modlist for run A?")
+        continue
+    new = content.replace("</activeMods>", f"    <li>{pkg}</li>\n  </activeMods>", 1)
+    if new != content:
+        print(f"  {pkg}: added (run-B mod-list change)")
+    else:
+        print(f"  {pkg}: WARNING could not insert — </activeMods> not found")
+    content = new
+open(path, "w", encoding="utf-8").write(content)
+print("ModsConfig.xml updated for Run B.")
+PYEOF
+fi
+
 # Do NOT clear the cache — Run B needs the prior cache (DependencyGraph.json,
 # AssetsHash.xml, Unified.xml) to compute the dirty set and run the gate.
 
@@ -1195,6 +1240,10 @@ fi
 if [[ -n "$REMOVE_MOD" ]]; then
     recompute_required=0
 fi
+# --add (real-mod addition): same informational-recompute contract as --remove, mirrored.
+if [[ -n "$ADD_MOD" ]]; then
+    recompute_required=0
+fi
 
 # The recompute gate only counts toward the verdict when it is required for this mode.
 recompute_verdict=$recompute_ok
@@ -1229,6 +1278,9 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     fi
     if [[ -n "$REMOVE_MOD" ]]; then
         echo "  real removal:    $REMOVE_MOD removed — dirty set stayed a superset (P1+P4 on real content)"
+    fi
+    if [[ -n "$ADD_MOD" ]]; then
+        echo "  real addition:   $ADD_MOD added — dirty set stayed a superset (Seed 5 on real content)"
     fi
     echo "========================================"
     EXIT_CODE=0
