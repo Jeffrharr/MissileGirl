@@ -268,17 +268,20 @@ namespace Gagarin
         // Capture-completeness audit (invisible-op detector). Of the defs present in BOTH the prior
         // cache and this rebuild whose serialized value DIFFERS, returns those not explained by any
         // captured cause — i.e. neither the def nor an inheritance ancestor is in a patch edge's
-        // modifiedNodeIds (a recorded op touched it) nor in this load's raw-changed set (Seed 1). Such
-        // a def changed for a reason capture did not see: an op invisible to it (no edge, or an edge
-        // with empty modifiedNodeIds from a custom op that bypassed Select*). Added/removed DEFS are
-        // excluded for free (not present in both).
+        // modifiedNodeIds (a recorded op touched it), in a defOverrides entry (a mod's own Defs file
+        // replaced it via DefDatabase<T>.Add's last-write-wins, issue #53), nor in this load's
+        // raw-changed set (Seed 1). Such a def changed for a reason capture did not see: an op
+        // invisible to it (no edge, or an edge with empty modifiedNodeIds from a custom op that
+        // bypassed Select*). Added/removed DEFS are excluded for free (not present in both).
         //
-        // Edges are unioned from BOTH graphs — the PRIOR (sidecar) and the CURRENT (cache, just
-        // written this cold rebuild) — because a def changes when a patch is added, removed, or
-        // changed: an ADDED patch's edge is only in the current graph, a REMOVED patch's edge (e.g. a
-        // removed mod) is only in the prior graph, a CHANGED patch is in both. Using one graph alone
-        // would false-flag the other direction (notably every revert on a mod removal). If neither
-        // graph is present the audit no-ops rather than false-alarm.
+        // Edges (and defOverrides entries) are unioned from BOTH graphs — the PRIOR (sidecar) and the
+        // CURRENT (cache, just written this cold rebuild) — because a def changes when a patch is
+        // added, removed, or changed: an ADDED patch's edge is only in the current graph, a REMOVED
+        // patch's edge (e.g. a removed mod) is only in the prior graph, a CHANGED patch is in both. The
+        // same reasoning applies to a defOverride: a newly-added overriding mod's entry is only in the
+        // current graph, a removed one's only in the prior. Using one graph alone would false-flag the
+        // other direction (notably every revert on a mod removal). If neither graph is present the
+        // audit no-ops rather than false-alarm.
         private static List<string> RunCoverageAudit(
             Dictionary<string, string> baseline, Dictionary<string, string> rebuild)
         {
@@ -378,6 +381,13 @@ namespace Gagarin
             foreach (GraphInheritanceEdge e in graph.InheritanceEdges)
                 if (!string.IsNullOrEmpty(e.ChildNodeId) && !string.IsNullOrEmpty(e.ParentNodeId))
                     parentOf[e.ChildNodeId] = e.ParentNodeId;
+            // A def replaced via DefDatabase<T>.Add's last-write-wins (issue #43's defOverrides)
+            // carries no PatchOperation and so no patch edge at all -- fold it in directly as its
+            // own visible-cause channel, or it is structurally invisible to this audit regardless
+            // of whether the replaced def belongs to another mod or to Core (issue #53).
+            foreach (List<string> ids in graph.DefOverrides.Values)
+                foreach (string nid in ids)
+                    modifiedByEdges.Add(nid);
             return true;
         }
 
