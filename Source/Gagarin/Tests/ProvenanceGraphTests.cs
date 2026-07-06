@@ -115,6 +115,31 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void KeyForNode_AbstractDefWithDefName_UsesNameAttribute_NotDefName()
+        {
+            // Issue #52: an abstract def can carry BOTH a Name attribute (used for
+            // inheritance) and a <defName> child. That <defName> may collide with an
+            // unrelated concrete sibling's own defName (e.g. Vanilla Core's
+            // MercenarySlasherBase / Mercenary_Slasher). KeyForNode must key such a
+            // node by Name — same as RegisterAbstract does when registering it — so a
+            // patch matching the abstract node never lands on the concrete node's id.
+            XmlDocument doc = BuildDefsDoc("ThingDef:Mercenary_Slasher");
+            XmlElement concreteDef = (XmlElement)doc.DocumentElement.FirstChild;
+
+            XmlElement abstractDef = doc.CreateElement("ThingDef");
+            abstractDef.SetAttribute("Name", "MercenarySlasherBase");
+            abstractDef.SetAttribute("Abstract", "True");
+            XmlElement defNameEl = doc.CreateElement("defName");
+            defNameEl.InnerText = "Mercenary_Slasher";
+            abstractDef.AppendChild(defNameEl);
+            doc.DocumentElement.AppendChild(abstractDef);
+
+            ProvenanceGraph graph = new ProvenanceGraph();
+            Assert.That(graph.KeyForNode(abstractDef), Is.EqualTo("ThingDef@MercenarySlasherBase"));
+            Assert.That(graph.KeyForNode(concreteDef), Is.EqualTo("ThingDef/Mercenary_Slasher"));
+        }
+
+        [Test]
         public void Serialize_ProducesValidSchema_WithCorrectCounts()
         {
             ProvenanceGraph graph = new ProvenanceGraph();
