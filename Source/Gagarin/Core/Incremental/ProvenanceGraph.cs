@@ -397,7 +397,19 @@ namespace Gagarin
                 // it loses the inheritance hook needed to fan a base-def change out to
                 // its descendants during incremental recompute). The document path is
                 // only a last resort for nodes genuinely outside any def.
-                string defName = defElement["defName"]?.InnerText;
+                //
+                // An Abstract="True" node is keyed by Name even if it also declares a
+                // <defName> (RegisterAbstract applies this same guard when registering
+                // the node — see ProvenanceRecorder.RegisterAbstract). Without it, an
+                // abstract base whose <defName> happens to match an unrelated concrete
+                // def's defName would key identically to that concrete def here, while
+                // RegisterAbstract still filed the abstract node under its Name-based
+                // id — colliding a patch edge on the abstract node with the wrong
+                // concrete node and severing the inheritance link to its real
+                // descendants (issue #52).
+                string abstractAttr = defElement.GetAttribute("Abstract");
+                bool isAbstract = string.Equals(abstractAttr, "True", StringComparison.OrdinalIgnoreCase);
+                string defName = isAbstract ? null : defElement["defName"]?.InnerText;
                 if (!string.IsNullOrEmpty(defName))
                 {
                     key = $"{defElement.Name}/{defName}";
