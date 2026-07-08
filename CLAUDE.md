@@ -122,7 +122,9 @@ Recompute gate is `RecomputeReport.json` (required except in `--expect-mayrequir
 
 **Caveats / operational notes:**
 - **Force-kills any running `RimWorldLinux`** (`pkill -9 -x RimWorldLinux`) on cleanup — close your
-  game first; it will drop an active session.
+  game first; it will drop an active session. **Claude must ask before running `run_test.sh` (or
+  any direct `pkill`/`kill` against `RimWorldLinux`)** — never do it unprompted, since it may kill
+  a session the user is actively playing.
 - Known flake: early-startup Boehm-GC SIGSEGV (launched `--no-sandbox`); retries up to 5×. Any death
   **before** the first `GAGARIN:` line is treated as the flake (stderr → file so the `GC_mark_from`
   signature is visible); a death **after** `GAGARIN:` is a real crash and is surfaced.
