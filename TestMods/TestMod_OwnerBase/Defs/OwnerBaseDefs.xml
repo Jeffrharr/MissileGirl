@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef>
+    <defName>TC_Ownership_Target</defName>
+    <label>ownership target (base owner)</label>
+  </ThingDef>
+</Defs>

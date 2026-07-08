@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Ownership Base (issue #50)</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.ownerbase</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>
+UNCHANGED across both runs. Declares TC_Ownership_Target, the def whose ownership joof.testharness.owner
+contests in run B. Loads BEFORE joof.testharness.owner in the modlist so plain load-order last-write-wins
+determines the winner once owner declares the same defName. No game content — dev/QA use only.
+  </description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+</ModMetaData>

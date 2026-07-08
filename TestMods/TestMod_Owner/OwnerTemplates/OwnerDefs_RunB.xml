@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Run B: newly declares TC_Ownership_Target. Same defName as joof.testharness.ownerbase's
+       (unchanged) def; this mod loads after it, so last-write-wins makes THIS the new real
+       owner, a genuine ownership change with no mod-list delta at all (issue #50). -->
+  <ThingDef>
+    <defName>TC_Ownership_Target</defName>
+    <label>ownership target (owner-mod final)</label>
+  </ThingDef>
+</Defs>
