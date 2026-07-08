@@ -265,6 +265,18 @@ namespace Gagarin
                     change.ChangedMods.Add(mod);
             }
 
+            // Changed Defs files (issue #50): every changed asset's owning mod, regardless of
+            // whether it's a patch file. A mod already present in both prior and current load
+            // order can still become a def's new real owner if it edits its own Defs file to
+            // newly declare a defName another mod already owns — that's orthogonal to the
+            // patch-scoped ChangedMods above, so it gets its own channel.
+            foreach (var asset in changedAssets)
+            {
+                string mod = OwningMod(asset);
+                if (mod != null)
+                    change.ChangedDefFileMods.Add(mod);
+            }
+
             // ADDED defs (P2). Walk the CURRENT concrete def bodies and admit any id that is BOTH
             // absent from the baseline graph (genuinely new — no baseline node, so the structural
             // seeds above never reach it) AND owned by a file that actually changed this load. The
@@ -333,21 +345,28 @@ namespace Gagarin
         }
 
         // Newly-detected def-overrides from a mod added for the FIRST time this load (issue
-        // #43 add-direction). Restricted to mods in CurrentLoadOrder but not PriorLoadOrder --
-        // the same add/remove distinction Seed 7 already uses -- so this never rescans the
-        // full mod list, only the small newly-added set.
+        // #43 add-direction), OR from a mod already present in both loads whose own Defs file
+        // changed and, on this load, resolves to a def's new real owner (issue #50 -- a mod
+        // that never flips load-list presence, so Seed 7's XOR can't see it). Both cases reduce
+        // to "does this mod's current def ownership disagree with baseline for a mod we know
+        // changed something this load" -- DefOverrideRematch.NewlyDetectedOverrides has no
+        // logic tied to "added" specifically, it just filters by whatever candidate set it's
+        // handed, so the two channels share one call.
         private static HashSet<string> ComputeDefOverrideFlips(DependencyGraphData graph,
             GraphChange change, IEnumerable<LoadableXmlAsset> defAssets)
         {
             var prior = new HashSet<string>(
                 change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
                 StringComparer.OrdinalIgnoreCase);
-            var newlyAddedMods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var candidateMods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var packageId in change.CurrentLoadOrder ?? new List<string>())
                 if (packageId != null && !prior.Contains(packageId))
-                    newlyAddedMods.Add(packageId);
+                    candidateMods.Add(packageId);
+            foreach (var packageId in change.ChangedDefFileMods ?? new HashSet<string>())
+                if (packageId != null)
+                    candidateMods.Add(packageId);
 
-            if (newlyAddedMods.Count == 0)
+            if (candidateMods.Count == 0)
                 return new HashSet<string>();
 
             var currentIdOwner = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -358,10 +377,10 @@ namespace Gagarin
                     currentIdOwner[kv.Key] = mod;
             }
 
-            HashSet<string> flips = DefOverrideRematch.NewlyDetectedOverrides(graph, currentIdOwner, newlyAddedMods);
+            HashSet<string> flips = DefOverrideRematch.NewlyDetectedOverrides(graph, currentIdOwner, candidateMods);
 
             Log.Warning($"GAGARIN: <color=white>DefOverride re-test</color> " +
-                $"newlyAddedMods={newlyAddedMods.Count} currentIds={currentIdOwner.Count} flips={flips.Count}");
+                $"candidateMods={candidateMods.Count} currentIds={currentIdOwner.Count} flips={flips.Count}");
             return flips;
         }
 

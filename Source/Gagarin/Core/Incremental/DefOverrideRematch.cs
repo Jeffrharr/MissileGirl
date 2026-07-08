@@ -6,29 +6,35 @@
 // //
 // // SPDX-License-Identifier: EPL-2.0
 
-// DefOverrideRematch.cs (issue #43 — add-direction rematch)
+// DefOverrideRematch.cs (issue #43 — add-direction rematch; issue #50 — changed-mod rematch)
 //
-// Contains: pure re-test of a NEWLY ADDED mod's current def ids against the baseline
+// Contains: pure re-test of a candidate mod's current def ids against the baseline
 // graph's recorded owners, to catch a def-override (Verse.DefDatabase<T>.Add:
 // last-loaded registration wins on a duplicate defName, no PatchOperation involved)
-// that the baseline graph could not have captured because the overriding mod was not
-// present when that graph was written.
+// that the baseline graph could not have captured. Two scenarios feed the same
+// candidate set: (a) #43 — the overriding mod was not present when the graph was
+// written, so the baseline structurally never saw it; (b) #50 — the overriding mod
+// WAS present at capture time (so it never flips load-list presence) but its own Defs
+// file changed this load, changing which def it resolves to own. This function has no
+// logic tied to either case specifically — it only compares current vs. baseline
+// ownership for whatever candidate set the caller supplies.
 //
 // Why this is needed in addition to DirtySetComputer's Seed 7: Seed 7 dirties a
 // def-override's ids when the OWNING mod recorded in graph.DefOverrides flips
 // presence (added or removed). That works for REMOVAL — the mod was there at capture
 // time, so the baseline graph already knows it owns the override. It cannot work for
-// ADD: a mod entering the load for the first time contributes an override the
-// baseline graph structurally never saw, so there is nothing in graph.DefOverrides to
-// XOR against. This mirrors the exact problem WildcardRematch solves for Seed 4
+// ADD, nor for a mod present in both loads whose content changed (#50): neither flips
+// presence, so there is nothing in graph.DefOverrides to XOR against. This mirrors
+// the exact problem WildcardRematch solves for Seed 4
 // (a widened patch predicate only exists in the changed mod's CURRENT content, not
 // the baseline) — re-test current content instead of relying on stored history.
 //
 // Why pure: this is a dictionary comparison, not RimWorld-coupled, so it is
 // unit-testable offline like the rest of the incremental pipeline. The RimWorld-facing
-// driver (DirtySetDiagnostic) supplies currentIdOwner (current concrete def id -> the
-// mod whose Defs file currently registers it) and newlyAddedMods (packageIds present
-// this load but absent from the prior load order).
+// driver (DirtySetDiagnostic.ComputeDefOverrideFlips) supplies currentIdOwner (current
+// concrete def id -> the mod whose Defs file currently registers it) and a candidate-
+// mods set unioning newly-added packageIds (#43) with packageIds whose Defs files
+// changed this load (#50).
 
 using System.Collections.Generic;
 

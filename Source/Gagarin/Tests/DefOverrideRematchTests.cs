@@ -136,6 +136,49 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void NewlyDetectedOverrides_ChangedModBecomesFinalOwner_ReturnsId()
+        {
+            // Issue #50: modB is NOT newly added -- it was present in both the prior and
+            // current load order -- but its own Defs file changed this load (simulated here
+            // by putting it in the candidate set the same way ComputeDefOverrideFlips unions
+            // in ChangedDefFileMods), and it now resolves to own an id baseline attributes to
+            // modC. This must flip: the function has no "newly added" semantics of its own,
+            // it only compares current vs. baseline ownership for whatever candidate set it's
+            // handed.
+            var currentIdOwner = new Dictionary<string, string>
+            {
+                ["GeneDef/Eyes_Red"] = "modB.eyegenes" // modB now owns it (loaded last)
+            };
+            var changedMods = new HashSet<string> { "modB.eyegenes" }; // present both loads, content changed
+
+            var baseline = Baseline();
+            baseline.Nodes.First(n => n.Id == "GeneDef/Eyes_Red").SourceMod = "modC.eyegenes";
+
+            var result = DefOverrideRematch.NewlyDetectedOverrides(baseline, currentIdOwner, changedMods);
+
+            Assert.That(result, Contains.Item("GeneDef/Eyes_Red"));
+        }
+
+        [Test]
+        public void NewlyDetectedOverrides_UnchangedModStillOwns_NoFlip()
+        {
+            // Issue #50 negative: modB is unchanged this load (not in the candidate set) even
+            // though some other mod's ownership picture might differ -- must not be dirtied.
+            var currentIdOwner = new Dictionary<string, string>
+            {
+                ["GeneDef/Eyes_Red"] = "modC.eyegenes" // unchanged: modC still owns it
+            };
+            var changedMods = new HashSet<string> { "some.other.mod" }; // modB/modC untouched
+
+            var baseline = Baseline();
+            baseline.Nodes.First(n => n.Id == "GeneDef/Eyes_Red").SourceMod = "modC.eyegenes";
+
+            var result = DefOverrideRematch.NewlyDetectedOverrides(baseline, currentIdOwner, changedMods);
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
         public void NewlyDetectedOverrides_EmptyInputs_NoOpAndNoThrow()
         {
             Assert.That(DefOverrideRematch.NewlyDetectedOverrides(null, null, null), Is.Empty);
