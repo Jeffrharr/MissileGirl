@@ -996,6 +996,14 @@ log "DependencyGraph.json written ($(du -sh "$CACHE_DIR/DependencyGraph.json" | 
 mkdir -p "$METRICS_DIR"
 cp "$CACHE_DIR/DependencyGraph.json" "$METRICS_DIR/livetest-runA-${RUN_TS}-DependencyGraph.json"
 log "Archived Run A (prior) graph → $METRICS_DIR/livetest-runA-${RUN_TS}-DependencyGraph.json"
+# Also snapshot Run A's own Unified.xml here, before Run B's mod-list change overwrites it and
+# before PriorStateSnapshot's sidecar gets refreshed past this point — that sidecar is volatile
+# (it gets rewritten again on the next load, so reading it AFTER Run B for a post-hoc def diff
+# shows Run B vs itself, not Run A vs Run B). This copy is the only stable "before" reference.
+if [[ -f "$CACHE_DIR/Unified.xml" ]]; then
+    cp "$CACHE_DIR/Unified.xml" "$METRICS_DIR/livetest-runA-${RUN_TS}-Unified.xml"
+    log "Archived Run A Unified.xml → $METRICS_DIR/livetest-runA-${RUN_TS}-Unified.xml"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 4: prepare Run B (changed patch → cache miss → gate)
@@ -1135,6 +1143,13 @@ launch_rimworld
 # saved the new Unified.xml), so this marker means BOTH gates have run and written their
 # reports. 10-minute timeout.
 wait_for_marker "Recompute gate" "Recompute gate verdict (Run B done)" 1800
+
+# The marker line is logged before the JSON reports are flushed to disk (observed on a
+# heavier mod list); give the writes a moment before killing the process out from under them.
+for _ in 1 2 3 4 5; do
+    [[ -f "$GATE_REPORT" ]] && break
+    sleep 1
+done
 
 log "Run B complete. Killing RimWorldLinux..."
 kill_rimworld
@@ -1309,5 +1324,26 @@ for f in GateReport.json RecomputeReport.json DirtySet.json DependencyGraph.json
         log "Archived $f → $dst"
     fi
 done
+
+# Bisection aid: for any coverage-audit-flagged id, show what actually changed in the def
+# itself (Run A's Unified.xml vs this rebuild's), not just that it changed. Saved alongside the
+# other reports so a later comparison across bisection runs doesn't require re-running.
+# Uses the Run A archive from Step 3 (not the live Incremental/prior/ sidecar) — that sidecar
+# gets refreshed again after Run B, so reading it here would diff Run B against itself.
+PRIOR_UNIFIED="$METRICS_DIR/livetest-runA-${RUN_TS}-Unified.xml"
+CURRENT_UNIFIED="$CACHE_DIR/Unified.xml"
+if [[ -f "$GATE_REPORT" && -f "$PRIOR_UNIFIED" && -f "$CURRENT_UNIFIED" ]]; then
+    mapfile -t UNATTR_IDS < <(python3 -c "
+import json
+d = json.load(open('$GATE_REPORT'))
+for i in d.get('unattributedChangedIds', []):
+    print(i)
+")
+    if [[ ${#UNATTR_IDS[@]} -gt 0 ]]; then
+        DEFDIFF_OUT="$METRICS_DIR/livetest-runB-${RUN_TS}-DefDiff.txt"
+        python3 "$SCRIPT_DIR/diff_def.py" "$PRIOR_UNIFIED" "$CURRENT_UNIFIED" "${UNATTR_IDS[@]}" | tee "$DEFDIFF_OUT"
+        log "Archived unattributed-def diffs → $DEFDIFF_OUT"
+    fi
+fi
 
 exit $EXIT_CODE
