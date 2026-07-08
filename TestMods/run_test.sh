@@ -87,7 +87,11 @@
 #                       a genuine ownership change with zero mod-list delta. Asserts the dirty-set gate
 #                       stays a superset (nonDirtyMismatches==0) AND the changed def is dirtied AND the
 #                       recompute gate passes (a clean content change, so recompute is required, same as
-#                       --expect-p1).
+#                       --expect-p1). Bonus coverage (issue #53): also the only live fixture exercising
+#                       the coverage audit (FoldGraph/DefOverrides) for a MOD-VS-MOD override, not just
+#                       mod-vs-Core (#53's own test plan) -- pre-#53 this fixture's GateReport.json shows
+#                       unattributedChangedCount:1 (false-flagged); post-#53 it's 0. Not asserted by the
+#                       harness (informational field), see TestMods/README.md for the manual repro.
 #     --expect-conditional-thirdmod  Live fixture for the OPEN nuance noted in
 #                       docs/patch-operations-coverage.md's PatchOperationConditional row (CASE 9,
 #                       distinct from CASES 6-8): the conditional's xpath-EXISTENCE test target
@@ -198,6 +202,14 @@ EXPECT_FINDMOD=0
 # ownerbase's file, not owner's), Seed 5 (id already in baseline), nor Seed 7/7b (no presence flip)
 # catch this without the fix -- ComputeDefOverrideFlips's candidate set must also include mods whose
 # own Defs files changed this load, not just newly-added ones.
+#
+# Incidental bonus coverage (issue #53): this is also the only live fixture exercising the
+# capture-completeness audit (DirtySetGate.FoldGraph/graph.DefOverrides) for a MOD-VS-MOD def
+# override -- #53's own test plan only covered a mod overriding a Core def. Confirmed by running
+# this fixture against a pre-#53 build: GateReport.json reported unattributedChangedCount:1 with
+# unattributedChangedIds:["ThingDef/TC_Ownership_Target"] (the audit false-flagging the ownership
+# transfer as an invisible op); against a build with #53's fix it's 0. That field is informational
+# only (doesn't affect pass), so it's not asserted here -- see TestMods/README.md.
 EXPECT_OWNERSHIP=0
 
 NO_TEARDOWN=0

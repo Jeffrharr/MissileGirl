@@ -211,6 +211,18 @@ change, so `recomputeMismatches==0 && fallback==false`, same contract as `--expe
 `DirtySet.json` showing `TC_Ownership_Target` in `dirtyNodeIds` with `seeds.defOverrideRematch > 0`
 — proof it went through the rematch seed and not some other channel.
 
+**Bonus coverage — issue #53 (mod-vs-mod), not just mod-vs-Core:** this fixture is also the only
+live case exercising the capture-completeness audit (`DirtySetGate.RunCoverageAudit`/`FoldGraph`)
+for a **mod-vs-mod** def-override, complementing #53's own test plan which only covered a mod
+overriding a Core def (`fozzy422.smoothwallsfirst`). Confirmed by running this fixture against a
+pre-#53 build: `GateReport.json` reported `unattributedChangedCount:1` with
+`unattributedChangedIds:["ThingDef/TC_Ownership_Target"]` — the audit false-flagging the ownership
+transfer as an invisible op, since `FoldGraph` didn't yet fold `graph.DefOverrides` in. Re-run
+against a build with #53's fix: `unattributedChangedCount:0`. `unattributedChangedCount` is
+informational only (doesn't affect `pass`), so this isn't asserted by the harness itself — but
+worth checking manually if you touch either the dirty-set or the coverage-audit code paths, since
+this is the one fixture that can catch a regression in either.
+
 ## Pass criteria
 
 Default run (`bash TestMods/run_test.sh`):
