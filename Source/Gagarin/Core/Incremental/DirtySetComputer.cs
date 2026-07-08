@@ -56,6 +56,13 @@ namespace Gagarin
         // edit leaves this empty, so it does not over-dirty.
         public HashSet<string> ChangedMods = new HashSet<string>();
 
+        // Mods whose DEFS files changed this load (not patch-scoped, unlike ChangedMods above).
+        // Feeds ComputeDefOverrideFlips (issue #50): a mod already present in both prior and
+        // current load order can still become a def's new real owner if its own Defs file is
+        // edited to newly declare a defName another mod already owns — that has no bearing on
+        // patch edges, so it's tracked separately from ChangedMods rather than widening it.
+        public HashSet<string> ChangedDefFileMods = new HashSet<string>();
+
         // Package ids in load order, at graph-build time and now. Equal lists ⇒ no reorder.
         public List<string> PriorLoadOrder = new List<string>();
         public List<string> CurrentLoadOrder = new List<string>();

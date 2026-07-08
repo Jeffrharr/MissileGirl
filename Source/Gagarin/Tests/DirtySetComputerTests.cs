@@ -492,6 +492,54 @@ namespace Gagarin.Tests
             Assert.That(r.SeedDefOverrideRematch, Is.EqualTo(0));
         }
 
+        // Issue #50: modB is present in BOTH prior and current load order (no presence flip,
+        // so Seed 7 can't see it) but its own Defs file changed this load and it now owns a
+        // def baseline attributes to a different mod. GraphChange.ChangedDefFileMods carries
+        // that signal; DefOverrideRematch.NewlyDetectedOverrides (the same function #43 uses)
+        // is fed the changed-mod set instead of a newly-added-mod set to compute the seed,
+        // exactly as DirtySetDiagnostic.ComputeDefOverrideFlips does end to end.
+        [Test]
+        public void DefOverrideRematch_ChangedDefFileMod_DirtiesNode_AndCounts()
+        {
+            var graph = new DependencyGraphData { Version = 1 };
+            graph.Nodes.Add(new GraphNode { Id = "GeneDef/Eyes_Red", SourceMod = "toastyman.moreritualseats" });
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2"), // unchanged
+                ChangedDefFileMods = { "oppey.eyegenes2" } // modB's own Defs file changed this load
+            };
+
+            var currentIdOwner = new Dictionary<string, string> { ["GeneDef/Eyes_Red"] = "oppey.eyegenes2" };
+            var seeds = DefOverrideRematch.NewlyDetectedOverrides(graph, currentIdOwner, change.ChangedDefFileMods);
+
+            var r = DirtySetComputer.Compute(graph, change, defOverrideRematchSeeds: seeds);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            Assert.That(r.SeedDefOverrideRematch, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DefOverrideRematch_UnchangedDefFileMod_NoFlip()
+        {
+            var graph = new DependencyGraphData { Version = 1 };
+            graph.Nodes.Add(new GraphNode { Id = "GeneDef/Eyes_Red", SourceMod = "toastyman.moreritualseats" });
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("toastyman.moreritualseats", "oppey.eyegenes2"), // unchanged
+                ChangedDefFileMods = { "some.unrelated.mod" } // neither owning mod changed
+            };
+
+            var currentIdOwner = new Dictionary<string, string> { ["GeneDef/Eyes_Red"] = "toastyman.moreritualseats" };
+            var seeds = DefOverrideRematch.NewlyDetectedOverrides(graph, currentIdOwner, change.ChangedDefFileMods);
+
+            var r = DirtySetComputer.Compute(graph, change, defOverrideRematchSeeds: seeds);
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/Eyes_Red"));
+            Assert.That(r.SeedDefOverrideRematch, Is.EqualTo(0));
+        }
+
         [Test]
         public void DefOverrideRematch_FoldsBeforeInheritanceClosure()
         {
