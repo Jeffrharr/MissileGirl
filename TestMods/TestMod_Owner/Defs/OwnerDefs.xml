@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Run A: does not declare TC_Ownership_Target at all. joof.testharness.ownerbase is the sole
+       owner captured in the baseline graph. -->
+</Defs>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Ownership Rematch (issue #50)</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.owner</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>
+Exercises the issue #50 def-ownership rematch fix live. Present in BOTH run A and run B's modlist
+(never added/removed — the harness never touches ModsConfig.xml for this mod), so it never flips
+load-list presence. Its own Defs/OwnerDefs.xml is swapped between runs: run A does not declare
+TC_Ownership_Target at all (joof.testharness.ownerbase is the sole owner, capturing that in the
+baseline graph); run B declares TC_Ownership_Target itself. This mod loads AFTER
+joof.testharness.ownerbase, so on run B DefDatabase&lt;ThingDef&gt;.Add's last-write-wins semantics
+make it the def's new real owner — a genuine content change with no mod-list delta at all, which is
+exactly the gap #50 fixes (DefOverrideRematch's candidate set previously only considered newly-added
+mods). No game content — dev/QA use only.
+  </description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <li>joof.testharness.ownerbase</li>
+  </loadAfter>
+</ModMetaData>

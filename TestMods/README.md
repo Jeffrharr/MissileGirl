@@ -179,6 +179,38 @@ channel actually fired). A representative run-B `DirtySet.json` carries the `TC_
 > `DependencyGraph.json` WITH the added mod's nodes at the end of run B. The added-defs channel only
 > needs to cover them for that one load; a subsequent run already has them as baseline nodes.
 
+## The ownership-rematch case — `--expect-ownership`
+
+```bash
+bash TestMods/run_test.sh --expect-ownership
+```
+
+This proves the issue #50 fix: `DefOverrideRematch`'s candidate set must also cover a mod already
+present in both prior and current load order whose own Defs file changed, not just newly-added
+mods (`--expect-p1` proves a similar changed-def-file case, but for a mod that never contests
+another mod's def; this proves the last-write-wins ownership flip specifically).
+
+`joof.testharness.ownerbase` (unchanged both runs, loads first) and `joof.testharness.owner`
+(loads after it) are the vehicle. Unlike every other `--expect-*` mode, **neither mod is ever
+added to or removed from `ModsConfig.xml`** — both are present in both runs' modlist throughout.
+The only between-run delta is `joof.testharness.owner`'s own `Defs/OwnerDefs.xml`:
+
+| Run | `OwnerDefs.xml` content | Effect |
+|---|---|---|
+| A (cold) | empty (no `TC_Ownership_Target`) | `joof.testharness.ownerbase` is the sole owner captured in the baseline graph. |
+| B | declares `TC_Ownership_Target` | `joof.testharness.owner` loads after ownerbase, so `DefDatabase<ThingDef>.Add`'s last-write-wins semantics make it the new real owner — a genuine content change with zero mod-list delta. |
+
+This is exactly the gap none of the existing seeds cover: Seed 1 keys off the baseline node's
+`SourceFile` (ownerbase's file, not owner's), Seed 5 skips ids already in the baseline, and Seed
+7/7b require a mod-list *presence* flip that never happens here. The fix broadens
+`ComputeDefOverrideFlips`'s candidate set to also include mods whose own Defs files changed this
+load (`GraphChange.ChangedDefFileMods`), not just newly-added ones.
+
+Pass requires the dirty-set gate (`nonDirtyMismatches==0`), the recompute gate (a clean content
+change, so `recomputeMismatches==0 && fallback==false`, same contract as `--expect-p1`), AND
+`DirtySet.json` showing `TC_Ownership_Target` in `dirtyNodeIds` with `seeds.defOverrideRematch > 0`
+— proof it went through the rematch seed and not some other channel.
+
 ## Pass criteria
 
 Default run (`bash TestMods/run_test.sh`):
@@ -196,6 +228,12 @@ Added-defs run (`bash TestMods/run_test.sh --expect-added`):
 - `GateReport.json`:      `pass==true && nonDirtyMismatches==0`
 - `RecomputeReport.json`: `pass==true && recomputeMismatches==0 && fallback==false`
 - `DirtySet.json`:        `seeds.addedDefs > 0`
+
+Ownership-rematch run (`bash TestMods/run_test.sh --expect-ownership`):
+
+- `GateReport.json`:      `pass==true && nonDirtyMismatches==0`
+- `RecomputeReport.json`: `pass==true && recomputeMismatches==0 && fallback==false`
+- `DirtySet.json`:        `"ThingDef/TC_Ownership_Target" in dirtyNodeIds && seeds.defOverrideRematch > 0`
 
 A representative PASS (test-mod modlist, 2026-06-21):
 

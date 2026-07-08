@@ -77,6 +77,17 @@
 #                       fed the same Seed 6 index the P4 fixture exercises. Recompute is informational (not
 #                       yet asserted required) since no recompute-fidelity predictor has been validated for
 #                       FindMod-gated content the way MayRequireGate was for P4.
+#     --expect-ownership  Live fixture for issue #50 (def-ownership rematch for a changed-but-not-added
+#                       mod). joof.testharness.owner is present in BOTH runs' modlist (no ModsConfig
+#                       change at all -- unlike --expect-added/--add=, this never touches ModsConfig).
+#                       Its own Defs/OwnerDefs.xml is swapped between runs: Run A omits TC_Ownership_Target
+#                       entirely (joof.testharness.ownerbase, unchanged and loading first, is the sole
+#                       owner captured in the baseline graph); Run B has it declare TC_Ownership_Target,
+#                       and since it loads AFTER ownerbase, last-write-wins makes it the new real owner --
+#                       a genuine ownership change with zero mod-list delta. Asserts the dirty-set gate
+#                       stays a superset (nonDirtyMismatches==0) AND the changed def is dirtied AND the
+#                       recompute gate passes (a clean content change, so recompute is required, same as
+#                       --expect-p1).
 #     --expect-conditional-thirdmod  Live fixture for the OPEN nuance noted in
 #                       docs/patch-operations-coverage.md's PatchOperationConditional row (CASE 9,
 #                       distinct from CASES 6-8): the conditional's xpath-EXISTENCE test target
@@ -167,6 +178,8 @@ P1_MOD_DIR="$SCRIPT_DIR/TestMod_P1"
 GENOP_MOD_DIR="$SCRIPT_DIR/TestMod_GenOp"
 FINDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_FindMod"
 THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
+OWNERBASE_MOD_DIR="$SCRIPT_DIR/TestMod_OwnerBase"
+OWNER_MOD_DIR="$SCRIPT_DIR/TestMod_Owner"
 
 # --expect-findmod: exercise the #40 PatchOperationFindMod capture fix. joof.testharness.findmod (an
 # UNCHANGED mod) carries a PatchOperationFindMod gated on joof.testharness.gate's DISPLAY NAME (the
@@ -175,6 +188,17 @@ THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
 # it) and REMOVED before run B (a pure mod-list change). TC_FM_Host must show up dirty via the MayRequire
 # seed (DirtySet.json seeds.mayRequire > 0), same as P4, since FindModCapture feeds the same index.
 EXPECT_FINDMOD=0
+
+# --expect-ownership: exercise the #50 def-ownership rematch fix. joof.testharness.owner is present
+# in BOTH run A and run B's modlist (never added/removed via ModsConfig -- no presence flip at all).
+# Its own Defs/OwnerDefs.xml is swapped between runs: run A does not declare TC_Ownership_Target
+# (joof.testharness.ownerbase, an UNCHANGED mod that loads first, is the sole owner in the baseline
+# graph); run B has it newly declare TC_Ownership_Target, and since it loads AFTER ownerbase,
+# last-write-wins makes it the new real owner. Neither Seed 1 (baseline SourceFile points at
+# ownerbase's file, not owner's), Seed 5 (id already in baseline), nor Seed 7/7b (no presence flip)
+# catch this without the fix -- ComputeDefOverrideFlips's candidate set must also include mods whose
+# own Defs files changed this load, not just newly-added ones.
+EXPECT_OWNERSHIP=0
 
 NO_TEARDOWN=0
 # --expect-fallback: exercise the changed-mod container-op fallback instead of the default
@@ -288,6 +312,8 @@ for arg in "$@"; do
         EXPECT_THIRDMOD=1
     elif [[ "$arg" == "--expect-findmod" ]]; then
         EXPECT_FINDMOD=1
+    elif [[ "$arg" == "--expect-ownership" ]]; then
+        EXPECT_OWNERSHIP=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
@@ -304,7 +330,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -431,12 +457,19 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-genop"
     rm -f "$MODS_DIR/joof-testharness-thirdmod"
     rm -f "$MODS_DIR/joof-testharness-findmod"
+    rm -f "$MODS_DIR/joof-testharness-ownerbase"
+    rm -f "$MODS_DIR/joof-testharness-owner"
     log "Symlinks removed."
 
     # Reset the P1 def file to its committed Run A value so a --expect-p1 run doesn't leave the git
     # tree dirty (the harness overwrites it each run anyway).
     if [[ -f "$P1_MOD_DIR/P1Templates/P1Defs_RunA.xml" ]]; then
         cp "$P1_MOD_DIR/P1Templates/P1Defs_RunA.xml" "$P1_MOD_DIR/Defs/P1Defs.xml" 2>/dev/null || true
+    fi
+
+    # Same reset for the ownership fixture's def file (issue #50).
+    if [[ -f "$OWNER_MOD_DIR/OwnerTemplates/OwnerDefs_RunA.xml" ]]; then
+        cp "$OWNER_MOD_DIR/OwnerTemplates/OwnerDefs_RunA.xml" "$OWNER_MOD_DIR/Defs/OwnerDefs.xml" 2>/dev/null || true
     fi
 
     # Leave Change.xml in place (it's a test artifact; leaving it is harmless and useful for
@@ -745,6 +778,28 @@ except Exception as e:
 PYEOF
 }
 
+parse_dirtyset_ownership() {
+    # --expect-ownership only (issue #50): assert TC_Ownership_Target was dirtied AND the
+    # defOverrideRematch seed fired. Neither modlist changes between runs (no add/remove seed can
+    # explain it), so a nonzero defOverrideRematch count is the direct proof this went through
+    # ComputeDefOverrideFlips's candidate set, not some other seed.
+    python3 - "$DIRTYSET_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    ids = data.get("dirtyNodeIds", []) or []
+    seeds = data.get("seeds", {})
+    rematch = seeds.get("defOverrideRematch", 0)
+    want = "ThingDef/TC_Ownership_Target"
+    has_want = want in ids
+    print(f"  dirty has '{want}': {has_want}  seeds.defOverrideRematch={rematch}")
+    sys.exit(0 if (has_want and rematch > 0) else 1)
+except Exception as e:
+    print(f"  ERROR parsing DirtySet.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 # ---------------------------------------------------------------------------
 # Pre-flight: every test-mod XML must be well-formed BEFORE we launch.
 # ---------------------------------------------------------------------------
@@ -803,6 +858,10 @@ ln -sfn "$THIRDMOD_MOD_DIR"   "$MODS_DIR/joof-testharness-thirdmod"
 # The FindMod fixture (#40) is symlinked unconditionally; only --expect-findmod activates it (and the
 # shared gate mod) in ModsConfig for run A.
 ln -sfn "$FINDMOD_MOD_DIR"    "$MODS_DIR/joof-testharness-findmod"
+# The ownership fixture (#50) is symlinked unconditionally; both mods are ALWAYS in ModsConfig (never
+# added/removed) in --expect-ownership -- the whole point is zero mod-list delta between runs.
+ln -sfn "$OWNERBASE_MOD_DIR" "$MODS_DIR/joof-testharness-ownerbase"
+ln -sfn "$OWNER_MOD_DIR"     "$MODS_DIR/joof-testharness-owner"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -833,7 +892,7 @@ log "Backup saved to $MODSCONFIG_BAK"
 # In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
 # absent from run A's baseline graph so run B sees them as genuinely added.
 EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" EXPECT_P1="$EXPECT_P1" \
-EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" \
+EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" EXPECT_OWNERSHIP="$EXPECT_OWNERSHIP" \
 MODLIST_FILE="$MODLIST_FILE" MODLIST_VERBATIM="$MODLIST_VERBATIM" MAX_MODS="$MAX_MODS" \
 RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
@@ -903,6 +962,10 @@ if os.environ.get("EXPECT_THIRDMOD", "0") == "1":
 # toggle shape as --expect-mayrequire, reusing the same gate mod).
 if os.environ.get("EXPECT_FINDMOD", "0") == "1":
     test_mods += ["joof.testharness.gate", "joof.testharness.findmod"]
+# --expect-ownership (#50): both mods are active in BOTH runs -- no add/remove at all, unlike every
+# other EXPECT_* mode above. ownerbase must precede owner so owner's Run B declaration wins.
+if os.environ.get("EXPECT_OWNERSHIP", "0") == "1":
+    test_mods += ["joof.testharness.ownerbase", "joof.testharness.owner"]
 active += test_mods
 
 if len(active) > max_mods:
@@ -967,6 +1030,14 @@ if [[ $EXPECT_P1 -eq 1 ]]; then
     cp "$P1_MOD_DIR/P1Templates/P1Defs_RunA.xml" "$P1_MOD_DIR/Defs/P1Defs.xml"
 fi
 
+# --expect-ownership (#50): set OwnerDefs.xml to its Run A value (no TC_Ownership_Target
+# declaration) before the cold capture, so the baseline graph attributes the def solely to
+# joof.testharness.ownerbase.
+if [[ $EXPECT_OWNERSHIP -eq 1 ]]; then
+    log "Setting OwnerDefs.xml to Run A (no TC_Ownership_Target)..."
+    cp "$OWNER_MOD_DIR/OwnerTemplates/OwnerDefs_RunA.xml" "$OWNER_MOD_DIR/Defs/OwnerDefs.xml"
+fi
+
 # ---------------------------------------------------------------------------
 # Step 3: Run A — cold load, capture provenance
 # ---------------------------------------------------------------------------
@@ -1026,6 +1097,15 @@ cp "$CHANGE_MOD_DIR/ChangeTemplates/$RUN_B_CHANGE" "$CHANGE_MOD_DIR/Patches/Chan
 if [[ $EXPECT_P1 -eq 1 ]]; then
     log "Swapping P1Defs.xml to Run B (p1Tag=run-b)..."
     cp "$P1_MOD_DIR/P1Templates/P1Defs_RunB.xml" "$P1_MOD_DIR/Defs/P1Defs.xml"
+fi
+
+# --expect-ownership (#50): swap OwnerDefs.xml to its Run B value (newly declares
+# TC_Ownership_Target). ModsConfig.xml is NOT touched here -- both owner mods stay present in
+# both runs, so this changed Defs file is the ONLY between-run delta. Since joof.testharness.owner
+# loads after joof.testharness.ownerbase, last-write-wins makes it the new real owner.
+if [[ $EXPECT_OWNERSHIP -eq 1 ]]; then
+    log "Swapping OwnerDefs.xml to Run B (declares TC_Ownership_Target)..."
+    cp "$OWNER_MOD_DIR/OwnerTemplates/OwnerDefs_RunB.xml" "$OWNER_MOD_DIR/Defs/OwnerDefs.xml"
 fi
 
 # --expect-added (P2): insert joof.testharness.added into ModsConfig now, AFTER run A captured its
@@ -1214,6 +1294,15 @@ if [[ $EXPECT_P1 -eq 1 ]]; then
     p1_ok=0; parse_dirtyset_p1 && p1_ok=1 || p1_ok=0
 fi
 
+# --expect-ownership (#50): require TC_Ownership_Target to be dirtied via the defOverrideRematch
+# seed with zero mod-list delta between runs. A clean content change, so the recompute gate IS
+# required to pass too (same contract as --expect-p1).
+ownership_ok=1
+if [[ $EXPECT_OWNERSHIP -eq 1 ]]; then
+    log "Ownership rematch result (#50):"
+    ownership_ok=0; parse_dirtyset_ownership && ownership_ok=1 || ownership_ok=0
+fi
+
 # --expect-recompute-gap: the INVERSE verdict. We require the recompute to have genuinely run and
 # DIVERGED (the silent wrong value), so the normal recompute-pass is not required; instead gap_ok
 # demands recomputeMismatches>0 && fallback==false. The dirty-set gate is still required to be a
@@ -1266,7 +1355,7 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -1291,6 +1380,9 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     if [[ $EXPECT_P1 -eq 1 ]]; then
         echo "  node-id (P1):    changed def dirtied as JoofTest.PropDef/TC_P1_Prop (element-name keyed)"
     fi
+    if [[ $EXPECT_OWNERSHIP -eq 1 ]]; then
+        echo "  ownership (#50): TC_Ownership_Target dirtied via defOverrideRematch with zero mod-list delta"
+    fi
     if [[ -n "$REMOVE_MOD" ]]; then
         echo "  real removal:    $REMOVE_MOD removed — dirty set stayed a superset (P1+P4 on real content)"
     fi
@@ -1304,7 +1396,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1
