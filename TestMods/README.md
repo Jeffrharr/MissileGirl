@@ -223,31 +223,58 @@ informational only (doesn't affect `pass`), so this isn't asserted by the harnes
 worth checking manually if you touch either the dirty-set or the coverage-audit code paths, since
 this is the one fixture that can catch a regression in either.
 
-## Known-missing-recompute xfail worklist — `--expect-op-kind`, `--expect-order-preserved`
+## Op-kind / ordering / positional-safety regressions — `--expect-op-kind`, `--expect-order-preserved`, `--expect-scope-escape`, `--expect-rogue-op`
 
 ```bash
 bash TestMods/run_test.sh --expect-op-kind
 bash TestMods/run_test.sh --expect-order-preserved
+bash TestMods/run_test.sh --expect-scope-escape
+bash TestMods/run_test.sh --expect-rogue-op
 ```
 
-CASE 10/11 in `TestMod_Static/Patches/StaticPatches.xml`, defs `TC_OpKind_Target` /
-`TC_Order_Source` in `TestMod_Defs`. Both dirty their target directly via `TestMod_Change`'s
-`Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_OrderPreserved.xml` (Seed 2, patch-file hash
-change) — same mechanism as `--expect-recompute-gap`.
+CASE 10/11/12 in `TestMod_Static/Patches/StaticPatches.xml`, defs `TC_OpKind_Target` /
+`TC_Order_Source` / `TC_ScopeEscape_A`+`TC_ScopeEscape_B` in `TestMod_Defs`. All dirty their target
+directly via `TestMod_Change`'s `Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_OrderPreserved.xml`
+/ `Change_Run{A,B}_ScopeEscape.xml` (Seed 2, patch-file hash change) — same mechanism as
+`--expect-recompute-gap`.
 
-- **`--expect-op-kind` is an XFAIL WORKLIST ITEM, expected to currently FAIL.** CASE 10 is a
+- **`--expect-op-kind` is a positive regression, PASSES live (validated 2026-07-09).** CASE 10 is a
   `PatchOperationFindMod` (targeting "Harmony", always-active, so its `<match>` fires identically
-  in both runs — isolating the allowlist decline from FindMod's own branch-evaluation semantics,
-  already covered by `--expect-findmod` / issue #40). `RecomputeAllowlist` declines
-  `PatchOperationFindMod` as `unknown-op-kind` today (offline-pinned by
-  `RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe`, itself currently red), so this
-  live mode asserts the DESIRED end state — a real recompute — and fails until FindMod is proven
-  safe and added to `SafeLeafOps`.
+  in both runs — isolating the allowlist decision from FindMod's own branch-evaluation semantics,
+  already covered by `--expect-findmod` / issue #40). `PatchOperationFindMod` is now in
+  `SafeLeafOps` (captured/keyed as the fully-qualified `Verse.PatchOperationFindMod`, closing the
+  bare-simple-name spoofing gap — see the fully-qualified-names fix in `RecomputeAllowlist.cs` /
+  `ProvenanceRecorder.cs`), so this live mode now asserts and gets a real recompute. This was
+  formerly an XFAIL worklist item; offline-pinned by
+  `RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe`.
 - **`--expect-order-preserved` is a positive regression, expected to PASS.** CASE 11 applies two
   same-def ops to `TC_Order_Source` in file order (an unconditional Add setting `orderFlag=on`,
   then a `PatchOperationConditional` reading it). Both ops are same-def (in the recompute sub-doc),
   so the allowlist already admits them; this pins that `DefRecompute` applies same-def ops in file
   order faithfully — guards against a future regression, not a currently-known gap.
+- **`--expect-rogue-op`** is a live proof of the fully-qualified `RecomputeAllowlist.SafeLeafOps`
+  sweep — the original CRITICAL review finding that a bare-simple-name-keyed allowlist could be
+  spoofed by an unrelated mod's same-named class. `TestMod_RogueOp` ships `RogueMod.PatchOperationAdd`
+  (same simple name as `Verse.PatchOperationAdd`, different namespace, behaviorally identical),
+  always producing `TC_RogueOp_Target`; `TestMod_Change` dirties it directly. Asserts the dirty-set
+  gate stays a superset AND the recompute allowlist declines with a fallback reason naming
+  `RogueMod.PatchOperationAdd` specifically — proving the check is against `Type.FullName`, not the
+  bare name a spoofing mod could collide on. Live-validated (2026-07-09):
+  `fallbackReason="producing op joof.testharness.rogueop#0 is RogueMod.PatchOperationAdd, not a
+  proven-safe leaf op"`.
+- **`--expect-scope-escape` is a positive regression for a review-flagged gap in
+  `RecomputeAllowlist.IsUnsafePositional`.** The old check decided "safe" by comparing string
+  positions: any defName/Name anchor lexically earlier than a positional predicate was treated as
+  scoping it, even across a sibling axis or a `..`/`parent::` scope-break step that actually
+  re-selects a different def entirely. CASE 12's static patch is anchored on `TC_ScopeEscape_A`'s
+  defName but escapes via `following-sibling::ThingDef[1]` to the adjacent `TC_ScopeEscape_B` — the
+  anchor doesn't structurally scope that step. `IsUnsafePositional` is now a structural per-step
+  parser (splits the xpath into steps, tracks anchor scope across scope-break steps, and treats
+  sibling axes as always breaking the anchor) and must decline this as `positional-xpath`. Not yet
+  live-validated — offline-pinned by `RecomputeAllowlistTests.PositionalXpath_SiblingAxisAfterAnchor_Declined`
+  / `PositionalXpath_AfterScopeBreak_Declined` / `PositionalXpath_DescendantOfAnchor_Admitted` (the
+  last confirms a merely lexically-similar but actually-safe descendant-indexing shape is still
+  admitted).
 
 The harder gap this worklist was originally meant to also cover — `DefRecompute`'s **raw-body
 cross-mod staleness** risk (`DefRecompute.cs`'s documented "candidate bodies fed to patches are

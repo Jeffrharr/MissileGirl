@@ -42,7 +42,7 @@ namespace Gagarin.Tests
             var e = new GraphPatchEdge
             {
                 PatchId = patchId, SourceMod = "mod",
-                OperationType = "PatchOperationConditional", Xpath = xpath,
+                OperationType = "Verse.PatchOperationConditional", Xpath = xpath,
             };
             e.MatchedNodeIds.AddRange(readTargets);
             e.ModifiedNodeIds.AddRange(readTargets);
@@ -72,7 +72,7 @@ namespace Gagarin.Tests
         [Test]
         public void LeafOp_DefNameAnchored_Admitted()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationReplace",
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
                 "Defs/ThingDef[defName=\"A\"]/label", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out _), Is.True);
         }
@@ -83,7 +83,7 @@ namespace Gagarin.Tests
         [Test]
         public void LeafOp_Wildcard_Admitted()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationAdd",
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationAdd",
                 "Defs/ThingDef[@ParentName=\"Base\"]", "ThingDef/A", "ThingDef/B", "ThingDef/C"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out _), Is.True);
         }
@@ -94,8 +94,8 @@ namespace Gagarin.Tests
         public void SequenceChild_LeafOp_Admitted()
         {
             var g = Graph(
-                Edge("mod#0.operations[0]", "PatchOperationAdd", "Defs/ThingDef[defName=\"Sib\"]", "ThingDef/Sib"),
-                Edge("mod#0.operations[1]", "PatchOperationAdd", "Defs/ThingDef[defName=\"Tgt\"]", "ThingDef/Tgt"));
+                Edge("mod#0.operations[0]", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"Sib\"]", "ThingDef/Sib"),
+                Edge("mod#0.operations[1]", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"Tgt\"]", "ThingDef/Tgt"));
             Assert.That(Can(g, Set("ThingDef/Tgt"), Set("ThingDef/Sib"), out _), Is.True);
         }
 
@@ -106,7 +106,7 @@ namespace Gagarin.Tests
         {
             var g = Graph(
                 Conditional("mod#1", "Defs/ThingDef[defName=\"D\"]/trigger", "ThingDef/D"),
-                Edge("mod#1.nomatch", "PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
+                Edge("mod#1.nomatch", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
             Assert.That(Can(g, Set("ThingDef/D"), Set(), out _), Is.True);
         }
 
@@ -117,7 +117,7 @@ namespace Gagarin.Tests
         {
             var g = Graph(
                 Conditional("mod#1", "Defs/ThingDef[defName=\"D\"]/trigger" /* no read targets */),
-                Edge("mod#1.nomatch", "PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
+                Edge("mod#1.nomatch", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
             Assert.That(Can(g, Set("ThingDef/D"), Set(), out _), Is.True);
         }
 
@@ -128,7 +128,7 @@ namespace Gagarin.Tests
         {
             var g = Graph(
                 Conditional("mod#2", "Defs/ThingDef[defName=\"Probe\"]/flag", "ThingDef/Probe"),
-                Edge("mod#2.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"Effect\"]", "ThingDef/Effect"));
+                Edge("mod#2.match", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"Effect\"]", "ThingDef/Effect"));
             Assert.That(Can(g, Set("ThingDef/Effect"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("conditional-cross-def"));
         }
@@ -143,7 +143,7 @@ namespace Gagarin.Tests
             var g = Graph(
                 Conditional("mod#1", "Defs/ThingDef[defName=\"D\"]/trigger", "ThingDef/D"),
                 Conditional("mod#1.match", "Defs/ThingDef[defName=\"Probe\"]/flag", "ThingDef/Probe"),
-                Edge("mod#1.match.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
+                Edge("mod#1.match.match", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
             Assert.That(Can(g, Set("ThingDef/D"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("conditional-cross-def"));
         }
@@ -156,7 +156,7 @@ namespace Gagarin.Tests
             var g = Graph(
                 Conditional("mod#1", "Defs/ThingDef[defName=\"D\"]/trigger", "ThingDef/D"),
                 Conditional("mod#1.match", "Defs/ThingDef[defName=\"D\"]/other", "ThingDef/D"),
-                Edge("mod#1.match.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
+                Edge("mod#1.match.match", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"D\"]", "ThingDef/D"));
             Assert.That(Can(g, Set("ThingDef/D"), Set(), out _), Is.True);
         }
 
@@ -185,8 +185,47 @@ namespace Gagarin.Tests
         [Test]
         public void PositionalXpath_Declined()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationReplace",
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
                 "Defs/ThingDef[3]/label", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("positional-xpath"));
+        }
+
+        // A defName anchor followed by an unrelated same-tag descendant step, both positionally
+        // indexed by the SAME anchored ancestor -- genuinely safe: the anchored def's whole raw body
+        // (all descendants, unchanged) is what's in the sub-doc, so indexing among its own children is
+        // stable regardless of what's happening elsewhere in a smaller sub-doc. ADMITTED.
+        [Test]
+        public void PositionalXpath_DescendantOfAnchor_Admitted()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"A\"]/ThingDef[3]/label", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Regression pin for the string-position heuristic's actual gap (issue found in review): an
+        // anchor is lexically EARLIER in the xpath, but a ".." parent-axis step walks back OUT of that
+        // anchored def before the positional predicate -- so the positional now re-selects a DIFFERENT
+        // def (a sibling of the anchored one), not a descendant of it. The old index-comparison check
+        // said "anchor is before the positional in the string" and wrongly admitted this; the
+        // structural per-step parser must DECLINE it (positional-xpath).
+        [Test]
+        public void PositionalXpath_AfterScopeBreak_Declined()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"A\"]/../ThingDef[3]/label", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("positional-xpath"));
+        }
+
+        // Same shape but via a sibling axis instead of "..": a following-sibling::ThingDef[3] also
+        // re-selects a different def than the anchored one, and must DECLINE even though the anchor is
+        // lexically earlier in the string.
+        [Test]
+        public void PositionalXpath_SiblingAxisAfterAnchor_Declined()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"A\"]/following-sibling::ThingDef[3]/label", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("positional-xpath"));
         }
@@ -207,7 +246,7 @@ namespace Gagarin.Tests
         [Test]
         public void UnindexedOp_LooksSafeButDeclined_AsCaptureGap()
         {
-            var g = Graph(Edge("unindexed#PatchOperationReplace", "PatchOperationReplace",
+            var g = Graph(Edge("unindexed#PatchOperationReplace", "Verse.PatchOperationReplace",
                 "Defs/ThingDef[defName=\"Apparel_Cape\"]/x", "ThingDef/Apparel_Cape"));
             Assert.That(Can(g, Set("ThingDef/Apparel_Cape"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("capture-gap"));
@@ -219,7 +258,7 @@ namespace Gagarin.Tests
         [Test]
         public void GeneratedOp_Declined_AsDynamicOp()
         {
-            var g = Graph(Edge("mod.x#3.generated[0]", "PatchOperationReplace",
+            var g = Graph(Edge("mod.x#3.generated[0]", "Verse.PatchOperationReplace",
                 "Defs/ThingDef[defName=\"A\"]/x", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("dynamic-op"));
@@ -232,7 +271,7 @@ namespace Gagarin.Tests
         {
             var g = Graph(
                 Conditional("mod#2", "Defs/ThingDef[defName=\"Probe\"]/flag", "ThingDef/Probe"),
-                Edge("mod#2.match", "PatchOperationAdd", "Defs/ThingDef[@Name=\"Base\"]", "ThingDef@Base"));
+                Edge("mod#2.match", "Verse.PatchOperationAdd", "Defs/ThingDef[@Name=\"Base\"]", "ThingDef@Base"));
             Inherit(g, "ThingDef@Base", "ThingDef/Child");
             Assert.That(Can(g, Set("ThingDef/Child"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("conditional-cross-def"));
@@ -243,7 +282,7 @@ namespace Gagarin.Tests
         public void IrrelevantUnsafeOp_DoesNotDecline()
         {
             var g = Graph(
-                Edge("mod#0", "PatchOperationReplace", "Defs/ThingDef[defName=\"A\"]/label", "ThingDef/A"),
+                Edge("mod#0", "Verse.PatchOperationReplace", "Defs/ThingDef[defName=\"A\"]/label", "ThingDef/A"),
                 Edge("mod#9", "PatchOperationInsert", "Defs/ThingDef[defName=\"Other\"]/li", "ThingDef/Other"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out _), Is.True);
         }
@@ -277,7 +316,7 @@ namespace Gagarin.Tests
         [Test]
         public void EditResearch_ShouldBeAdmitted_OnceProvenSafe()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationEditResearch",
+            var g = Graph(Edge("mod#0", "TTPF.PatchOperationEditResearch",
                 "Defs/ResearchProjectDef[defName=\"A\"]", "ResearchProjectDef/A"));
             Assert.That(Can(g, Set("ResearchProjectDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
@@ -285,7 +324,7 @@ namespace Gagarin.Tests
         [Test]
         public void AddIf_ShouldBeAdmitted_OnceProvenSafe()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationAddIf",
+            var g = Graph(Edge("mod#0", "AnomalyPatch.PatchOperationAddIf",
                 "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
@@ -293,7 +332,7 @@ namespace Gagarin.Tests
         [Test]
         public void ReplaceIf_ShouldBeAdmitted_OnceProvenSafe()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationReplaceIf",
+            var g = Graph(Edge("mod#0", "AnomalyPatch.PatchOperationReplaceIf",
                 "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
@@ -301,7 +340,7 @@ namespace Gagarin.Tests
         [Test]
         public void RemoveIf_ShouldBeAdmitted_OnceProvenSafe()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationRemoveIf",
+            var g = Graph(Edge("mod#0", "AnomalyPatch.PatchOperationRemoveIf",
                 "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
@@ -312,8 +351,8 @@ namespace Gagarin.Tests
             // FindMod's own edge is a ModLister-state TEST, not a doc-content read: no xpath, no
             // matched/modified nodes. The real producing edge is its ".match" branch child.
             var g = Graph(
-                Edge("mod#0", "PatchOperationFindMod", null),
-                Edge("mod#0.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+                Edge("mod#0", "Verse.PatchOperationFindMod", null),
+                Edge("mod#0.match", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
 
@@ -330,7 +369,7 @@ namespace Gagarin.Tests
         [Test]
         public void OrphanBranchChild_NoParentConditional_MustAlwaysDeclineAsCaptureGap()
         {
-            var g = Graph(Edge("mod#5.match", "PatchOperationAdd",
+            var g = Graph(Edge("mod#5.match", "Verse.PatchOperationAdd",
                 "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("capture-gap"));
@@ -345,7 +384,7 @@ namespace Gagarin.Tests
         [Test]
         public void WithinDefPositionalPredicate_ShouldBeAdmitted_OnceRefined()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationReplace",
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
                 "Defs/ThingDef[defName=\"A\"]/comps/li[2]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }

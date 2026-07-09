@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-scope-escape mode (CASE 12). Replaces TC_ScopeEscape_B's changeTag value
+       (run-a -> run-b), changing the changed mod's patch-file hash so the diagnostic seeds
+       TC_ScopeEscape_B as dirty (Seed 2). TestMod_Static's sibling-axis PatchOperationReplace also
+       produces TC_ScopeEscape_B (targeting it via a following-sibling:: escape from
+       TC_ScopeEscape_A's anchor), so RecomputeAllowlist must inspect that edge and decline it as
+       positional-xpath, proving the structural per-step parser (not the old string-position
+       heuristic) closes this gap live. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_ScopeEscape_B"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>

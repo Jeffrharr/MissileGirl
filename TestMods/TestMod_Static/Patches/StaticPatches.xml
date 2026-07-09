@@ -248,4 +248,20 @@
       </value>
     </match>
   </Operation>
+
+  <!-- CASE 12: parent/sibling-axis scope escape (review-flagged gap in
+       RecomputeAllowlist.IsUnsafePositional's string-position heuristic). This xpath is anchored on
+       TC_ScopeEscape_A's defName, lexically the FIRST thing in the string, then walks via
+       following-sibling:: to the next ThingDef sibling by POSITION, landing on TC_ScopeEscape_B (see
+       TestDefs.xml: the two are adjacent with nothing else able to land between them). The anchor
+       does not scope this positional step; it selects a different, unrelated def. TC_ScopeEscape_B
+       is dirtied directly by TestMod_Change (Seed 2); RecomputeAllowlist must decline recompute for it
+       (positional-xpath), not admit it because a defName anchor merely appears earlier in the string.
+       See the scope escape live test mode / RecomputeAllowlistTests.PositionalXpath_SiblingAxisAfterAnchor_Declined. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_ScopeEscape_A"]/following-sibling::ThingDef[1]/label</xpath>
+    <value>
+      <label>scope escape target</label>
+    </value>
+  </Operation>
 </Patch>

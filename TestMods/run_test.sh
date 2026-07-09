@@ -180,6 +180,7 @@ MAYREQUIRE_MOD_DIR="$SCRIPT_DIR/TestMod_MayRequire"
 GATE_MOD_DIR="$SCRIPT_DIR/TestMod_Gate"
 P1_MOD_DIR="$SCRIPT_DIR/TestMod_P1"
 GENOP_MOD_DIR="$SCRIPT_DIR/TestMod_GenOp"
+ROGUEOP_MOD_DIR="$SCRIPT_DIR/TestMod_RogueOp"
 FINDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_FindMod"
 THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
 OWNERBASE_MOD_DIR="$SCRIPT_DIR/TestMod_OwnerBase"
@@ -293,6 +294,28 @@ EXPECT_OPKIND=0
 # so RecomputeAllowlist must ADMIT them and the recompute gate uses the DEFAULT real-recompute
 # assertion (fallback==false, recomputeMismatches==0) -- no special parser needed.
 EXPECT_ORDERPRESERVED=0
+# --expect-scope-escape: live proof that RecomputeAllowlist's positional-safety check is a
+# structural per-step parser, not a string-position heuristic (review-flagged gap, offline-pinned by
+# RecomputeAllowlistTests.PositionalXpath_SiblingAxisAfterAnchor_Declined /
+# PositionalXpath_AfterScopeBreak_Declined). TestMod_Static (UNCHANGED) carries a
+# PatchOperationReplace (CASE 12) anchored on TC_ScopeEscape_A's defName but escaping via
+# "following-sibling::ThingDef[1]" to TC_ScopeEscape_B -- a lexically-earlier anchor that does NOT
+# structurally scope the positional step. TestMod_Change dirties TC_ScopeEscape_B directly (run-a ->
+# run-b, Seed 2). Same assertion shape as --expect-recompute-gap: the dirty-set gate must still be a
+# superset, and the recompute allowlist must DECLINE (fallback=true, pass=true,
+# recomputeMismatches=0) with a fallbackReason naming "positional" -- proving the fix, not just that
+# it doesn't crash.
+EXPECT_SCOPEESCAPE=0
+# --expect-rogue-op: live proof that RecomputeAllowlist.SafeLeafOps is keyed by fully-qualified
+# Type.FullName, not bare simple name (the original CRITICAL spoofing gap). TestMod_RogueOp ships
+# its OWN class literally named "PatchOperationAdd" (namespace RogueMod, NOT Verse) applied via
+# Class="RogueMod.PatchOperationAdd" (CASE 13); it always produces TC_RogueOp_Target. TestMod_Change
+# dirties TC_RogueOp_Target directly (run-a -> run-b, Seed 2). Same assertion shape as
+# --expect-op-kind: the dirty-set gate must still be a superset, and the recompute allowlist must
+# DECLINE (fallback=true, pass=true, recomputeMismatches=0) with a fallbackReason naming
+# RogueMod.PatchOperationAdd -- proving the FullName, not just the bare "PatchOperationAdd", is what
+# gets checked against SafeLeafOps.
+EXPECT_ROGUEOP=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at MAX_MODS total (default 150) — the
@@ -348,6 +371,10 @@ for arg in "$@"; do
         EXPECT_OPKIND=1
     elif [[ "$arg" == "--expect-order-preserved" ]]; then
         EXPECT_ORDERPRESERVED=1
+    elif [[ "$arg" == "--expect-scope-escape" ]]; then
+        EXPECT_SCOPEESCAPE=1
+    elif [[ "$arg" == "--expect-rogue-op" ]]; then
+        EXPECT_ROGUEOP=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
@@ -364,7 +391,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -440,6 +467,18 @@ elif [[ $EXPECT_ORDERPRESERVED -eq 1 ]]; then
     # TestMod_Static carries.
     RUN_A_CHANGE="Change_RunA_OrderPreserved.xml"
     RUN_B_CHANGE="Change_RunB_OrderPreserved.xml"
+elif [[ $EXPECT_SCOPEESCAPE -eq 1 ]]; then
+    # --expect-scope-escape: same shape as --expect-recompute-gap — the change file MUST differ
+    # between runs so TC_ScopeEscape_B is seeded dirty (Seed 2) and recomputed under the
+    # sibling-axis scope-escape op TestMod_Static carries.
+    RUN_A_CHANGE="Change_RunA_ScopeEscape.xml"
+    RUN_B_CHANGE="Change_RunB_ScopeEscape.xml"
+elif [[ $EXPECT_ROGUEOP -eq 1 ]]; then
+    # --expect-rogue-op: same shape as --expect-op-kind — the change file MUST differ between runs
+    # so TC_RogueOp_Target is seeded dirty (Seed 2) and recomputed under TestMod_RogueOp's bare-
+    # name-colliding PatchOperationAdd.
+    RUN_A_CHANGE="Change_RunA_RogueOp.xml"
+    RUN_B_CHANGE="Change_RunB_RogueOp.xml"
 elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
     # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove / --add: hold Change.xml at run A for BOTH runs
     # so the change vehicle's patch file does NOT change. The only between-run delta is mode-specific
@@ -501,6 +540,7 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-gate"
     rm -f "$MODS_DIR/joof-testharness-p1"
     rm -f "$MODS_DIR/joof-testharness-genop"
+    rm -f "$MODS_DIR/joof-testharness-rogueop"
     rm -f "$MODS_DIR/joof-testharness-thirdmod"
     rm -f "$MODS_DIR/joof-testharness-findmod"
     rm -f "$MODS_DIR/joof-testharness-ownerbase"
@@ -734,6 +774,56 @@ except Exception as e:
 PYEOF
 }
 
+parse_recompute_positional() {
+    # --expect-scope-escape only: assert the RECOMPUTE ALLOWLIST declined the sibling-axis scope
+    # escape as positional-xpath (the structural per-step parser catching what the old
+    # string-position heuristic would have missed), rather than silently admitting a recompute that
+    # served the wrong def's value. PASS = fallback==true && pass==true && recomputeMismatches==0,
+    # AND the fallbackReason names "positional" (so it is specifically the positional-xpath clause,
+    # not some other decline category).
+    python3 - "$RECOMPUTE_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    passed = data.get("pass", False)
+    fallback = data.get("fallback", False)
+    mismatches = data.get("recomputeMismatches", -1)
+    reason = data.get("fallbackReason", None) or ""
+    print(f"  pass={passed}  fallback={fallback}  recomputeMismatches={mismatches}")
+    print(f"  fallbackReason={reason}")
+    ok = passed and fallback and (mismatches == 0) and ("positional" in reason.lower())
+    sys.exit(0 if ok else 1)
+except Exception as e:
+    print(f"  ERROR parsing RecomputeReport.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
+parse_recompute_rogueop() {
+    # --expect-rogue-op only: assert the RECOMPUTE ALLOWLIST declined the bare-name-colliding
+    # RogueMod.PatchOperationAdd as unknown-op-kind (the fully-qualified SafeLeafOps fix), rather than
+    # wrongly trusting it as the real, proven-safe Verse.PatchOperationAdd. PASS = fallback==true &&
+    # pass==true && recomputeMismatches==0, AND the fallbackReason names the fully-qualified
+    # "roguemod.patchoperationadd" (proving the captured/checked type string is qualified, not the
+    # bare "PatchOperationAdd" that would collide).
+    python3 - "$RECOMPUTE_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    passed = data.get("pass", False)
+    fallback = data.get("fallback", False)
+    mismatches = data.get("recomputeMismatches", -1)
+    reason = data.get("fallbackReason", None) or ""
+    print(f"  pass={passed}  fallback={fallback}  recomputeMismatches={mismatches}")
+    print(f"  fallbackReason={reason}")
+    ok = passed and fallback and (mismatches == 0) and ("roguemod.patchoperationadd" in reason.lower())
+    sys.exit(0 if ok else 1)
+except Exception as e:
+    print(f"  ERROR parsing RecomputeReport.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 parse_dependency_graph_edge() {
     # --expect-nested-in-sequence only: direct proof that CAPTURE (not just the allowlist's
     # decision, and not just an inferred fallbackReason string) recorded an edge for the
@@ -898,6 +988,10 @@ ln -sfn "$P1_MOD_DIR"         "$MODS_DIR/joof-testharness-p1"
 # at Apply time so capture's apply-time attribution is continuously exercised — its edge must record
 # as joof.testharness.genop#N.generated[0], never unindexed#.
 ln -sfn "$GENOP_MOD_DIR"      "$MODS_DIR/joof-testharness-genop"
+# The rogue-op fixture (CASE 13, custom PatchOperation assembly whose class bare-name-collides with
+# Verse.PatchOperationAdd) is in the BASE modlist (below): its op always fires on TC_RogueOp_Target;
+# only --expect-rogue-op dirties that def so its producing edge is evaluated by the allowlist.
+ln -sfn "$ROGUEOP_MOD_DIR"    "$MODS_DIR/joof-testharness-rogueop"
 # The third-mod fixture (CASE 9) is symlinked unconditionally; only --expect-conditional-thirdmod
 # activates it in ModsConfig for run A (and removes it before run B).
 ln -sfn "$THIRDMOD_MOD_DIR"   "$MODS_DIR/joof-testharness-thirdmod"
@@ -995,7 +1089,7 @@ else:
 # Test-harness mods always load last, in dependency order.
 #   defs -> static -> change. The added mod (P2) is inserted before run B, not here.
 #   --expect-mayrequire: gate + mayrequire are active for run A; gate is removed before run B.
-test_mods = ["joof.testharness.defs", "joof.testharness.static", "joof.testharness.change", "joof.testharness.genop"]
+test_mods = ["joof.testharness.defs", "joof.testharness.static", "joof.testharness.change", "joof.testharness.genop", "joof.testharness.rogueop"]
 if os.environ.get("EXPECT_MAYREQUIRE", "0") == "1":
     test_mods += ["joof.testharness.gate", "joof.testharness.mayrequire"]
 if os.environ.get("EXPECT_P1", "0") == "1":
@@ -1370,6 +1464,28 @@ if [[ $EXPECT_NESTED -eq 1 ]]; then
     recompute_required=0
 fi
 
+# --expect-scope-escape: identical assertion shape to --expect-recompute-gap (parse_recompute_positional
+# checks fallback==true && pass==true && recomputeMismatches==0 && a "positional" fallbackReason) —
+# CASE 12 proves the structural per-step parser catches a sibling-axis scope escape the old
+# string-position heuristic would have wrongly admitted.
+scopeescape_ok=1
+if [[ $EXPECT_SCOPEESCAPE -eq 1 ]]; then
+    log "Scope-escape result (allowlist fallback EXPECTED):"
+    scopeescape_ok=0; parse_recompute_positional && scopeescape_ok=1 || scopeescape_ok=0
+    recompute_required=0
+fi
+
+# --expect-rogue-op: identical assertion shape to --expect-op-kind/--expect-scope-escape
+# (parse_recompute_rogueop checks fallback==true && pass==true && recomputeMismatches==0 && a
+# fallbackReason naming the fully-qualified RogueMod.PatchOperationAdd) — CASE 13 proves the
+# fully-qualified SafeLeafOps sweep, not just that a bare-name-colliding op happens to be declined.
+rogueop_ok=1
+if [[ $EXPECT_ROGUEOP -eq 1 ]]; then
+    log "Rogue-op result (allowlist fallback EXPECTED, fully-qualified type name required):"
+    rogueop_ok=0; parse_recompute_rogueop && rogueop_ok=1 || rogueop_ok=0
+    recompute_required=0
+fi
+
 # --expect-nested-in-sequence: same gate assertion shape as --expect-nested-conditional (CASE 7),
 # PLUS a direct DependencyGraph.json check that capture recorded the sequence-nested conditional's
 # own edge (patchId ending in ".operations[0]") with a non-empty read set. That second check is the
@@ -1413,7 +1529,7 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 && $scopeescape_ok -eq 1 && $rogueop_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -1426,6 +1542,10 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
         echo "  nested-in-sequence: fallback=true AND DependencyGraph.json has a populated read-set edge for the sequence-nested conditional — capture proven (issue #25 item 3)"
     elif [[ $EXPECT_OPKIND -eq 1 ]]; then
         echo "  op-kind (XFAIL): fallback=false, mismatches=0 EXPECTED — currently fails until PatchOperationFindMod is proven safe and added to SafeLeafOps"
+    elif [[ $EXPECT_SCOPEESCAPE -eq 1 ]]; then
+        echo "  scope-escape:    fallback=true (positional-xpath) — sibling-axis escape from a lexically-earlier anchor correctly DECLINED by the structural per-step parser"
+    elif [[ $EXPECT_ROGUEOP -eq 1 ]]; then
+        echo "  rogue-op:        fallback=true (unknown-op-kind, naming RogueMod.PatchOperationAdd) — bare-name-colliding op correctly DECLINED by the fully-qualified SafeLeafOps sweep"
     elif [[ $recompute_required -eq 1 ]]; then
         echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
     else
@@ -1456,7 +1576,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok  scope-escape pass=$scopeescape_ok  rogue-op pass=$rogueop_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1
