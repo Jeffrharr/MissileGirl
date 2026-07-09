@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run A for the expect-rogue-op mode (CASE 13). Adds a baseline changeTag to TC_RogueOp_Target
+       via an exact-defName Add, purely so Run B has something to Replace and TC_RogueOp_Target's own
+       patch file changes (Seed 2 / seedDefs), marking it dirty. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_RogueOp_Target"]</xpath>
+    <value>
+      <changeTag>run-a</changeTag>
+    </value>
+  </Operation>
+</Patch>

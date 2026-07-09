@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- CASE 13: always-active op, unconditional in every run mode (mirrors CASES 10-12: the changed
+       def is TC_RogueOp_Target, dirtied only by TestMod_Change; the op itself never changes).
+       Class="RogueMod.PatchOperationAdd" resolves to a class whose bare simple name collides with
+       Verse.PatchOperationAdd but is a different, unproven type. RecomputeAllowlist must decline any
+       recompute over TC_RogueOp_Target as unknown-op-kind, naming RogueMod.PatchOperationAdd (the
+       fully-qualified type), NOT silently trust it as a proven-safe Verse Add. -->
+  <Operation Class="RogueMod.PatchOperationAdd">
+    <xpath>Defs/ThingDef[defName="TC_RogueOp_Target"]</xpath>
+    <value>
+      <rogueTag>applied</rogueTag>
+    </value>
+  </Operation>
+</Patch>

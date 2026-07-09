@@ -157,4 +157,35 @@
     <defName>TC_Order_Source</defName>
     <label>test order source</label>
   </ThingDef>
+
+  <!-- CASE 12: parent/sibling-axis scope escape (positive regression for the review-flagged gap in
+       RecomputeAllowlist.IsUnsafePositional's OLD string-position heuristic). TestMod_Static applies
+       a PatchOperationReplace whose xpath is anchored on TC_ScopeEscape_A's defName (a lexically
+       EARLIER, textually "safe-looking" anchor) but then walks to a SIBLING via
+       "following-sibling::ThingDef[1]", re-selecting a DIFFERENT def (TC_ScopeEscape_B) by position,
+       not a descendant of the anchored one. TC_ScopeEscape_B is dirtied directly by TestMod_Change
+       (Seed 2). The old index-comparison check said "the anchor is before the positional in the
+       string" and would have wrongly ADMITTED this; the fixed structural (per-step) parser must
+       DECLINE it as positional-xpath. These two defs are placed adjacent, as the LAST entries in this
+       file, so no other mod's ThingDef can land between them in the merged Defs collection;
+       following-sibling::ThingDef[1] of A is guaranteed to be B. -->
+  <ThingDef>
+    <defName>TC_ScopeEscape_A</defName>
+    <label>test scope escape anchor</label>
+  </ThingDef>
+  <ThingDef>
+    <defName>TC_ScopeEscape_B</defName>
+    <label>test scope escape target</label>
+  </ThingDef>
+
+  <!-- CASE 13: rogue-op bare-name collision (live proof for the fully-qualified SafeLeafOps sweep).
+       TestMod_RogueOp's own PatchOperationAdd (namespace RogueMod, NOT Verse) always produces
+       TC_RogueOp_Target's rogueTag; TestMod_Change dirties it directly (Seed 2). Before the
+       fully-qualified fix, SafeLeafOps keyed by bare Type.Name would have wrongly trusted this class
+       as the real Verse.PatchOperationAdd and admitted a recompute; the fix must decline as
+       unknown-op-kind, naming RogueMod.PatchOperationAdd. See the rogue-op live test mode. -->
+  <ThingDef>
+    <defName>TC_RogueOp_Target</defName>
+    <label>test rogue op target</label>
+  </ThingDef>
 </Defs>

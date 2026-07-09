@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Builds the tiny RogueMod.PatchOperationAdd assembly for the rogue-op live fixture (CASE 13).
+       Output goes straight into the mod's Assemblies/ folder so RimWorld loads it. net481 + the
+       publicised RimWorld reference assemblies, same toolchain as the mod itself (build with the
+       FrameworkPathOverride mono shim). Mirrors TestMod_P1/Source/TestMod_P1.csproj. -->
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <AssemblyName>JoofTestRogueOp</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutDir>../Assemblies/</OutDir>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <!-- Keep the mod folder clean: no NuGet ref assemblies copied next to ours. -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

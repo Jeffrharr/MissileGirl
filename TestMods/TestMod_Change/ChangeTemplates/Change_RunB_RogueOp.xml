@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-rogue-op mode (CASE 13). Replaces TC_RogueOp_Target's changeTag value
+       (run-a -> run-b), changing the changed mod's patch-file hash so the diagnostic seeds
+       TC_RogueOp_Target as dirty (Seed 2). TestMod_RogueOp's own PatchOperationAdd (namespace
+       RogueMod) also produces TC_RogueOp_Target, so RecomputeAllowlist must inspect that edge and
+       decline it as unknown-op-kind naming RogueMod.PatchOperationAdd, proving the fully-qualified
+       SafeLeafOps fix (not the old bare-name-keyed check, which would have wrongly trusted it as
+       Verse.PatchOperationAdd) closes this gap live. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_RogueOp_Target"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>
