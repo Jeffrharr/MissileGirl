@@ -194,18 +194,18 @@
     </nomatch>
   </Operation>
 
-  <!-- CASE 10: PatchOperationFindMod producing a dirty def -- live proof of the "unmodelled op
-       kind" decline (RecomputeAllowlist's unknown-op-kind backlog: AddModExtension, EditResearch,
-       AddIf/ReplaceIf/RemoveIf, FindMod -- see RecomputeAllowlistTests.FindMod_Declined for the
-       offline pin of the same decision). Tests for "Harmony" (brrainz.harmony's display name),
-       which is ALWAYS active in this harness, so <match> fires identically in both runs -- this
-       fixture is not about FindMod's branch evaluation (TestMod_FindMod / #40 already covers
-       that), only about whether an op producing a dirty def that isn't PatchOperationAdd/
-       Replace/Remove/AttributeSet/AttributeAdd/AttributeRemove/SetName is safely declined rather
-       than silently admitted. TestMod_Change dirties TC_OpKind_Target directly (Seed 2); this
-       file is the UNCHANGED static mod, so SubDocExpander's changed-mod fallback does not fire on
-       its own -- the case isolates the allowlist's op-kind check. Inert in every other mode
-       because nothing dirties TC_OpKind_Target there. See expect-op-kind. -->
+  <!-- CASE 10: PatchOperationFindMod producing a dirty def, live proof of a real recompute now
+       that FindMod is proven safe (RecordFindModEdge + SafeLeafOps; see
+       RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe for the offline pin). Tests
+       for "Harmony" (brrainz.harmony's display name), which is ALWAYS active in this harness, so
+       the match branch fires identically in both runs, this fixture is not about FindMod's branch
+       evaluation (TestMod_FindMod / #40 already covers that), only about whether an op producing
+       a dirty def that isn't PatchOperationAdd/Replace/Remove/AttributeSet/AttributeAdd/
+       AttributeRemove/SetName is safely recomputed rather than declined or silently admitted.
+       TestMod_Change dirties TC_OpKind_Target directly (Seed 2); this file is the UNCHANGED
+       static mod, so SubDocExpander's changed-mod fallback does not fire on its own, the case
+       isolates the allowlist's op-kind check. Inert in every other mode because nothing dirties
+       TC_OpKind_Target there. See expect-op-kind. -->
   <Operation Class="PatchOperationFindMod">
     <mods>
       <li>Harmony</li>
@@ -218,19 +218,19 @@
     </match>
   </Operation>
 
-  <!-- CASE 11: same-mod, same-def op ordering -- positive regression for DefRecompute's documented
+  <!-- CASE 11: same-mod, same-def op ordering, a positive regression for DefRecompute's documented
        "candidate bodies fed to patches are RAW" caveat (DefRecompute.cs). Op A (an unconditional
-       Add) sets <orderFlag>on</orderFlag> on TC_Order_Source; Op B (a PatchOperationConditional
-       immediately after it in this same file) tests THAT SAME def's <orderFlag> and, on match,
-       adds <orderTag>flag-was-on</orderTag> to TC_Order_Source itself. Because both the test and
+       Add) sets orderFlag=on on TC_Order_Source; Op B (a PatchOperationConditional
+       immediately after it in this same file) tests THAT SAME def's orderFlag and, on match,
+       adds orderTag=flag-was-on to TC_Order_Source itself. Because both the test and
        the effect are on TC_Order_Source (same-def, allowlist-admitted once it is dirty),
-       DefRecompute must apply Op A before Op B over the sub-doc -- exactly the order
-       LoadedModManager.ApplyPatches uses -- for the conditional to see orderFlag=on and take the
+       DefRecompute must apply Op A before Op B over the sub-doc, exactly the order
+       LoadedModManager.ApplyPatches uses, for the conditional to see orderFlag=on and take the
        match branch, matching a full rebuild. TestMod_Change dirties TC_Order_Source directly
        (Seed 2). This is a POSITIVE proof that intra-mod op ordering is preserved for the common
        (both-defs-in-sub-doc) case; it does NOT reproduce the harder cross-mod raw-body staleness
        DefRecompute's comment warns about (a def mutated by mod X's patch but pulled into the
-       sub-doc only as unpatched context for mod Y's read) -- that scenario needs a live
+       sub-doc only as unpatched context for mod Y's read), that scenario needs a live
        investigation before it can be built into a deterministic fixture. See
        expect-order-preserved. -->
   <Operation Class="PatchOperationAdd">

@@ -3,9 +3,9 @@
   <!-- Run B for the expect-op-kind mode (CASE 10). Replaces TC_OpKind_Target's changeTag value
        (run-a -> run-b), changing the changed mod's patch-file hash so the diagnostic seeds
        TC_OpKind_Target as dirty (Seed 2). TestMod_Static's PatchOperationFindMod (CASE 10) also
-       produces TC_OpKind_Target, so RecomputeAllowlist must inspect that edge -- and since
-       PatchOperationFindMod is not in SafeLeafOps, it declines with category "unknown-op-kind",
-       proving the decline live rather than only offline (RecomputeAllowlistTests.FindMod_Declined). -->
+       produces TC_OpKind_Target, so RecomputeAllowlist must inspect that edge; now that FindMod
+       is in SafeLeafOps and gets its own captured test edge, this proves a real recompute live
+       (RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe is the offline pin). -->
   <Operation Class="PatchOperationReplace">
     <xpath>Defs/ThingDef[defName="TC_OpKind_Target"]/changeTag</xpath>
     <value>

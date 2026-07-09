@@ -5,7 +5,7 @@
        TC_Order_Source as dirty (Seed 2). TestMod_Static's two CASE 11 ops (an unconditional Add
        setting orderFlag, then a same-def PatchOperationConditional reading it) both produce
        TC_Order_Source, so RecomputeAllowlist must admit them (same-def, in sub-doc) and
-       DefRecompute must apply them in file order for the conditional to see orderFlag=on -- see
+       DefRecompute must apply them in file order for the conditional to see orderFlag=on, see
        StaticPatches.xml CASE 11. -->
   <Operation Class="PatchOperationReplace">
     <xpath>Defs/ThingDef[defName="TC_Order_Source"]/changeTag</xpath>
