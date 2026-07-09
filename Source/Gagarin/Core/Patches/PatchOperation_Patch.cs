@@ -161,7 +161,10 @@ namespace Gagarin
                 // own xpath (they only route to match/nomatch), so the early return would
                 // otherwise skip them entirely.
                 if (__instance is PatchOperationFindMod findMod)
+                {
                     ProvenanceRecorder.IndexFindMod(findMod);
+                    ProvenanceRecorder.RecordFindModEdge(findMod);
+                }
                 else
                     ProvenanceRecorder.MaybeRecordUnresolvedGate(__instance);
 
