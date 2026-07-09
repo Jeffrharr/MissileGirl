@@ -2,6 +2,8 @@
 
 Plan: `/home/deck/.claude/plans/i-d-like-to-design-inherited-wilkes.md`
 
+PR #59 (draft): https://github.com/Jeffrharr/MissileGirl/pull/59 — `run_test.sh` retry-race fix + this loop's infra (`sort_modlist.py`, this file).
+
 ## Current focus
 
 Phase 1: mining the 21 unattributed-def leads from the confounded 101-mod archive
