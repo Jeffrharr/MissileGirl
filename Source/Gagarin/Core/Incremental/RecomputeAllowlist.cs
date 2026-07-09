@@ -73,15 +73,63 @@ namespace Gagarin
             "PatchOperationAttributeAdd",
             "PatchOperationAttributeRemove",
             "PatchOperationSetName",
+            // The following are third-party subclasses of the above ops, gated by a check that
+            // is load-invariant (a static settings field or ModsConfig.IsActive, never doc
+            // content) before delegating to an UNMODIFIED base ApplyWorker -- so their capture
+            // (matched/modified node ids, via the same generic SelectNodes/SelectSingleNode
+            // hooks every PatchOperationPathed subclass goes through) is exactly as faithful as
+            // the base op's. Verified by decompiling each (2026-07-09):
+            //   AnomalyPatch.PatchOperationAddIf     : PatchOperationAdd,     gated on a static
+            //   AnomalyPatch.PatchOperationReplaceIf : PatchOperationReplace, AnomalyPatchSettings
+            //   AnomalyPatch.PatchOperationRemoveIf  : PatchOperationRemove, field (unchanged for
+            //                                          the whole load)
+            //   TTPF.PatchOperationEditResearch      : PatchOperationPathed, gated on
+            //                                          ModsConfig.IsActive (doesRequire), then
+            //                                          mutates only its own matched node's fixed
+            //                                          research-def children (no cross-def read)
+            "PatchOperationAddIf",
+            "PatchOperationReplaceIf",
+            "PatchOperationRemoveIf",
+            "PatchOperationEditResearch",
         };
 
         // Positional / axis predicates that make def-SELECTION unstable when the same xpath is re-run
-        // over a smaller sub-doc. Conservative: this also matches within-def predicates (e.g. li[2]),
-        // which are actually safe — those merely fall back and are logged (a documented refinement),
-        // never serve wrong data. Categories: positional-xpath.
+        // over a smaller sub-doc. Categories: positional-xpath.
         private static readonly Regex PositionalXpath = new Regex(
             @"\[\s*\d+\s*\]|\blast\s*\(|\bposition\s*\(|following-sibling|preceding-sibling",
             RegexOptions.Compiled);
+
+        // A defName/Name predicate anchors the def SELECTION itself to a stable identity, independent
+        // of which other defs are present in a smaller sub-doc. Any positional/axis predicate occurring
+        // AFTER the last such anchor only indexes within that already-uniquely-selected def's own
+        // children (e.g. .../ThingDef[defName="A"]/comps/li[2]) — safe. One occurring before/without an
+        // anchor participates in selecting the def itself (e.g. Defs/ThingDef[3]) — genuinely unsafe.
+        private static readonly Regex DefNameAnchor = new Regex(
+            @"\[\s*(defName|Name)\s*=", RegexOptions.Compiled);
+
+        private static bool IsUnsafePositional(string xpath)
+        {
+            if (string.IsNullOrEmpty(xpath))
+                return false;
+
+            var anchorIndexes = new List<int>();
+            foreach (Match a in DefNameAnchor.Matches(xpath))
+                anchorIndexes.Add(a.Index);
+
+            foreach (Match pos in PositionalXpath.Matches(xpath))
+            {
+                bool anchoredBefore = false;
+                foreach (int a in anchorIndexes)
+                    if (a <= pos.Index)
+                    {
+                        anchoredBefore = true;
+                        break;
+                    }
+                if (!anchoredBefore)
+                    return true;
+            }
+            return false;
+        }
 
         // Returns true when the sub-doc recompute is trusted for this load. When false, blockCategory
         // / blockReason explain why (for the metrics backlog) and the caller must full-rebuild.
@@ -194,7 +242,7 @@ namespace Gagarin
                 }
 
                 // Positional def-selection re-matches a different node in a smaller sub-doc.
-                if (edge.Xpath != null && PositionalXpath.IsMatch(edge.Xpath))
+                if (edge.Xpath != null && IsUnsafePositional(edge.Xpath))
                 {
                     Block("positional-xpath",
                         $"producing op {edge.PatchId} has a positional xpath ({edge.Xpath})", out blockReason, out blockCategory);
@@ -271,9 +319,16 @@ namespace Gagarin
             return suffix.IndexOf(".generated[", StringComparison.Ordinal) >= 0;
         }
 
+        // Branch-shaped ops whose OWN edge is a TEST, not a producing edge: a real
+        // PatchOperationConditional (doc-content xpath test) plus PatchOperationFindMod (a
+        // ModLister-state test, never doc content -- see RecordFindModEdge's comment). Both key
+        // their branch children under ".match"/".nomatch"; treating both uniformly here lets
+        // BranchParentId's conditionalReads lookup find FindMod's (always-empty, always
+        // trivially-in-subdoc) read set the same way it finds a real Conditional's.
         private static bool IsConditional(string opType) =>
             !string.IsNullOrEmpty(opType) &&
-            opType.IndexOf("Conditional", StringComparison.Ordinal) >= 0;
+            (opType.IndexOf("Conditional", StringComparison.Ordinal) >= 0
+                || opType == "PatchOperationFindMod");
 
         // A conditional branch child's patchId carries ".match"/".nomatch" after the parent id; a
         // parent conditional edge does not. Look only after '#' so a packageId containing the literal

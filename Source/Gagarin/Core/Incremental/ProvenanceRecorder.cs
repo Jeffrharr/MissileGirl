@@ -563,6 +563,29 @@ namespace Gagarin
         // already-assigned patch id and union them into mayRequire under the resolved
         // packageId(s). See the file-header comment on FindModCapture for the full
         // root-cause rationale.
+        //
+        // RecomputeAllowlist gap (recompute-decline worklist): PatchOperationFindMod is not
+        // PatchOperationPathed (no <xpath>, only <mods>), so the Postfix's ordinary
+        // RecordPatch call never fires for it (see PatchOperation_Patch.cs's `is
+        // PatchOperationPathed` early return) -- FindMod itself never got a PatchEdge, so its
+        // branch children's BranchParentId lookup always missed and fell back as capture-gap,
+        // even though FindMod's match/nomatch selection depends only on ModLister state (fixed
+        // for the whole load), never on doc content -- unlike a real Conditional, it can never
+        // re-select a different branch just because the sub-doc is smaller. RecordFindModEdge
+        // below gives it a PatchEdge with an EMPTY matched-node set (there is no doc-content
+        // read to record) so RecomputeAllowlist's conditionalReads treats it as a trivially
+        // reproducible "conditional" (ReadSetInSubDoc treats an empty read set as always
+        // in-subdoc) once IsConditional recognises the op kind.
+        public static void RecordFindModEdge(PatchOperationFindMod findMod)
+        {
+            if (!Active || findMod == null)
+                return;
+            if (!patchIds.TryGetValue(findMod, out string patchId))
+                return;
+            string sourceMod = patchId.Contains("#") ? patchId.Substring(0, patchId.IndexOf('#')) : null;
+            graph.AddPatchEdge(patchId, sourceMod, findMod.GetType().Name, null, null, null);
+        }
+
         public static void IndexFindMod(PatchOperationFindMod findMod)
         {
             if (!Active || findMod == null)

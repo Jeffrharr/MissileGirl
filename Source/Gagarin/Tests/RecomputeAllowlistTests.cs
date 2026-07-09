@@ -309,8 +309,11 @@ namespace Gagarin.Tests
         [Test]
         public void FindMod_ShouldBeAdmitted_OnceProvenSafe()
         {
-            var g = Graph(Edge("mod#0", "PatchOperationFindMod",
-                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            // FindMod's own edge is a ModLister-state TEST, not a doc-content read: no xpath, no
+            // matched/modified nodes. The real producing edge is its ".match" branch child.
+            var g = Graph(
+                Edge("mod#0", "PatchOperationFindMod", null),
+                Edge("mod#0.match", "PatchOperationAdd", "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
 
