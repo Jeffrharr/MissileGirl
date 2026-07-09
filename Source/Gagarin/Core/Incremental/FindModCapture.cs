@@ -63,11 +63,15 @@ namespace Gagarin
         // which already consumes the generic .match/.nomatch patch ids the capture
         // walk assigns it). Anything else sharing the same field convention is an
         // unrecognized branch construct — a third-party FindMod-alike, most likely.
+        // Keyed by FULLY-QUALIFIED type name (namespace + class), not the bare simple
+        // name, for the same reason as RecomputeAllowlist.SafeLeafOps: a bare name
+        // could collide with an unrelated mod's own class of the same simple name,
+        // wrongly treating it as one of these already-understood branch readers.
         private static readonly HashSet<string> KnownBranchReaders =
             new HashSet<string>(StringComparer.Ordinal)
         {
-            "PatchOperationFindMod",
-            "PatchOperationConditional",
+            "Verse.PatchOperationFindMod",
+            "Verse.PatchOperationConditional",
         };
 
         // True when an operation type needs the generic reflection fallback: it
@@ -76,6 +80,7 @@ namespace Gagarin
         // pure) but isn't one of the types we already know how to interpret. Kept as a
         // tiny predicate so "which types are already covered" lives in one place and
         // is unit-testable without reflecting any real PatchOperation subclass.
+        // typeName is expected to be the FULLY-QUALIFIED type name (Type.FullName).
         public static bool NeedsGenericFallback(string typeName, bool hasMatchOrNomatchField)
             => hasMatchOrNomatchField && !KnownBranchReaders.Contains(typeName);
     }

@@ -583,7 +583,10 @@ namespace Gagarin
             if (!patchIds.TryGetValue(findMod, out string patchId))
                 return;
             string sourceMod = patchId.Contains("#") ? patchId.Substring(0, patchId.IndexOf('#')) : null;
-            graph.AddPatchEdge(patchId, sourceMod, findMod.GetType().Name, null, null, null);
+            // FullName (namespace-qualified), not Name: RecomputeAllowlist's SafeLeafOps trusts
+            // this string by identity, and a bare simple name could collide with an unrelated
+            // mod's own class of the same name.
+            graph.AddPatchEdge(patchId, sourceMod, findMod.GetType().FullName, null, null, null);
         }
 
         public static void IndexFindMod(PatchOperationFindMod findMod)
@@ -706,7 +709,7 @@ namespace Gagarin
                 return;
 
             Type type = patch.GetType();
-            if (!FindModCapture.NeedsGenericFallback(type.Name, HasBranchFields(type)))
+            if (!FindModCapture.NeedsGenericFallback(type.FullName, HasBranchFields(type)))
                 return;
 
             if (!patchIds.TryGetValue(patch, out string id))
@@ -836,7 +839,10 @@ namespace Gagarin
                     ? patchId.Substring(0, patchId.IndexOf('#'))
                     : null;
 
-                graph.AddPatchEdge(patchId, sourceMod, patch.GetType().Name, xpath,
+                // FullName (namespace-qualified), not Name: RecomputeAllowlist's SafeLeafOps
+                // trusts this string by identity, and a bare simple name could collide with an
+                // unrelated mod's own class of the same name.
+                graph.AddPatchEdge(patchId, sourceMod, patch.GetType().FullName, xpath,
                     matchedNodeIds, modifiedNodeIds);
             }
             finally

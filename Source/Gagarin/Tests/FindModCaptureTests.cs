@@ -79,8 +79,8 @@ namespace Gagarin.Tests
         {
             // Even though PatchOperationFindMod/Conditional DO carry match/nomatch fields,
             // they have dedicated readers and must not also feed the generic bucket.
-            Assert.That(FindModCapture.NeedsGenericFallback("PatchOperationFindMod", true), Is.False);
-            Assert.That(FindModCapture.NeedsGenericFallback("PatchOperationConditional", true), Is.False);
+            Assert.That(FindModCapture.NeedsGenericFallback("Verse.PatchOperationFindMod", true), Is.False);
+            Assert.That(FindModCapture.NeedsGenericFallback("Verse.PatchOperationConditional", true), Is.False);
         }
 
         [Test]

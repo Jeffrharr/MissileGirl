@@ -64,69 +64,124 @@ namespace Gagarin
     {
         // Pure-leaf modifiers: effect is local to the matched node, so faithful over a sub-doc that
         // contains that node. (PatchOperationInsert is deliberately absent — it is positional.)
+        //
+        // Keyed by FULLY-QUALIFIED type name (namespace + class), not the bare simple name: the
+        // capture side (ProvenanceRecorder.RecordPatch/RecordFindModEdge) now records
+        // GetType().FullName specifically so this allowlist can't be spoofed by an unrelated mod
+        // shipping its own class that happens to share a base-game op's simple name (e.g. some
+        // other mod's "PatchOperationAddIf" with real doc-content-dependent semantics would have
+        // silently matched a bare "PatchOperationAddIf" string).
         private static readonly HashSet<string> SafeLeafOps = new HashSet<string>(StringComparer.Ordinal)
         {
-            "PatchOperationAdd",
-            "PatchOperationReplace",
-            "PatchOperationRemove",
-            "PatchOperationAttributeSet",
-            "PatchOperationAttributeAdd",
-            "PatchOperationAttributeRemove",
-            "PatchOperationSetName",
+            "Verse.PatchOperationAdd",
+            "Verse.PatchOperationReplace",
+            "Verse.PatchOperationRemove",
+            "Verse.PatchOperationAttributeSet",
+            "Verse.PatchOperationAttributeAdd",
+            "Verse.PatchOperationAttributeRemove",
+            "Verse.PatchOperationSetName",
             // The following are third-party subclasses of the above ops, gated by a check that
             // is load-invariant (a static settings field or ModsConfig.IsActive, never doc
             // content) before delegating to an UNMODIFIED base ApplyWorker -- so their capture
             // (matched/modified node ids, via the same generic SelectNodes/SelectSingleNode
             // hooks every PatchOperationPathed subclass goes through) is exactly as faithful as
-            // the base op's. Verified by decompiling each (2026-07-09):
+            // the base op's. Verified by decompiling each (2026-07-09), reference mods:
             //   AnomalyPatch.PatchOperationAddIf     : PatchOperationAdd,     gated on a static
             //   AnomalyPatch.PatchOperationReplaceIf : PatchOperationReplace, AnomalyPatchSettings
             //   AnomalyPatch.PatchOperationRemoveIf  : PatchOperationRemove, field (unchanged for
-            //                                          the whole load)
+            //                                          the whole load) -- "1trickPwnyta's Anomaly
+            //                                          Patch" (anomalypatch.1trickPwnyta)
             //   TTPF.PatchOperationEditResearch      : PatchOperationPathed, gated on
             //                                          ModsConfig.IsActive (doesRequire), then
             //                                          mutates only its own matched node's fixed
             //                                          research-def children (no cross-def read)
-            "PatchOperationAddIf",
-            "PatchOperationReplaceIf",
-            "PatchOperationRemoveIf",
-            "PatchOperationEditResearch",
+            //                                          -- "Tech Tree Patch Framework"
+            //                                          (GonDragon.TTPF)
+            "AnomalyPatch.PatchOperationAddIf",
+            "AnomalyPatch.PatchOperationReplaceIf",
+            "AnomalyPatch.PatchOperationRemoveIf",
+            "TTPF.PatchOperationEditResearch",
         };
 
-        // Positional / axis predicates that make def-SELECTION unstable when the same xpath is re-run
-        // over a smaller sub-doc. Categories: positional-xpath.
-        private static readonly Regex PositionalXpath = new Regex(
-            @"\[\s*\d+\s*\]|\blast\s*\(|\bposition\s*\(|following-sibling|preceding-sibling",
-            RegexOptions.Compiled);
+        // A numeric index predicate or last()/position() call makes def-SELECTION unstable when the
+        // same xpath is re-run over a smaller sub-doc -- UNLESS it indexes within an already
+        // uniquely-anchored def's own children (see DefNameAnchor below). Categories: positional-xpath.
+        private static readonly Regex NumericIndexOrPositionFn = new Regex(
+            @"\[\s*\d+\s*\]|\blast\s*\(|\bposition\s*\(", RegexOptions.Compiled);
+
+        // A sibling axis re-selects a DIFFERENT node than the current context node (a sibling of it),
+        // so it is never made safe by an anchor on an earlier step -- the anchor scopes the current
+        // node's own descendants, not its siblings.
+        private static readonly Regex SiblingAxis = new Regex(
+            @"following-sibling|preceding-sibling", RegexOptions.Compiled);
+
+        // A step that walks back UP out of the current node (parent:: / ancestor(-or-self)::/ "..")
+        // breaks any anchor established by an earlier step: subsequent steps are no longer scoped to
+        // that anchored def's own descendants, so re-anchoring resets.
+        private static readonly Regex ScopeBreakStep = new Regex(
+            @"^\s*\.\.\s*$|^\s*parent::|^\s*ancestor(-or-self)?::", RegexOptions.Compiled);
 
         // A defName/Name predicate anchors the def SELECTION itself to a stable identity, independent
-        // of which other defs are present in a smaller sub-doc. Any positional/axis predicate occurring
-        // AFTER the last such anchor only indexes within that already-uniquely-selected def's own
-        // children (e.g. .../ThingDef[defName="A"]/comps/li[2]) — safe. One occurring before/without an
-        // anchor participates in selecting the def itself (e.g. Defs/ThingDef[3]) — genuinely unsafe.
+        // of which other defs are present in a smaller sub-doc. A positional predicate on a step at or
+        // after such an anchor (and not past an intervening scope-break step) only indexes within that
+        // already-uniquely-selected def's own descendants (e.g. .../ThingDef[defName="A"]/comps/li[2])
+        // — safe. One before/without an anchor, or reached via a sibling axis, or after a scope-break
+        // step (e.g. .../ThingDef[defName="A"]/../ThingDef[3]) participates in selecting a DIFFERENT
+        // def and is genuinely unsafe.
         private static readonly Regex DefNameAnchor = new Regex(
             @"\[\s*(defName|Name)\s*=", RegexOptions.Compiled);
 
+        // Splits an xpath into '/'-separated steps, ignoring '/' characters nested inside '[...]'
+        // predicates (predicates can themselves contain path expressions, e.g. "[defName='A']").
+        private static IEnumerable<string> SplitSteps(string xpath)
+        {
+            var steps = new List<string>();
+            int depth = 0, start = 0;
+            for (int i = 0; i < xpath.Length; i++)
+            {
+                char c = xpath[i];
+                if (c == '[') depth++;
+                else if (c == ']') depth--;
+                else if (c == '/' && depth == 0)
+                {
+                    steps.Add(xpath.Substring(start, i - start));
+                    start = i + 1;
+                }
+            }
+            steps.Add(xpath.Substring(start));
+            return steps;
+        }
+
+        // Structural (step-by-step) check, not a string-position heuristic: a lexically-earlier
+        // defName/Name anchor does NOT make a later positional/sibling predicate safe unless it is
+        // actually an ancestor step of that predicate with no intervening scope-break (".."/parent::/
+        // ancestor::) or sibling-axis step in between.
         private static bool IsUnsafePositional(string xpath)
         {
             if (string.IsNullOrEmpty(xpath))
                 return false;
 
-            var anchorIndexes = new List<int>();
-            foreach (Match a in DefNameAnchor.Matches(xpath))
-                anchorIndexes.Add(a.Index);
-
-            foreach (Match pos in PositionalXpath.Matches(xpath))
+            bool anchorInScope = false;
+            foreach (string step in SplitSteps(xpath))
             {
-                bool anchoredBefore = false;
-                foreach (int a in anchorIndexes)
-                    if (a <= pos.Index)
-                    {
-                        anchoredBefore = true;
-                        break;
-                    }
-                if (!anchoredBefore)
+                if (step.Length == 0)
+                    continue;
+
+                if (ScopeBreakStep.IsMatch(step))
+                {
+                    anchorInScope = false;
+                    continue;
+                }
+
+                if (SiblingAxis.IsMatch(step))
                     return true;
+
+                bool stepAnchored = DefNameAnchor.IsMatch(step);
+                if (NumericIndexOrPositionFn.IsMatch(step) && !anchorInScope && !stepAnchored)
+                    return true;
+
+                if (stepAnchored)
+                    anchorInScope = true;
             }
             return false;
         }
@@ -328,7 +383,7 @@ namespace Gagarin
         private static bool IsConditional(string opType) =>
             !string.IsNullOrEmpty(opType) &&
             (opType.IndexOf("Conditional", StringComparison.Ordinal) >= 0
-                || opType == "PatchOperationFindMod");
+                || opType == "Verse.PatchOperationFindMod");
 
         // A conditional branch child's patchId carries ".match"/".nomatch" after the parent id; a
         // parent conditional edge does not. Look only after '#' so a packageId containing the literal
