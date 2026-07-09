@@ -223,6 +223,39 @@ informational only (doesn't affect `pass`), so this isn't asserted by the harnes
 worth checking manually if you touch either the dirty-set or the coverage-audit code paths, since
 this is the one fixture that can catch a regression in either.
 
+## Known-missing-recompute xfail worklist — `--expect-op-kind`, `--expect-order-preserved`
+
+```bash
+bash TestMods/run_test.sh --expect-op-kind
+bash TestMods/run_test.sh --expect-order-preserved
+```
+
+CASE 10/11 in `TestMod_Static/Patches/StaticPatches.xml`, defs `TC_OpKind_Target` /
+`TC_Order_Source` in `TestMod_Defs`. Both dirty their target directly via `TestMod_Change`'s
+`Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_OrderPreserved.xml` (Seed 2, patch-file hash
+change) — same mechanism as `--expect-recompute-gap`.
+
+- **`--expect-op-kind` is an XFAIL WORKLIST ITEM, expected to currently FAIL.** CASE 10 is a
+  `PatchOperationFindMod` (targeting "Harmony", always-active, so its `<match>` fires identically
+  in both runs — isolating the allowlist decline from FindMod's own branch-evaluation semantics,
+  already covered by `--expect-findmod` / issue #40). `RecomputeAllowlist` declines
+  `PatchOperationFindMod` as `unknown-op-kind` today (offline-pinned by
+  `RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe`, itself currently red), so this
+  live mode asserts the DESIRED end state — a real recompute — and fails until FindMod is proven
+  safe and added to `SafeLeafOps`.
+- **`--expect-order-preserved` is a positive regression, expected to PASS.** CASE 11 applies two
+  same-def ops to `TC_Order_Source` in file order (an unconditional Add setting `orderFlag=on`,
+  then a `PatchOperationConditional` reading it). Both ops are same-def (in the recompute sub-doc),
+  so the allowlist already admits them; this pins that `DefRecompute` applies same-def ops in file
+  order faithfully — guards against a future regression, not a currently-known gap.
+
+The harder gap this worklist was originally meant to also cover — `DefRecompute`'s **raw-body
+cross-mod staleness** risk (`DefRecompute.cs`'s documented "candidate bodies fed to patches are
+RAW" caveat) — has **no live reproduction**: every cross-mod/cross-def scenario that would reach
+that code path gets intercepted first by `RecomputeAllowlist`'s `conditional-cross-def` decline
+(already correct and tested), so the buggy path is currently unreachable in production. It remains
+a documented, offline-untestable caveat rather than a fixture.
+
 ## Pass criteria
 
 Default run (`bash TestMods/run_test.sh`):

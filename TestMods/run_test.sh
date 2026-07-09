@@ -275,6 +275,24 @@ EXPECT_SEQNESTED=0
 # dirty-set gate is asserted (nonDirtyMismatches==0); recompute is informational — this fixture's
 # purpose is to reveal whether the pipeline already covers this case, not to assume it does.
 EXPECT_THIRDMOD=0
+# --expect-op-kind: live proof of RecomputeAllowlist's "unknown-op-kind" decline (offline-pinned by
+# RecomputeAllowlistTests.FindMod_Declined). TestMod_Static (UNCHANGED) carries a
+# PatchOperationFindMod (CASE 10) targeting "Harmony" (brrainz.harmony's display name, always
+# present) so its <match> fires identically in both runs -- isolating the allowlist decline from
+# FindMod's own branch-evaluation semantics (already covered by TestMod_FindMod / issue #40).
+# TestMod_Change dirties TC_OpKind_Target directly (run-a->run-b, Seed 2). Same assertion shape as
+# --expect-recompute-gap/--expect-nested-conditional, but the fallbackReason must name the op kind
+# rather than a conditional.
+EXPECT_OPKIND=0
+# --expect-order-preserved: positive regression pinning DefRecompute's ordering guarantee for defs
+# actually present in the sub-doc (CASE 11). TestMod_Static (UNCHANGED) applies two same-def ops to
+# TC_Order_Source in file order: an unconditional Add setting orderFlag=on, then a
+# PatchOperationConditional whose test reads that same orderFlag and, on match, adds
+# orderTag=flag-was-on. TestMod_Change dirties TC_Order_Source directly (run-a->run-b, Seed 2).
+# Unlike --expect-recompute-gap/--expect-nested-conditional, both ops are same-def (in the sub-doc),
+# so RecomputeAllowlist must ADMIT them and the recompute gate uses the DEFAULT real-recompute
+# assertion (fallback==false, recomputeMismatches==0) -- no special parser needed.
+EXPECT_ORDERPRESERVED=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at MAX_MODS total (default 150) — the
@@ -326,6 +344,10 @@ for arg in "$@"; do
         EXPECT_FINDMOD=1
     elif [[ "$arg" == "--expect-ownership" ]]; then
         EXPECT_OWNERSHIP=1
+    elif [[ "$arg" == "--expect-op-kind" ]]; then
+        EXPECT_OPKIND=1
+    elif [[ "$arg" == "--expect-order-preserved" ]]; then
+        EXPECT_ORDERPRESERVED=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
@@ -342,7 +364,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -406,6 +428,18 @@ elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
     # sequence-nested conditional TestMod_Static carries.
     RUN_A_CHANGE="Change_RunA_SeqNestedConditional.xml"
     RUN_B_CHANGE="Change_RunB_SeqNestedConditional.xml"
+elif [[ $EXPECT_OPKIND -eq 1 ]]; then
+    # --expect-op-kind: same shape as --expect-recompute-gap — the change file MUST differ between
+    # runs so TC_OpKind_Target is seeded dirty (Seed 2) and recomputed under the FindMod op
+    # TestMod_Static carries.
+    RUN_A_CHANGE="Change_RunA_OpKind.xml"
+    RUN_B_CHANGE="Change_RunB_OpKind.xml"
+elif [[ $EXPECT_ORDERPRESERVED -eq 1 ]]; then
+    # --expect-order-preserved: same shape — the change file MUST differ between runs so
+    # TC_Order_Source is seeded dirty (Seed 2) and recomputed under the ordered same-def ops
+    # TestMod_Static carries.
+    RUN_A_CHANGE="Change_RunA_OrderPreserved.xml"
+    RUN_B_CHANGE="Change_RunB_OrderPreserved.xml"
 elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
     # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove / --add: hold Change.xml at run A for BOTH runs
     # so the change vehicle's patch file does NOT change. The only between-run delta is mode-specific
@@ -1350,6 +1384,18 @@ if [[ $EXPECT_SEQNESTED -eq 1 ]]; then
     recompute_required=0
 fi
 
+# --expect-op-kind: XFAIL WORKLIST ITEM, not a decline-proving mode. RecomputeAllowlist currently
+# declines PatchOperationFindMod as "unknown-op-kind" (offline-pinned by
+# RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe, which fails today by design).
+# This live mode asserts the DESIRED end state instead: a real recompute (fallback==false,
+# recomputeMismatches==0) via the DEFAULT recompute assertion below (recompute_required stays 1) —
+# expected to currently FAIL until FindMod is proven safe and added to SafeLeafOps.
+opkind_ok=1
+
+# --expect-order-preserved: unlike the decline-proving modes above, this fixture is same-def
+# (in-sub-doc) for both ops, so the allowlist must ADMIT it — the default recompute assertion
+# (recompute_required stays 1) is the whole point of this mode; no separate _ok var needed.
+
 # --remove (real-mod removal): the claim is purely that the dirty set stays a SUPERSET over real
 # content (nonDirtyMismatches==0). Recompute is informational — a real removal typically includes
 # MayRequire-gated defs the recompute-fidelity gap cannot yet reproduce.
@@ -1367,7 +1413,7 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -1378,6 +1424,8 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
         echo "  nested-conditional: fallback=true (immediate cross-def parent resolved) — allowlist DECLINED correctly"
     elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
         echo "  nested-in-sequence: fallback=true AND DependencyGraph.json has a populated read-set edge for the sequence-nested conditional — capture proven (issue #25 item 3)"
+    elif [[ $EXPECT_OPKIND -eq 1 ]]; then
+        echo "  op-kind (XFAIL): fallback=false, mismatches=0 EXPECTED — currently fails until PatchOperationFindMod is proven safe and added to SafeLeafOps"
     elif [[ $recompute_required -eq 1 ]]; then
         echo "  recompute gate:  recomputeMismatches = 0 (sub-doc recompute byte-matches rebuild)"
     else
@@ -1408,7 +1456,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1
