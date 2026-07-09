@@ -130,4 +130,31 @@
     <defName>TC_CondTarget</defName>
     <label>test third-mod conditional target</label>
   </ThingDef>
+
+  <!-- CASE 10: PatchOperationFindMod (RecomputeAllowlistTests.FindMod_Declined, live proof).
+       TestMod_Static's PatchOperationFindMod targets "Harmony" (brrainz.harmony's display name,
+       always present in the harness modlist) so its <match> fires identically in both runs — the
+       fixture isolates the allowlist's "unknown-op-kind" decline from FindMod's own branch
+       evaluation (already covered by TestMod_FindMod / issue #40). TC_OpKind_Target is dirtied
+       directly by TestMod_Change (Seed 2); RecomputeAllowlist must decline recompute for it
+       because PatchOperationFindMod is not in SafeLeafOps. -->
+  <ThingDef>
+    <defName>TC_OpKind_Target</defName>
+    <label>test op-kind target</label>
+  </ThingDef>
+
+  <!-- CASE 11: same-mod, same-def op ordering (positive regression for DefRecompute's documented
+       "candidate bodies fed to patches are RAW" caveat). TestMod_Static applies two ops to
+       TC_Order_Source in file order: an unconditional Add setting orderFlag=on, then a
+       PatchOperationConditional whose test reads that same orderFlag and, on match, adds
+       orderTag=flag-was-on. TC_Order_Source is dirtied directly by TestMod_Change (Seed 2); both
+       ops are same-def (in the recompute sub-doc), so RecomputeAllowlist must admit them, and
+       DefRecompute must apply them in file order for the conditional to observe orderFlag=on —
+       proving ordering is preserved for defs actually present in the sub-doc (the harder
+       cross-mod raw-body staleness gap this caveat also describes remains unconstructed pending
+       live investigation; see DESIGN.md). -->
+  <ThingDef>
+    <defName>TC_Order_Source</defName>
+    <label>test order source</label>
+  </ThingDef>
 </Defs>

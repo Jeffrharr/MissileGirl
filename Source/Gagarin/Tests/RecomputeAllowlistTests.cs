@@ -263,5 +263,88 @@ namespace Gagarin.Tests
             Assert.That(RecomputeAllowlist.CanRecompute(null, Set("ThingDef/A"), Set(), out _, out string cat), Is.False);
             Assert.That(cat, Is.EqualTo("capture-gap"));
         }
+
+        // XFAIL WORKLIST (2026-07-08): the following tests assert the DESIRED end state for
+        // DESIGN.md's "known missing recompute operations" backlog, not current behavior. They are
+        // EXPECTED TO FAIL until the underlying gap is closed -- that failure IS the deliverable,
+        // a worklist an implementation pass can pick up one item at a time. Do not "fix" a failure
+        // here by reverting the assertion to match current behavior; fix the production code
+        // (RecomputeAllowlist / ProvenanceRecorder) so the assertion becomes true.
+
+        // Named unmodelled op-kinds, one per DESIGN.md's unknown-op-kind backlog entry. Each op is a
+        // plain single-def leaf mutation with no cross-def read, so once proven faithful it belongs
+        // in SafeLeafOps and CanRecompute should admit it (no category out-arg needed on success).
+        [Test]
+        public void EditResearch_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "PatchOperationEditResearch",
+                "Defs/ResearchProjectDef[defName=\"A\"]", "ResearchProjectDef/A"));
+            Assert.That(Can(g, Set("ResearchProjectDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        [Test]
+        public void AddIf_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "PatchOperationAddIf",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        [Test]
+        public void ReplaceIf_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "PatchOperationReplaceIf",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        [Test]
+        public void RemoveIf_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "PatchOperationRemoveIf",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        [Test]
+        public void FindMod_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "PatchOperationFindMod",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // NOT part of the xfail worklist: an orphan branch child (".match" with no corresponding
+        // "mod#5" Conditional edge captured) declining as capture-gap is CORRECT, permanent
+        // behavior -- the allowlist has no read-set to check safety against and must stay
+        // conservative. This pins that invariant so it can't regress into a silent wrong-value
+        // admission. (The category's real gap is upstream, in ProvenanceRecorder always emitting
+        // the owning Conditional edge before a branch child so this orphan shape becomes rarer in
+        // practice -- not something CanRecompute itself can fix, so there is no "should admit"
+        // counterpart test here.) The companion case -- parent Conditional edge captured, same-def
+        // -- is already admitted today; see CrossDefConditional_Declined and friends above for the
+        // cross-def variant that still correctly declines.
+        [Test]
+        public void OrphanBranchChild_NoParentConditional_MustAlwaysDeclineAsCaptureGap()
+        {
+            var g = Graph(Edge("mod#5.match", "PatchOperationAdd",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("capture-gap"));
+        }
+
+        // A within-def positional predicate (li[2], indexing a child element already uniquely
+        // selected by defName) is actually safe -- def SELECTION is not positional here, only a
+        // child index is -- but PositionalXpath.IsMatch conservatively flags it anyway (see
+        // RecomputeAllowlist.cs's PositionalXpath comment and DESIGN.md's "refine def-level vs
+        // within-def positional later" note). Once that refinement lands (distinguishing def-level
+        // positional selection from within-def positional indexing), this should be admitted.
+        [Test]
+        public void WithinDefPositionalPredicate_ShouldBeAdmitted_OnceRefined()
+        {
+            var g = Graph(Edge("mod#0", "PatchOperationReplace",
+                "Defs/ThingDef[defName=\"A\"]/comps/li[2]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
     }
 }

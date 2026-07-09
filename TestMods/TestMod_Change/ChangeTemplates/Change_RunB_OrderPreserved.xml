@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-order-preserved mode (CASE 11). Replaces TC_Order_Source's changeTag
+       value (run-a -> run-b), changing the changed mod's patch-file hash so the diagnostic seeds
+       TC_Order_Source as dirty (Seed 2). TestMod_Static's two CASE 11 ops (an unconditional Add
+       setting orderFlag, then a same-def PatchOperationConditional reading it) both produce
+       TC_Order_Source, so RecomputeAllowlist must admit them (same-def, in sub-doc) and
+       DefRecompute must apply them in file order for the conditional to see orderFlag=on -- see
+       StaticPatches.xml CASE 11. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_Order_Source"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>
