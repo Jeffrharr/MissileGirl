@@ -680,6 +680,54 @@ wait_for_marker() {
     done
 }
 
+# Wait for a report/marker file to actually exist, tolerant of RimWorld's own
+# ModsConfig.Reset() data-load recovery redoing the entire load in-process (see
+# ModsConfig_Patch.cs). That retry can emit the SAME log marker more than once per launch,
+# so a plain wait_for_marker call can match an earlier, superseded pass whose file never
+# gets written before the folder is wiped again. First does a plain poll for the file; if
+# that times out and a retry was detected in the log, waits for a LATER occurrence of the
+# marker (by count, not just re-grep, since re-grep would just re-match the same old line)
+# before polling again. No-ops (returns success) if the file already showed up, or if there
+# was no retry — the caller's own post-call fail-check handles a genuine miss.
+wait_for_file_after_marker() {
+    local report_file="$1"
+    local marker="$2"
+    local label="$3"
+    local wait_budget="${4:-300}"
+    local retry_budget="${5:-1800}"
+    local elapsed=0
+
+    while [[ ! -f "$report_file" && $elapsed -lt $wait_budget ]]; do
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+    if [[ -f "$report_file" ]]; then
+        return 0
+    fi
+    if ! grep -q "Removed cache to recover from error" "$PLAYER_LOG" 2>/dev/null; then
+        return 0
+    fi
+
+    log "$report_file still missing after ${wait_budget}s and a mid-load retry was detected — waiting for a later '$label'..."
+    local prior_count current_count retry_elapsed=0
+    prior_count=$(grep -c "$marker" "$PLAYER_LOG" 2>/dev/null || echo 0)
+    while true; do
+        if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+            fail "RimWorldLinux exited before a post-retry '$label' completed. Check $PLAYER_LOG."
+        fi
+        current_count=$(grep -c "$marker" "$PLAYER_LOG" 2>/dev/null || echo 0)
+        if [[ -f "$report_file" && "$current_count" -gt "$prior_count" ]]; then
+            log "Marker found: $label (post-retry)"
+            return 0
+        fi
+        sleep 10
+        retry_elapsed=$((retry_elapsed + 10))
+        if [[ $retry_elapsed -ge $retry_budget ]]; then
+            fail "Timed out after ${retry_budget}s waiting for a post-retry '$label'. Check $PLAYER_LOG."
+        fi
+    done
+}
+
 kill_rimworld() {
     if [[ -n "${RIMWORLD_PID:-}" ]] && kill -0 "$RIMWORLD_PID" 2>/dev/null; then
         log "Killing RimWorldLinux (PID $RIMWORLD_PID)..."
@@ -1188,6 +1236,7 @@ launch_rimworld
 # Wait for ProvenanceRecorder to finish (writes DependencyGraph.json, logs the marker).
 # This is the end of the cold load. 10-minute timeout; a normal cold load is ~4 min.
 wait_for_marker "Provenance captured" "Provenance captured (Run A done)" 1800
+wait_for_file_after_marker "$CACHE_DIR/DependencyGraph.json" "Provenance captured" "Provenance captured (Run A done)"
 
 log "Run A complete. Killing RimWorldLinux..."
 kill_rimworld
@@ -1363,13 +1412,7 @@ launch_rimworld
 # saved the new Unified.xml), so this marker means BOTH gates have run and written their
 # reports. 10-minute timeout.
 wait_for_marker "Recompute gate" "Recompute gate verdict (Run B done)" 1800
-
-# The marker line is logged before the JSON reports are flushed to disk (observed on a
-# heavier mod list); give the writes a moment before killing the process out from under them.
-for _ in 1 2 3 4 5; do
-    [[ -f "$GATE_REPORT" ]] && break
-    sleep 1
-done
+wait_for_file_after_marker "$GATE_REPORT" "Recompute gate" "Recompute gate verdict (Run B done)"
 
 log "Run B complete. Killing RimWorldLinux..."
 kill_rimworld
