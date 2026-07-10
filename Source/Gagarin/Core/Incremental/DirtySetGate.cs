@@ -464,7 +464,7 @@ namespace Gagarin
 
             var sw = Stopwatch.StartNew();
             Dictionary<string, string> recomputed =
-                DefRecompute.Recompute(dirty, context, out List<string> removed);
+                DefRecompute.Recompute(dirty, context, graph, changedMods, out List<string> removed);
             // newPaths (P2): the added-def id -> source-file map the diagnostic published this
             // load. A recomputed id absent from the baseline cache is a genuinely-new def; the
             // splice appends it as a new <Item path=...> and reads the path from here so the

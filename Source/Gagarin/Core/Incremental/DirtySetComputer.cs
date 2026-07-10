@@ -79,6 +79,7 @@ namespace Gagarin
         public int SeedMayRequire;      // nodes seeded by a MayRequire flip on a mod add/remove (P4)
         public int SeedDefOverride;     // nodes seeded by a def-override owning-mod add/remove (issue #43)
         public int SeedDefOverrideRematch; // nodes seeded by a newly-added mod's current-content override (issue #43 add-direction)
+        public int SeedOwnerModRemoved;  // nodes seeded because their sole recorded owner mod left the load order
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int SeedUnresolvedFanout; // children fanned out via the unresolved-edge safety net (Change C)
         public int Iterations;          // inheritance-closure frontier steps
@@ -231,6 +232,57 @@ namespace Gagarin
                 foreach (var id in defOverrideRematchSeeds)
                     if (id != null && dirty.Add(id))
                         result.SeedDefOverrideRematch++;
+            }
+
+            // Seed 8 — sole-owner mod removed. A def defined by exactly ONE mod (no override,
+            // so it never gets a defOverrides entry -- Seed 7 can't reach it) still needs to
+            // disappear from the splice when that mod leaves the load order entirely. The def
+            // lives in that mod's own UNCHANGED file with no patch edge pointing at it, so
+            // seeds 1-7 never reach it either. Mirrors Seed 6/7's XOR, but keyed on every
+            // captured node's own SourceMod rather than a dedicated override/MayRequire index
+            // -- this is the general "the raw file that defines this node is no longer loaded"
+            // case. A mod ADDED for the first time has no baseline node to XOR against here
+            // (Seed 5 already handles a newly-added def as a fresh node), so this seed is
+            // asymmetric by design: it only fires on removal.
+            //
+            // Fallback owner for patch-injected top-level defs: RimWorld's own
+            // ParseAndProcessXML keys `loadingAsset` by original-file-node identity
+            // (assetlookup, populated once per file in CombineIntoUnifiedXML). A brand-new
+            // top-level def element spliced in by a PatchOperationAdd (xpath targeting the
+            // <Defs> root, not an existing def) was never one of those original per-file
+            // nodes, so the lookup misses and `loadingAsset` is null -- RegisterNode then
+            // captures `SourceMod=null/SourceFile=null` even though the def is very much
+            // owned by whichever mod's patch created it. That left such nodes permanently
+            // unreachable by the SourceMod-XOR above (a null SourceMod never satisfies
+            // `prior.Contains`), so removing their real owning mod silently failed to dirty
+            // them -- the RBM_UnguligradeLegs live gap (2026-07-09 EDGE_CASES_LOOP_PROGRESS).
+            // We recover an effective owner from the capture's own patch edges: any edge
+            // whose id appears in the capture's patchInjectedOwners index (populated by
+            // ProvenanceRecorder.RecordAddedChildren for Add-shaped operations -- see that
+            // method's comment) was created directly by that mod's patch, so its SourceMod
+            // is the real owner for the XOR check below, not an approximation.
+            if (graph.Nodes != null && graph.Nodes.Count > 0)
+            {
+                var prior = new HashSet<string>(
+                    change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                var current = new HashSet<string>(
+                    change.CurrentLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var node in graph.Nodes)
+                {
+                    if (node.Id == null)
+                        continue;
+                    string owner = node.SourceMod;
+                    if (string.IsNullOrEmpty(owner))
+                        graph.PatchInjectedOwners.TryGetValue(node.Id, out owner);
+                    if (string.IsNullOrEmpty(owner))
+                        continue;
+                    if (!prior.Contains(owner) || current.Contains(owner))
+                        continue;
+                    if (dirty.Add(node.Id))
+                        result.SeedOwnerModRemoved++;
+                }
             }
 
             // Propagation — inheritance closure to a fixpoint: dirtying a parent dirties its
