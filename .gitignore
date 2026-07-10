@@ -19,3 +19,6 @@ TestMods/TestMod_Change/Patches/Change.xml
 
 # CheckMyVibe — local gate tooling (vendored per developer, not committed)
 .checkmyvibe/
+
+# Memtrace — local workspace index, not committed
+.memdb/
