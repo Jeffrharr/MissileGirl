@@ -44,6 +44,13 @@ namespace Gagarin
         private static readonly AccessTools.FieldRef<object, string> XPathRef =
             AccessTools.FieldRefAccess<string>(typeof(PatchOperationPathed), "xpath");
 
+        // order lives on PatchOperationAdd as a PRIVATE field of a PRIVATE nested enum
+        // (Order { Append, Prepend }) -- we can't reference the enum type itself, so read
+        // it as a plain FieldInfo and compare the boxed value's ToString() against the
+        // literal case name instead of AccessTools.FieldRefAccess<T>, which needs T known.
+        private static readonly System.Reflection.FieldInfo OrderField =
+            AccessTools.Field(typeof(PatchOperationAdd), "order");
+
         // The matched-node accumulator for the PatchOperation currently applying.
         // A stack scopes nested operations: a PatchOperationSequence drives its
         // children's Apply recursively, and each child's selection must land in its
@@ -213,8 +220,22 @@ namespace Gagarin
                 // RecordAddedChildren's comment). Recover ownership now, while the target
                 // nodes are still live XmlNode references with their newly-appended children
                 // attached.
+                //
+                // The bare-name check below (not the fully-qualified type) is a pre-existing
+                // gap shared with SafeLeafOps' old behaviour (see CASE 13/RogueOp) -- out of
+                // scope here. The `is PatchOperationAdd realAdd` pattern match guards ONLY the
+                // reflective `order` read: OrderField is bound to Verse.PatchOperationAdd, so
+                // calling GetValue on a same-named-but-foreign class (a rogue mod's own
+                // "PatchOperationAdd") would throw ArgumentException. A failed pattern match
+                // just leaves prepend=false (the correct default for a non-Verse instance,
+                // since it never actually ran Verse's Prepend branch).
                 if (__result && __instance.GetType().Name == "PatchOperationAdd")
-                    ProvenanceRecorder.RecordAddedChildren(__instance, matchedRaw, matchedRawChildCounts);
+                {
+                    bool prepend = __instance is PatchOperationAdd realAdd
+                        && OrderField != null
+                        && OrderField.GetValue(realAdd)?.ToString() == "Prepend";
+                    ProvenanceRecorder.RecordAddedChildren(__instance, matchedRaw, matchedRawChildCounts, prepend);
+                }
             }
 
             // Harmony runs this Finalizer after the Postfix on success, and INSTEAD of the
