@@ -62,6 +62,7 @@ namespace Gagarin
         // ancestors when a dirty concrete def needs them.
         public static Dictionary<string, string> Recompute(
             ICollection<string> dirtyIds, ICollection<string> contextIds,
+            DependencyGraphData graph, ICollection<string> changedModIds,
             out List<string> removedConcreteIds)
         {
             removedConcreteIds = new List<string>();
@@ -121,14 +122,38 @@ namespace Gagarin
                     modByNode[imported] = m;
             }
 
+            // 3b. Build the set of top-level patch ids we actually need to reapply. Blindly
+            //     replaying every mod's ENTIRE patch list (thousands of ops on a real modlist)
+            //     against a sub-doc that holds only a handful of nodes is what made this stall
+            //     for minutes on a real 57-mod run with no forward progress — most of those ops
+            //     can never match anything in `needed` and exist purely to burn CPU on failed
+            //     xpath lookups (each also going through the catch below). For any UNCHANGED
+            //     mod we can safely skip a top-level op whose whole subtree (self + nested
+            //     children) never touched a `needed` node id in the PRIOR graph — that's the
+            //     exact same "unchanged mods behave as captured" trust SubDocExpander/
+            //     RecomputeAllowlist already rely on. CHANGED mods are never filtered: they
+            //     aren't faithfully represented by the prior graph (that's the whole reason
+            //     RecomputeAllowlist vets them op-by-op), so we keep replaying their full patch
+            //     list exactly as before.
+            var changedModSet = new HashSet<string>(
+                changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            HashSet<string> topLevelIdsToRun = BuildTopLevelIdsToRun(graph, needed);
+
             // 4. Apply the real patches (every running mod, load order) over the sub-doc —
-            //    exactly LoadedModManager.ApplyPatches's loop, inlined so we add no behaviour.
+            //    exactly LoadedModManager.ApplyPatches's loop, inlined so we add no behaviour,
+            //    except skipping unchanged-mod top-level ops proven irrelevant above.
             foreach (ModContentPack mod in LoadedModManager.RunningMods)
             {
                 if (mod?.Patches == null)
                     continue;
+                bool modChanged = changedModSet.Contains(mod.PackageId ?? string.Empty);
+                string sourceMod = mod.PackageId ?? mod.Name ?? "unknown";
+                int index = 0;
                 foreach (PatchOperation patch in mod.Patches)
                 {
+                    string rootId = $"{sourceMod}#{index++}";
+                    if (!modChanged && topLevelIdsToRun != null && !topLevelIdsToRun.Contains(rootId))
+                        continue;
                     try { patch.Apply(subDoc); }
                     catch (Exception e)
                     {
@@ -223,6 +248,48 @@ namespace Gagarin
                 resolved.SetAttribute("Class", node.GetAttribute("Class"));
             }
             return resolved;
+        }
+
+        // Returns the set of top-level patch ids ("{sourceMod}#{index}") whose subtree (the op
+        // itself or any nested child, e.g. a PatchOperationSequence's ".operations[2]") touched a
+        // `needed` node id per the PRIOR graph's patch edges. Null graph means "no info" — caller
+        // must not filter (falls back to applying everything, the pre-optimization behaviour).
+        private static HashSet<string> BuildTopLevelIdsToRun(DependencyGraphData graph, HashSet<string> needed)
+        {
+            if (graph?.PatchEdges == null)
+                return null;
+
+            var relevantIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (GraphPatchEdge edge in graph.PatchEdges)
+            {
+                if (edge.PatchId == null || edge.ModifiedNodeIds == null)
+                    continue;
+                foreach (string nid in edge.ModifiedNodeIds)
+                {
+                    if (needed.Contains(nid))
+                    {
+                        relevantIds.Add(edge.PatchId);
+                        break;
+                    }
+                }
+            }
+            if (relevantIds.Count == 0)
+                return new HashSet<string>(StringComparer.Ordinal); // no live op relevant at all
+
+            var topLevel = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string id in relevantIds)
+            {
+                // The nested-operation suffix (".operations[2]", ".match", ...) never contains
+                // '#', but packageIds routinely do contain '.' (reverse-DNS style, e.g.
+                // "joof.testharness.static") -- so the first '.' in the WHOLE id can land inside
+                // the packageId itself, truncating "joof.testharness.static#0.operations[1]" to
+                // just "joof" instead of "joof.testharness.static#0". Search for the suffix's
+                // dot only after the '#' that separates sourceMod from its index.
+                int hash = id.IndexOf('#');
+                int dot = hash >= 0 ? id.IndexOf('.', hash) : id.IndexOf('.');
+                topLevel.Add(dot >= 0 ? id.Substring(0, dot) : id);
+            }
+            return topLevel;
         }
 
         // Concrete defs key "{DefType}/{defName}"; abstract bases key "{DefType}@{Name}".

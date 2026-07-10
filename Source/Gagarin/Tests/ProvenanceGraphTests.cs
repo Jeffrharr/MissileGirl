@@ -369,6 +369,34 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void AddNode_SecondRegistrationWithNullSourceMod_DoesNotClobberAttribution()
+        {
+            // A def can get RegisterNode called twice with no resolvable LoadableXmlAsset on
+            // the second call (sourceMod == null) -- observed live for V.Rooboid.Faun's
+            // RBM_UnguligradeLegs GeneDef/FurDef, which otherwise capture correctly for every
+            // OTHER def in the same file. Before the fix, the unguarded override branch
+            // treated the null second call as a "later mod re-declares" case and overwrote a
+            // perfectly valid sourceMod/sourceFile with null -- silently making the node
+            // invisible to every sourceMod-keyed seed (Seed 7 and any future removed-owner
+            // seed) even though a single, real, still-loaded mod owns it.
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddNode("GeneDef", "RBM_UnguligradeLegs", null, "v.rooboid.faun",
+                "Defs/GeneDefs/RBSF_GeneDefs.xml", null);
+            graph.AddNode("GeneDef", "RBM_UnguligradeLegs", null, null, null, null);
+
+            JsonElement node = JsonDocument.Parse(graph.Serialize(0)).RootElement
+                .GetProperty("nodes").EnumerateArray()
+                .Single(n => n.GetProperty("id").GetString() == "GeneDef/RBM_UnguligradeLegs");
+            Assert.That(node.GetProperty("sourceMod").GetString(), Is.EqualTo("v.rooboid.faun"));
+            Assert.That(node.GetProperty("sourceFile").GetString(),
+                Is.EqualTo("Defs/GeneDefs/RBSF_GeneDefs.xml"));
+
+            JsonElement overrides = JsonDocument.Parse(graph.Serialize(0)).RootElement
+                .GetProperty("defOverrides");
+            Assert.That(overrides.EnumerateObject(), Is.Empty);
+        }
+
+        [Test]
         public void InheritanceEdge_ConcreteParentWithNameAttr_ResolvesToConcreteId()
         {
             ProvenanceGraph graph = new ProvenanceGraph();

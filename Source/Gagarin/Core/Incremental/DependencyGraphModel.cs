@@ -83,6 +83,14 @@ namespace Gagarin
         // yet. Empty when the graph predates issue #40 (field simply absent).
         public readonly List<string> UnresolvedGateMods = new List<string>();
 
+        // patchInjectedOwners: nodeId -> sourceMod, for nodes RegisterNode captured with no
+        // resolvable asset (a def spliced in fresh by e.g. a PatchOperationAdd -- see
+        // ProvenanceGraph's field comment for the full root cause). Consumed by
+        // DirtySetComputer's Seed 8 ONLY as a fallback when a node's own SourceMod is empty.
+        // Empty when the graph predates this field.
+        public readonly Dictionary<string, string> PatchInjectedOwners =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
         public static DependencyGraphData Load(string path)
         {
             return Parse(File.ReadAllText(path));
@@ -159,6 +167,12 @@ namespace Gagarin
                 AddStrings(ids, kv.Value);
                 data.DefOverrides[kv.Key] = ids;
             }
+
+            // patchInjectedOwners: nodeId -> sourceMod (single string values, not lists).
+            // Absent in pre-this-field graphs, in which case AsObject yields an empty map and
+            // the Seed 8 fallback simply never fires.
+            foreach (var kv in AsObject(Get(root, "patchInjectedOwners")))
+                data.PatchInjectedOwners[kv.Key] = AsString(kv.Value);
 
             return data;
         }
