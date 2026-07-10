@@ -157,6 +157,15 @@ the two bugs found validating: over-broad target walk, `IndexOf('.')` packageId-
 now live-confirmed together. 191/191 offline tests pass. **Ready to open PRs** (likely 2-3,
 split by root cause per the original plan) and resume the Phase 2 sweep.
 
+- **2026-07-10, seed 6003** (45-mod curated base, REMOVE 6 / ADD 7 via `sample_candidates.py`):
+  Run A's ModsConfig ended up missing all 6 intended REMOVE-list mods entirely (`run_test.sh`
+  logged "not found in active mods" for all six), and Run B hung/died before the recompute-gate
+  marker — user observed an incompatible-mods condition in the RimWorld window and closed it
+  manually. Harness's own teardown had already restored ModsConfig/DLL/symlinks cleanly (no
+  dangling state). Consistent with the known mod-collision failure mode below, not a new
+  Gagarin/incremental gap — **not counted against the streak**. Candidate abandoned; drawing a
+  fresh seed rather than re-chasing this specific combo.
+
 ## Known issues (not counted against the streak — avoid these modlists, don't reset for them)
 
 - **`ModsConfig.Reset()` wipes the active modlist to vanilla+DLC** (confirmed via decompile:
