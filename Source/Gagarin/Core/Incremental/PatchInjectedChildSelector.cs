@@ -16,10 +16,8 @@
 // Why this needs an order split at all: PatchOperationAdd's default behaviour appends new
 // nodes after any pre-existing children (new nodes at indices [priorCount, currentCount)).
 // <order>Prepend</order> inserts them BEFORE the pre-existing children instead, pushing the
-// old ones to the tail (new nodes at indices [0, currentCount - priorCount)). A single
-// "everything past priorCount is new" rule (the original, pre-this-fix logic) is only
-// correct for Append; under Prepend it inverts the selection — skipping the real new nodes
-// and misattributing the pre-existing ones to this op's mod. Split into two named selectors
+// old ones to the tail (new nodes at indices [0, currentCount - priorCount)). No single
+// "everything past priorCount is new" rule covers both cases. Split into two named selectors
 // (rather than one branchy method) so each half's index math states its own invariant and is
 // independently testable.
 

@@ -837,12 +837,10 @@ namespace Gagarin
         // with real attribution already has a correct SourceMod that takes precedence over
         // this index everywhere it's read.
         //
-        // `prepend` reflects the op's own <order> field (CodeRabbit review, PR #62): the
-        // default Append behaviour lands new children AFTER the prior ones, but
-        // <order>Prepend</order> lands them BEFORE, pushing the prior children to the tail.
-        // A single "everything past priorCount is new" rule is only correct for Append; for
-        // Prepend it inverts the selection. See PatchInjectedChildSelector for the actual
-        // (pure, independently-tested) index math for each case.
+        // `prepend` reflects the op's own <order> field: the default Append behaviour lands
+        // new children AFTER the prior ones, but <order>Prepend</order> lands them BEFORE,
+        // pushing the prior children to the tail. See PatchInjectedChildSelector for the
+        // index math for each case.
         public static void RecordAddedChildren(
             PatchOperation patch, IList<XmlNode> targets, IList<int> priorChildCounts, bool prepend = false)
         {
