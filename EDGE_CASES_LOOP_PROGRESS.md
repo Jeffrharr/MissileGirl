@@ -2,7 +2,16 @@
 
 Plan: `/home/deck/.claude/plans/i-d-like-to-design-inherited-wilkes.md`
 
-PR #59 (draft): https://github.com/Jeffrharr/MissileGirl/pull/59 — `run_test.sh` retry-race fix + this loop's infra (`sort_modlist.py`, this file).
+PR #59 (merged): https://github.com/Jeffrharr/MissileGirl/pull/59 — `run_test.sh` retry-race fix + this loop's infra (`sort_modlist.py`, this file).
+
+Follow-on PRs opened 2026-07-10, splitting the accumulated fixes by root cause per the plan
+(all offline-tested 191/191, all live-validated before opening, all marked ready for review):
+- PR #60: https://github.com/Jeffrharr/MissileGirl/pull/60 — `sort_modlist.py` `modDependencies`
+  parsing fix + `sample_candidates.py`.
+- PR #61: https://github.com/Jeffrharr/MissileGirl/pull/61 — `run_test.sh` liveness-check fix for
+  forked/detached `RimWorldLinux` PIDs.
+- PR #62: https://github.com/Jeffrharr/MissileGirl/pull/62 — the `RBM_UnguligradeLegs` gap fix
+  (`DefRecompute` perf filter + `IndexOf('.')` bug + Seed 8 + `patchInjectedOwners`).
 
 ## Current focus
 
