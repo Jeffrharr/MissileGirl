@@ -417,10 +417,6 @@ if [[ -n "$ADD_MOD" ]] && (( $(sum_expect_flags) > 0 )); then
     echo "[run_test] FAIL: --add= (real-mod addition) cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
-if [[ -n "$REMOVE_MOD" && -n "$ADD_MOD" ]]; then
-    echo "[run_test] FAIL: --remove= and --add= are mutually exclusive (one mod-list-change direction per run)." >&2
-    exit 2
-fi
 if [[ -n "$REMOVE_MOD" && -z "$MODLIST_FILE" && -z "$MODLIST_VERBATIM" ]]; then
     echo "[run_test] WARN: --remove=$REMOVE_MOD with no --modlist=/--modlist-verbatim= — the mod must already be in the minimal base or nothing is removed." >&2
 fi
