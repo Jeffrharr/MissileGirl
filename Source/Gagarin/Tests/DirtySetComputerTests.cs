@@ -577,6 +577,58 @@ namespace Gagarin.Tests
             Assert.That(r.SeedDefOverride, Is.EqualTo(0));
         }
 
+        // defOverrides is keyed only by the WINNING mod (ProvenanceGraph.AddNode sets
+        // node.sourceMod to the last-write-wins owner and indexes defOverrides under that same
+        // packageId) -- so a def that lost an override never gets a defOverrides entry at all,
+        // and a def that won one carries BOTH a real node.SourceMod (reachable by Seed 8) and a
+        // defOverrides entry (reachable by Seed 7) for the identical id. Removing the winner
+        // must dirty it (via either or both seeds); removing a mod that only ever lost the
+        // override must leave it clean, since the winner's content never depended on the loser.
+        private static DependencyGraphData BuildOverrideWinnerGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode { Id = "GeneDef/Eyes_Red", DefName = "Eyes_Red", SourceMod = "oppey.eyegenes2" });
+            g.DefOverrides["oppey.eyegenes2"] = new List<string> { "GeneDef/Eyes_Red" };
+            return g;
+        }
+
+        [Test]
+        public void DefOverride_WinningMod_HasBothSourceModAndOverrideEntry_RemovedMod_DirtiesDef()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld.biotech", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("ludeon.rimworld.biotech")   // the winner is removed
+            };
+            var r = DirtySetComputer.Compute(BuildOverrideWinnerGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            // Both seeds recognize this id as relevant, but each seed's counter only
+            // increments on dirty.Add returning true (first insertion) -- Seed 7 runs before
+            // Seed 8 in seed order, so Seed 7 claims the credit and Seed 8's `continue` never
+            // reaches its own dirty.Add for an id Seed 7 already added. The result set is
+            // identical either way (a HashSet, order-independent); only the per-seed
+            // diagnostic counters are order-sensitive, which is why this is pinned explicitly.
+            Assert.That(r.SeedDefOverride, Is.EqualTo(1));
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void DefOverride_LosingMod_Removed_WinnerStays_NoFlip()
+        {
+            // A mod that never won the override has no defOverrides entry and is not the
+            // node's SourceMod, so its own removal has zero bearing on this def's content --
+            // neither seed should fire.
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("some.losing.mod", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("oppey.eyegenes2")   // only the loser is removed
+            };
+            var r = DirtySetComputer.Compute(BuildOverrideWinnerGraph(), change);
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/Eyes_Red"));
+            Assert.That(r.SeedDefOverride, Is.EqualTo(0));
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+        }
+
         [Test]
         public void DependencyGraphData_Parse_PreIssue43Graph_HasEmptyDefOverrides()
         {
