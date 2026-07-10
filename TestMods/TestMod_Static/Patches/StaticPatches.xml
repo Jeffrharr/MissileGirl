@@ -264,4 +264,26 @@
       <label>scope escape target</label>
     </value>
   </Operation>
+
+  <!-- CASE 14: unchanged mod's patch-injected def going dirty via inheritance propagation only
+       (positive regression for DefRecompute.BuildTopLevelIdsToRun; see TestDefs.xml's
+       TC_PatchInjectedBase comment for the full scenario). This Add targets the Defs ROOT (not
+       an existing def), so its captured patch edge can only ever record the root as its
+       "matched" anchor, never TC_PatchInjected_Child's own id, which is exactly what made the
+       unchanged-mod top-level-id filter unable to recognize this op as relevant on its own. The
+       fix falls back to patchInjectedOwners (recorded at capture time by
+       ProvenanceRecorder.RecordAddedChildren) to keep this op in the replay set whenever the
+       child it creates is a pending (no-raw-body) dirty id. TestMod_Change dirties
+       TC_PatchInjectedBase directly (Seed 2); this file (TestMod_Static) never changes, so the
+       ONLY way TC_PatchInjected_Child reaches the dirty set is inheritance-closure fan-out from
+       its ParentName ancestor. See the expect-patch-injected-child live-test mode. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs</xpath>
+    <value>
+      <ThingDef ParentName="TC_PatchInjectedBase">
+        <defName>TC_PatchInjected_Child</defName>
+        <label>patch-injected child</label>
+      </ThingDef>
+    </value>
+  </Operation>
 </Patch>

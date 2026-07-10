@@ -145,6 +145,30 @@ namespace Gagarin
                 changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             HashSet<string> topLevelIdsToRun = BuildTopLevelIdsToRun(graph, needed);
 
+            // 3c. A PENDING id (no raw body — patch-injected) can only ever be resolved by
+            //     actually replaying the patch that creates it. But BuildTopLevelIdsToRun above
+            //     can never mark that op relevant on its own: PatchOperationAdd's captured edge
+            //     records the xpath TARGET/anchor it selected (e.g. the <Defs> root), never the
+            //     new child's own id (the same target-vs-content asymmetry patchInjectedOwners
+            //     exists to work around — see its field comment), so the anchor essentially never
+            //     intersects `needed`. Without this, an UNCHANGED mod's Add-injected def that goes
+            //     dirty ONLY via inheritance-closure fan-out (its own patch file never changed, so
+            //     it is reached solely by an ancestor's Seed 2 dirty) is silently misrecomputed as
+            //     deleted — the op that (re-)creates it never runs. Recover the owning mod for
+            //     each pending id from patchInjectedOwners (populated at capture time by
+            //     ProvenanceRecorder.RecordAddedChildren) and exempt that mod's FULL patch list
+            //     from the filter, exactly like a changed mod — scoped to pendingUnresolved
+            //     specifically (not all of `needed`), since only a pending id is unreachable any
+            //     other way.
+            var modsOwningPendingContent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (graph?.PatchInjectedOwners != null)
+            {
+                foreach (string pendingId in pendingUnresolved)
+                    if (graph.PatchInjectedOwners.TryGetValue(pendingId, out string owner) &&
+                        !string.IsNullOrEmpty(owner))
+                        modsOwningPendingContent.Add(owner);
+            }
+
             // 4. Apply the real patches (every running mod, load order) over the sub-doc —
             //    exactly LoadedModManager.ApplyPatches's loop, inlined so we add no behaviour,
             //    except skipping unchanged-mod top-level ops proven irrelevant above.
@@ -152,7 +176,8 @@ namespace Gagarin
             {
                 if (mod?.Patches == null)
                     continue;
-                bool modChanged = changedModSet.Contains(mod.PackageId ?? string.Empty);
+                bool modChanged = changedModSet.Contains(mod.PackageId ?? string.Empty)
+                    || modsOwningPendingContent.Contains(mod.PackageId ?? string.Empty);
                 string sourceMod = mod.PackageId ?? mod.Name ?? "unknown";
                 int index = 0;
                 foreach (PatchOperation patch in mod.Patches)

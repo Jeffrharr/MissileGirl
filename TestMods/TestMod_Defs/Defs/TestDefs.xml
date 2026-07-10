@@ -188,4 +188,19 @@
     <defName>TC_RogueOp_Target</defName>
     <label>test rogue op target</label>
   </ThingDef>
+
+  <!-- CASE 14: unchanged mod's patch-injected def going dirty via inheritance propagation only
+       (positive regression for DefRecompute.BuildTopLevelIdsToRun's "unreachable patch-injected
+       child" gap — check-my-vibe PR #62 interview). TC_PatchInjectedBase is an ordinary abstract
+       def with a real raw body (so it lands in `needed` directly whenever it's dirty). TestMod_Static
+       injects a brand-new CONCRETE top-level def, TC_PatchInjected_Child (see StaticPatches.xml
+       CASE 14), via a PatchOperationAdd targeting the Defs root — that child has NO raw body of
+       its own and ParentName="TC_PatchInjectedBase". TestMod_Change dirties TC_PatchInjectedBase
+       directly (Seed 2); inheritance-closure fan-out then dirties TC_PatchInjected_Child too, even
+       though TestMod_Static (its only owner) never changed. DefRecompute must still replay
+       TestMod_Static's Add op to re-materialize the child — the fix recovers this via
+       patchInjectedOwners. See the expect-patch-injected-child live-test mode. -->
+  <ThingDef Abstract="True" Name="TC_PatchInjectedBase">
+    <label>patch-injected base</label>
+  </ThingDef>
 </Defs>
