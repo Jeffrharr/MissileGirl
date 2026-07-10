@@ -342,10 +342,9 @@ namespace Gagarin
             {
                 // The nested-operation suffix (".operations[2]", ".match", ...) never contains
                 // '#', but packageIds routinely do contain '.' (reverse-DNS style, e.g.
-                // "joof.testharness.static") -- so the first '.' in the WHOLE id can land inside
-                // the packageId itself, truncating "joof.testharness.static#0.operations[1]" to
-                // just "joof" instead of "joof.testharness.static#0". Search for the suffix's
-                // dot only after the '#' that separates sourceMod from its index.
+                // "joof.testharness.static") -- so a bare id.IndexOf('.') can land inside the
+                // packageId itself. Search for the suffix's dot only after the '#' that
+                // separates sourceMod from its index.
                 int hash = id.IndexOf('#');
                 int dot = hash >= 0 ? id.IndexOf('.', hash) : id.IndexOf('.');
                 topLevel.Add(dot >= 0 ? id.Substring(0, dot) : id);
