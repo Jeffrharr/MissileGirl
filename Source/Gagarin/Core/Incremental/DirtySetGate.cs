@@ -167,6 +167,21 @@ namespace Gagarin
                 XmlDocument baselineDoc = LoadCache(snapshot);
                 Dictionary<string, string> baseline = UnifiedCacheDiff.IndexById(baselineDoc);
                 List<string> mismatches = UnifiedCacheDiff.NonDirtyMismatches(baseline, rebuild, dirty);
+
+                // issue #61 add-direction: a changed/added mod's PatchOperationAdd (or a custom op
+                // wrapping one, e.g. Big and Small's PatchOp_AddBionics) can inject brand-new
+                // top-level defs with xpath="Defs". Those defs have no raw source file, so
+                // DirtySetDiagnostic's predictive dirty set never covers them (there is no sound,
+                // cheap way to predict an arbitrary custom op's output before the real rebuild
+                // runs — replaying changed/added mods' full patch lists against a scratch copy of
+                // the whole current def universe was tried and made a real-world load hang).
+                // The REAL rebuild that just ran (CachedDefHelper.Save(), immediately followed by
+                // ProvenanceRecorder.Save() before we got here) has already executed these patches
+                // for real and already recorded their output's owner in patchInjectedOwners — so
+                // reconcile against THAT, no speculation needed. A mismatch owned by a mod that
+                // is changed/added this load is expected new content, not a gate failure; fold it
+                // into the dirty set so RunRecompute below also picks it up.
+                mismatches = ReconcilePatchInjectedMismatches(mismatches, dirty);
                 sw.Stop();
 
                 // Capture-completeness audit (invisible-op detector): of the defs that changed between
@@ -264,6 +279,72 @@ namespace Gagarin
 
         private const string GraphFileName = "DependencyGraph.json";
         private const string RecomputeReportFileName = "RecomputeReport.json";
+
+        // issue #61 add-direction: reclassifies mismatches explained by a changed/added mod's
+        // patch-injected new top-level def. Reads the CURRENT DependencyGraph.json — the one
+        // ProvenanceRecorder.Save() just wrote this load, from the REAL rebuild's REAL patch
+        // execution, NOT the prior/sidecar graph RunRecompute uses for unchanged-mod sequences —
+        // because a mod added for the first time this load has no entry in any prior graph at
+        // all. For each mismatch, the owner is the node's own SourceMod, falling back to
+        // patchInjectedOwners for a patch-injected node RegisterNode could not attribute to a
+        // source file (same fallback DirtySetComputer's Seed 8 uses for the removal direction).
+        // A mismatch with no resolvable owner, or one owned by a mod present in BOTH prior and
+        // current load order, stays a genuine gate failure.
+        private static List<string> ReconcilePatchInjectedMismatches(
+            List<string> mismatches, HashSet<string> dirty)
+        {
+            if (mismatches.Count == 0)
+                return mismatches;
+
+            string graphPath = Path.Combine(GagarinEnvironmentInfo.CacheFolderPath, GraphFileName);
+            if (!File.Exists(graphPath))
+                return mismatches;
+
+            ICollection<string> changedMods = DirtySetDiagnostic.LastChangedMods;
+            if (changedMods == null || changedMods.Count == 0)
+                return mismatches;
+
+            DependencyGraphData graph;
+            try
+            {
+                graph = DependencyGraphData.Load(graphPath);
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("GAGARIN: patch-injected mismatch reconcile failed to read graph", exception: e);
+                return mismatches;
+            }
+
+            var ownerById = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (GraphNode node in graph.Nodes)
+                if (node.Id != null && !string.IsNullOrEmpty(node.SourceMod))
+                    ownerById[node.Id] = node.SourceMod;
+
+            var remaining = new List<string>();
+            var explained = new List<string>();
+            foreach (string id in mismatches)
+            {
+                string owner;
+                if (!ownerById.TryGetValue(id, out owner))
+                    graph.PatchInjectedOwners.TryGetValue(id, out owner);
+                if (!string.IsNullOrEmpty(owner) && changedMods.Contains(owner))
+                {
+                    explained.Add(id);
+                    dirty.Add(id);
+                }
+                else
+                {
+                    remaining.Add(id);
+                }
+            }
+
+            if (explained.Count > 0)
+                Log.Warning("GAGARIN: <color=white>Patch-injected mismatch reconcile</color> " +
+                    $"explained={explained.Count} (owned by a changed/added mod): " +
+                    string.Join(", ", explained.GetRange(0, Math.Min(20, explained.Count))));
+
+            return remaining;
+        }
 
         // Capture-completeness audit (invisible-op detector). Of the defs present in BOTH the prior
         // cache and this rebuild whose serialized value DIFFERS, returns those not explained by any

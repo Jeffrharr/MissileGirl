@@ -179,6 +179,17 @@ namespace Gagarin
                 // added mod's current def ids against the baseline's recorded owners.
                 HashSet<string> defOverrideFlips = ComputeDefOverrideFlips(graph, change, __result);
 
+                // issue #61 add-direction (patch-injected new defs, e.g. Big and Small's
+                // PatchOp_AddBionics wrapping a PatchOperationAdd targeting xpath="Defs"): there
+                // is no sound, cheap way to predict an arbitrary custom op's output at THIS point
+                // (before the real rebuild runs) without actually replaying changed/added mods'
+                // full patch lists against a scratch copy of the whole current def universe --
+                // tried that; a real-world mod's custom op made it hang the load (see git
+                // history for the reverted ComputeAddedContentFlips). Reconciled instead at GATE
+                // time (DirtySetGate.Run), where the REAL rebuild has already executed these
+                // patches for real and ProvenanceRecorder has already captured their output in
+                // patchInjectedOwners -- no speculative re-execution needed.
+
                 DirtyResult result = DirtySetComputer.Compute(graph, change, wildcardFlips, defOverrideFlips);
                 LastDirtySet = result.Nodes; // publish for the M2b gate
                 sw.Stop();

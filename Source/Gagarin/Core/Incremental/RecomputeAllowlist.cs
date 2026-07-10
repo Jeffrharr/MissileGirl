@@ -80,6 +80,13 @@ namespace Gagarin
             "Verse.PatchOperationAttributeAdd",
             "Verse.PatchOperationAttributeRemove",
             "Verse.PatchOperationSetName",
+            // Decompiled 2026-07-10 (seed-7211's fallback reason named this op): a plain
+            // PatchOperationPathed leaf -- for every xpath match, ensures a "modExtensions"
+            // child element exists and imports the configured node's children into it. Same
+            // shape as PatchOperationAdd (local mutation under each matched node, no cross-def
+            // read, no positional/doc-content dependence), just targeting a fixed child element
+            // instead of appending directly.
+            "Verse.PatchOperationAddModExtension",
             // The following are third-party subclasses of the above ops, gated by a check that
             // is load-invariant (a static settings field or ModsConfig.IsActive, never doc
             // content) before delegating to an UNMODIFIED base ApplyWorker -- so their capture

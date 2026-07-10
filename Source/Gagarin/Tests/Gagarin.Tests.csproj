@@ -44,6 +44,7 @@
     <Compile Include="..\Core\Incremental\MetricsLog.cs" Link="MetricsLog.cs" />
     <Compile Include="..\Core\Incremental\PriorStateSnapshotPaths.cs" Link="PriorStateSnapshotPaths.cs" />
     <Compile Include="..\Core\Incremental\FindModCapture.cs" Link="FindModCapture.cs" />
+    <Compile Include="..\Core\Incremental\PatchInjectedAdds.cs" Link="PatchInjectedAdds.cs" />
   </ItemGroup>
 
   <ItemGroup>

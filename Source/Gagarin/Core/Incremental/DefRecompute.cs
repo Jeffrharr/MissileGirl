@@ -82,12 +82,18 @@ namespace Gagarin
             //    is a deletion; a context id absent from raw is simply skipped (it only exists to
             //    keep a sequence alive, and an absent one cannot be a sequence target this run).
             var needed = new HashSet<string>(StringComparer.Ordinal);
+            // Dirty concrete ids absent from the raw index are not necessarily deletions: a
+            // patch (PatchOperationAdd targeting xpath="Defs", or a custom op wrapping one,
+            // e.g. Big and Small's PatchOp_AddBionics) can inject a brand-new top-level def
+            // that never had a raw source file at all. Defer the removed/added decision until
+            // after step 4's real patch replay, the only place such a def can materialize.
+            var pendingUnresolved = new List<string>();
             foreach (string id in dirtyIds)
             {
                 if (!rawById.ContainsKey(id))
                 {
                     if (IsConcrete(id))
-                        removedConcreteIds.Add(id);
+                        pendingUnresolved.Add(id);
                     continue;
                 }
                 if (needed.Add(id))
@@ -103,7 +109,7 @@ namespace Gagarin
                         AddAncestors(id, rawById, idByName, needed);
                 }
             }
-            if (needed.Count == 0)
+            if (needed.Count == 0 && pendingUnresolved.Count == 0)
                 return result;
 
             // 3. Build the <Defs> sub-doc from imported copies (never mutate the real bodies).
@@ -169,6 +175,36 @@ namespace Gagarin
                                     packageIds: System.Linq.Enumerable.Select(
                                         LoadedModManager.RunningMods, m => m.PackageId)),
                                 "recompute.patchApply", e.GetType().Name, e.Message));
+                    }
+                }
+            }
+
+            // 4b. Promote any pending ids that materialized via a real patch during step 4
+            //     (e.g. a PatchOperationAdd appending straight into defsRoot). Their ParentName
+            //     ancestor (if any) is pulled in from the raw index too, so inheritance resolves
+            //     exactly as the full load would. An id still absent here is a genuine deletion.
+            if (pendingUnresolved.Count > 0)
+            {
+                var byTopLevelId = new Dictionary<string, XmlElement>(StringComparer.Ordinal);
+                foreach (XmlNode child in defsRoot.ChildNodes)
+                {
+                    if (!(child is XmlElement el))
+                        continue;
+                    string dn = el["defName"]?.InnerText;
+                    if (string.IsNullOrEmpty(dn))
+                        continue;
+                    byTopLevelId[el.Name + "/" + dn] = el;
+                }
+                foreach (string id in pendingUnresolved)
+                {
+                    if (byTopLevelId.TryGetValue(id, out XmlElement promoted))
+                    {
+                        nodeById[id] = promoted;
+                        PromoteAncestors(promoted, rawById, idByName, nodeById, subDoc, defsRoot);
+                    }
+                    else
+                    {
+                        removedConcreteIds.Add(id);
                     }
                 }
             }
@@ -309,6 +345,29 @@ namespace Gagarin
                 if (!needed.Add(parentId))
                     return; // already pulled in (and its ancestors)
                 cur = parentId;
+            }
+        }
+
+        // Mirrors AddAncestors for a node PROMOTED after step 4 (a patch-injected def that had
+        // no raw body of its own, so it could not go through step 2's ancestor walk). Follows
+        // node's ParentName chain through the raw index, importing each still-missing ancestor
+        // straight into the already-built sub-doc/nodeById so step 5's inheritance resolution
+        // sees it exactly as it would a def pulled in up front.
+        private static void PromoteAncestors(XmlElement node, Dictionary<string, XmlElement> rawById,
+            Dictionary<string, string> idByName, Dictionary<string, XmlElement> nodeById,
+            XmlDocument subDoc, XmlElement defsRoot)
+        {
+            string parentName = node.GetAttribute("ParentName");
+            while (!string.IsNullOrEmpty(parentName) && idByName.TryGetValue(parentName, out string parentId))
+            {
+                if (nodeById.ContainsKey(parentId))
+                    return; // already present (imported earlier, or itself promoted)
+                if (!rawById.TryGetValue(parentId, out XmlElement rawParent))
+                    return; // ancestor itself missing -- inheritance resolution will surface it
+                var imported = (XmlElement)subDoc.ImportNode(rawParent, true);
+                defsRoot.AppendChild(imported);
+                nodeById[parentId] = imported;
+                parentName = imported.GetAttribute("ParentName");
             }
         }
 
