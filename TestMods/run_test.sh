@@ -571,6 +571,17 @@ teardown() {
 # (not /dev/null) and grep BOTH it and Player.log for the crash signatures. An earlier
 # version sent stderr to /dev/null and only grepped Player.log, so the most common flake
 # signature (GC_mark_from on stderr) was invisible and every such crash hard-failed.
+# Liveness check used everywhere instead of a bare `kill -0 "$RIMWORLD_PID"`. On some
+# launches RimWorldLinux forks/detaches into a new PID partway through a long load
+# (observed live: a heavy real-mod set that took long enough for the handoff to occur
+# mid-wait) — the originally-captured $! then reports dead via kill -0 while the actual
+# game is still alive and loading, producing a false "exited" FAIL. Treat any live
+# process named RimWorldLinux as "still running", not just the one PID we happened to
+# capture at launch time.
+rimworld_alive() {
+    pgrep -x RimWorldLinux >/dev/null 2>&1 || kill -0 "$RIMWORLD_PID" 2>/dev/null
+}
+
 RIMWORLD_STDERR="/tmp/rimworld_testharness_stderr.log"
 launch_rimworld() {
     local max_retries=5
@@ -616,7 +627,7 @@ launch_rimworld() {
         # once GAGARIN: proves the mod is up, instead of always waiting the full 60s.
         local waited=0
         while (( waited < 60 )); do
-            if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+            if ! rimworld_alive; then
                 break
             fi
             if grep -q "GAGARIN:" "$PLAYER_LOG" 2>/dev/null; then
@@ -625,7 +636,7 @@ launch_rimworld() {
             sleep 5
             waited=$((waited + 5))
         done
-        if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+        if ! rimworld_alive; then
             # Process already dead. If it died before our mod loaded ("GAGARIN:" absent), treat
             # it as the flaky early-startup crash and retry — whether or not a recognised
             # signature landed (the signature is on stderr/Player.log but a SIGSEGV during native
@@ -662,7 +673,7 @@ wait_for_marker() {
 
     log "Waiting for: $label"
     while true; do
-        if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+        if ! rimworld_alive; then
             fail "RimWorldLinux exited before marker '$label' appeared. Check $PLAYER_LOG."
         fi
         if grep -q "$marker" "$PLAYER_LOG" 2>/dev/null; then
@@ -712,7 +723,7 @@ wait_for_file_after_marker() {
     local prior_count current_count retry_elapsed=0
     prior_count=$(grep -c "$marker" "$PLAYER_LOG" 2>/dev/null || echo 0)
     while true; do
-        if ! kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+        if ! rimworld_alive; then
             fail "RimWorldLinux exited before a post-retry '$label' completed. Check $PLAYER_LOG."
         fi
         current_count=$(grep -c "$marker" "$PLAYER_LOG" 2>/dev/null || echo 0)
@@ -729,7 +740,7 @@ wait_for_file_after_marker() {
 }
 
 kill_rimworld() {
-    if [[ -n "${RIMWORLD_PID:-}" ]] && kill -0 "$RIMWORLD_PID" 2>/dev/null; then
+    if [[ -n "${RIMWORLD_PID:-}" ]] && rimworld_alive; then
         log "Killing RimWorldLinux (PID $RIMWORLD_PID)..."
         pkill -9 -x RimWorldLinux 2>/dev/null || kill -9 "$RIMWORLD_PID" 2>/dev/null || true
         wait "$RIMWORLD_PID" 2>/dev/null || true
