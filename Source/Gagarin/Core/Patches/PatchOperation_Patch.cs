@@ -44,6 +44,13 @@ namespace Gagarin
         private static readonly AccessTools.FieldRef<object, string> XPathRef =
             AccessTools.FieldRefAccess<string>(typeof(PatchOperationPathed), "xpath");
 
+        // order lives on PatchOperationAdd as a PRIVATE field of a PRIVATE nested enum
+        // (Order { Append, Prepend }) -- we can't reference the enum type itself, so read
+        // it as a plain FieldInfo and compare the boxed value's ToString() against the
+        // literal case name instead of AccessTools.FieldRefAccess<T>, which needs T known.
+        private static readonly System.Reflection.FieldInfo OrderField =
+            AccessTools.Field(typeof(PatchOperationAdd), "order");
+
         // The matched-node accumulator for the PatchOperation currently applying.
         // A stack scopes nested operations: a PatchOperationSequence drives its
         // children's Apply recursively, and each child's selection must land in its
@@ -52,6 +59,25 @@ namespace Gagarin
         // all other times (including the entire load when capture is off).
         private static readonly Stack<List<string>> sinks =
             new Stack<List<string>>();
+
+        // Parallel to `sinks`, holding the RAW XmlNode references for the same selection
+        // (sinks only keeps their stable string ids). Needed by RecordAddedChildren, which
+        // must inspect a target's live child elements right after Apply -- the string id
+        // alone doesn't let us walk the document. Kept as a separate stack (rather than
+        // folding into sinks) so the hot Capture() path pays no extra allocation when
+        // Add-shaped-op post-processing isn't going to look at it.
+        private static readonly Stack<List<XmlNode>> rawSinks =
+            new Stack<List<XmlNode>>();
+
+        // Parallel to `rawSinks`: each target's ChildNodes.Count AT SELECTION TIME, i.e.
+        // before the operation appends anything. A broad target (e.g. an Add anchored on
+        // the `Defs` root, as TestMod_GenOp's doc-path-fallback fixture does deliberately)
+        // can already have thousands of pre-existing children; without this snapshot,
+        // RecordAddedChildren would misattribute ALL of them to this op's mod instead of
+        // only the ones it actually appended. Cheap (an int per target) so always captured
+        // alongside rawSinks rather than gated to Add-shaped ops specifically.
+        private static readonly Stack<List<int>> rawSinkChildCounts =
+            new Stack<List<int>>();
 
         // Append one selection result to the operation currently applying. The node is
         // keyed to its stable id NOW, while still attached to the document, because a
@@ -64,6 +90,8 @@ namespace Gagarin
             string id = ProvenanceRecorder.KeyMatched(node);
             if (!string.IsNullOrEmpty(id))
                 sinks.Peek().Add(id);
+            rawSinks.Peek().Add(node);
+            rawSinkChildCounts.Peek().Add(node.ChildNodes.Count);
         }
 
         internal static void Capture(XmlNodeList nodes)
@@ -71,11 +99,15 @@ namespace Gagarin
             if (nodes == null || sinks.Count == 0)
                 return;
             List<string> sink = sinks.Peek();
+            List<XmlNode> rawSink = rawSinks.Peek();
+            List<int> rawSinkCounts = rawSinkChildCounts.Peek();
             foreach (XmlNode node in nodes)
             {
                 string id = ProvenanceRecorder.KeyMatched(node);
                 if (!string.IsNullOrEmpty(id))
                     sink.Add(id);
+                rawSink.Add(node);
+                rawSinkCounts.Add(node.ChildNodes.Count);
             }
         }
 
@@ -133,6 +165,8 @@ namespace Gagarin
                 // Open a sink for this operation; the Select* hooks fill it with the ids
                 // of whatever RimWorld selects while Apply runs.
                 sinks.Push(new List<string>());
+                rawSinks.Push(new List<XmlNode>());
+                rawSinkChildCounts.Push(new List<int>());
                 // Push this op onto the apply-stack so nested/recursive applies know their enclosing
                 // op — and so an op generated dynamically inside this one's ApplyWorker is attributed
                 // to it rather than the "unindexed" bucket. Balanced by ExitApply in the Postfix.
@@ -145,6 +179,8 @@ namespace Gagarin
                     return;
 
                 List<string> matched = sinks.Count > 0 ? sinks.Pop() : null;
+                List<XmlNode> matchedRaw = rawSinks.Count > 0 ? rawSinks.Pop() : null;
+                List<int> matchedRawChildCounts = rawSinkChildCounts.Count > 0 ? rawSinkChildCounts.Pop() : null;
                 // Pop the apply-stack for EVERY op (balances EnterApply in the Prefix), BEFORE the
                 // non-pathed early-return below — otherwise a non-pathed op (sequence, custom
                 // container) would leak its push and corrupt attribution for everything after.
@@ -177,6 +213,29 @@ namespace Gagarin
                 // selection. A failed match modifies nothing.
                 IEnumerable<string> modified = __result ? matched : null;
                 ProvenanceRecorder.RecordPatch(__instance, xpath, matched, modified);
+
+                // PatchOperationAdd's target selection is the INSERTION ANCHOR, not the new
+                // content it creates -- so `matched`/`modified` above can never carry the new
+                // child's own id, and RegisterNode later sees a null asset for it (see
+                // RecordAddedChildren's comment). Recover ownership now, while the target
+                // nodes are still live XmlNode references with their newly-appended children
+                // attached.
+                //
+                // The bare-name check below (not the fully-qualified type) is a pre-existing
+                // gap shared with SafeLeafOps' old behaviour (see CASE 13/RogueOp) -- out of
+                // scope here. The `is PatchOperationAdd realAdd` pattern match guards ONLY the
+                // reflective `order` read: OrderField is bound to Verse.PatchOperationAdd, so
+                // calling GetValue on a same-named-but-foreign class (a rogue mod's own
+                // "PatchOperationAdd") would throw ArgumentException. A failed pattern match
+                // just leaves prepend=false (the correct default for a non-Verse instance,
+                // since it never actually ran Verse's Prepend branch).
+                if (__result && __instance.GetType().Name == "PatchOperationAdd")
+                {
+                    bool prepend = __instance is PatchOperationAdd realAdd
+                        && OrderField != null
+                        && OrderField.GetValue(realAdd)?.ToString() == "Prepend";
+                    ProvenanceRecorder.RecordAddedChildren(__instance, matchedRaw, matchedRawChildCounts, prepend);
+                }
             }
 
             // Harmony runs this Finalizer after the Postfix on success, and INSTEAD of the
@@ -202,6 +261,10 @@ namespace Gagarin
                     return;
                 if (sinks.Count > 0)
                     sinks.Pop();
+                if (rawSinks.Count > 0)
+                    rawSinks.Pop();
+                if (rawSinkChildCounts.Count > 0)
+                    rawSinkChildCounts.Pop();
                 ProvenanceRecorder.ExitApply();
                 // The op failed, so it matched/indexed nothing -- but if
                 // DirectXmlToObject_Patch stashed a MayRequire gate for it (issue #40 case

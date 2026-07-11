@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run A for the expect-patch-injected-child mode (CASE 14). Adds a baseline changeTag to
+       TC_PatchInjectedBase (an abstract def, so targeted by @Name rather than defName) purely so
+       Run B has something to Replace and the base's own patch file changes (Seed 2 / seedDefs),
+       marking it dirty. TestMod_Static (owner of the patch-injected TC_PatchInjected_Child) never
+       changes between runs — see StaticPatches.xml CASE 14 / TestDefs.xml's TC_PatchInjectedBase
+       comment. -->
+  <Operation Class="PatchOperationAdd">
+    <xpath>Defs/ThingDef[@Name="TC_PatchInjectedBase"]</xpath>
+    <value>
+      <changeTag>run-a</changeTag>
+    </value>
+  </Operation>
+</Patch>

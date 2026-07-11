@@ -262,6 +262,35 @@ directly via `TestMod_Change`'s `Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_
   bare name a spoofing mod could collide on. Live-validated (2026-07-09):
   `fallbackReason="producing op joof.testharness.rogueop#0 is RogueMod.PatchOperationAdd, not a
   proven-safe leaf op"`.
+
+## Unreachable patch-injected child (BuildTopLevelIdsToRun regression) — `--expect-patch-injected-child`
+
+```bash
+bash TestMods/run_test.sh --expect-patch-injected-child
+```
+
+CASE 14 in `TestMod_Static/Patches/StaticPatches.xml` / `TestMod_Defs/Defs/TestDefs.xml` — positive
+regression for `DefRecompute.BuildTopLevelIdsToRun`, found during the `check-my-vibe` PR #62 interview.
+
+`TC_PatchInjectedBase` is an ordinary abstract def with a real raw body. `TestMod_Static` (which
+never changes between runs) injects a brand-new concrete top-level def, `TC_PatchInjected_Child`, via
+a `PatchOperationAdd` targeting the `Defs` root with `ParentName="TC_PatchInjectedBase"` — that child
+has no raw body of its own. `TestMod_Change` dirties `TC_PatchInjectedBase` directly
+(`Change_Run{A,B}_PatchInjectedChild.xml`, Seed 2); inheritance-closure fan-out then dirties
+`TC_PatchInjected_Child` too, even though its only owner never changed.
+
+`BuildTopLevelIdsToRun`'s unchanged-mod filter keeps a mod's top-level op only when its captured
+patch edge intersects the `needed` set — but `PatchOperationAdd`'s captured edge records the xpath
+target/anchor it selected (the `Defs` root here), never the new child's own id, so the op could never
+be recognized as relevant on its own. Before the fix this silently misrecomputed
+`TC_PatchInjected_Child` as deleted. The fix recovers the owning mod for any `pendingUnresolved`
+(no-raw-body) dirty id via `patchInjectedOwners` (populated at capture time by
+`ProvenanceRecorder.RecordAddedChildren`) and exempts that mod's full patch list from the filter,
+mirroring how changed mods are already exempted.
+
+Same assertion shape as `--expect-order-preserved` — both ops are reachable and must be replayed, so
+this uses the **default** real-recompute assertion (`fallback==false`, `recomputeMismatches==0`), not
+a dedicated parser.
 - **`--expect-scope-escape` is a positive regression for a review-flagged gap in
   `RecomputeAllowlist.IsUnsafePositional`.** The old check decided "safe" by comparing string
   positions: any defName/Name anchor lexically earlier than a positional predicate was treated as

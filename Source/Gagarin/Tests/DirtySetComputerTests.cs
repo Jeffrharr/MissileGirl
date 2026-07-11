@@ -332,6 +332,130 @@ namespace Gagarin.Tests
             Assert.That(r.SeedMayRequire, Is.EqualTo(0));
         }
 
+        // Seed 8: a def defined by exactly ONE mod (no override -> no defOverrides entry, so
+        // Seed 7 can't reach it) must still be dirtied for removal when that mod leaves the
+        // load order. Mirrors the live gap: V.Rooboid.Faun's RBM_UnguligradeLegs GeneDef/FurDef
+        // survived a rebuild after Faun was removed, because no seed reached a single-owner def.
+        private static DependencyGraphData BuildSoleOwnerGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode { Id = "GeneDef/RBM_UnguligradeLegs", DefName = "RBM_UnguligradeLegs", SourceMod = "v.rooboid.faun" });
+            g.Nodes.Add(new GraphNode { Id = "FurDef/RBM_UnguligradeLegs", DefName = "RBM_UnguligradeLegs", SourceMod = "v.rooboid.faun" });
+            g.Nodes.Add(new GraphNode { Id = "ThingDef/Steel", DefName = "Steel", SourceMod = "ludeon.rimworld" });
+            return g;
+        }
+
+        [Test]
+        public void OwnerModRemoved_SoleOwnerDef_IsDirtied()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun"),
+                CurrentLoadOrder = Order("ludeon.rimworld")   // Faun removed
+            };
+            var r = DirtySetComputer.Compute(BuildSoleOwnerGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/RBM_UnguligradeLegs"));
+            Assert.That(r.Nodes, Contains.Item("FurDef/RBM_UnguligradeLegs"));
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(2));
+            // Steel's owning mod (ludeon.rimworld) is still loaded -> stays clean.
+            Assert.That(r.Nodes, Does.Not.Contain("ThingDef/Steel"));
+        }
+
+        [Test]
+        public void OwnerModRemoved_ModPresentInBoth_NoFlip()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun"),
+                CurrentLoadOrder = Order("v.rooboid.faun", "ludeon.rimworld")   // reordered only
+            };
+            var r = DirtySetComputer.Compute(BuildSoleOwnerGraph(), change);
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/RBM_UnguligradeLegs"));
+        }
+
+        [Test]
+        public void OwnerModRemoved_ModAdded_DoesNotSeed()
+        {
+            // Seed 8 is asymmetric by design (removal only) -- a newly-added mod's defs are
+            // fresh nodes handled by Seed 5 (AddedNodeIds), not by this seed.
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld"),
+                CurrentLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun")
+            };
+            var r = DirtySetComputer.Compute(BuildSoleOwnerGraph(), change);
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+        }
+
+        // Seed 8 fallback: a node whose SourceMod/SourceFile came back null because
+        // RegisterNode's `loadingAsset` was null -- the real-world shape whenever a
+        // PatchOperationAdd splices a brand-new top-level def into the combined doc (never
+        // one of CombineIntoUnifiedXML's per-file assetlookup entries, so ParseAndProcessXML
+        // passes DefFromNodeNew a null asset). No SourceMod means the plain node.SourceMod
+        // XOR above can never fire for it, so it must fall back to whichever mod's patch edge
+        // touched it.
+        // Seed 8 fallback: a node whose SourceMod/SourceFile came back null because
+        // RegisterNode's `loadingAsset` was null -- the real-world shape whenever a
+        // PatchOperationAdd splices a brand-new top-level def into the combined doc (never
+        // one of CombineIntoUnifiedXML's per-file assetlookup entries, so ParseAndProcessXML
+        // passes DefFromNodeNew a null asset). Such a node's own patch edge (if captured at
+        // all) records only the xpath TARGET the Add selected, never the new node's own id,
+        // so this can ONLY be reached via the dedicated PatchInjectedOwners index
+        // (ProvenanceRecorder.RecordAddedChildren), never via ModifiedNodeIds.
+        [Test]
+        public void OwnerModRemoved_NullSourceMod_FallsBackToPatchInjectedOwner()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode { Id = "GeneDef/RBM_UnguligradeLegs", DefName = "RBM_UnguligradeLegs" });
+            g.PatchInjectedOwners["GeneDef/RBM_UnguligradeLegs"] = "v.rooboid.faun";
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun"),
+                CurrentLoadOrder = Order("ludeon.rimworld")   // Faun removed
+            };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/RBM_UnguligradeLegs"));
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void OwnerModRemoved_NullSourceMod_PatchInjectedOwnerStillPresent_NoFlip()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode { Id = "GeneDef/RBM_UnguligradeLegs", DefName = "RBM_UnguligradeLegs" });
+            g.PatchInjectedOwners["GeneDef/RBM_UnguligradeLegs"] = "v.rooboid.faun";
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun"),
+                CurrentLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun", "some.other.mod")
+            };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/RBM_UnguligradeLegs"));
+        }
+
+        [Test]
+        public void OwnerModRemoved_RealSourceMod_TakesPrecedenceOverPatchInjectedOwner()
+        {
+            // A node with a real, non-empty SourceMod must never consult the fallback index,
+            // even if (implausibly) an entry exists for its id.
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode { Id = "GeneDef/RBM_UnguligradeLegs", DefName = "RBM_UnguligradeLegs", SourceMod = "real.owner" });
+            g.PatchInjectedOwners["GeneDef/RBM_UnguligradeLegs"] = "v.rooboid.faun";
+
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun", "real.owner"),
+                CurrentLoadOrder = Order("ludeon.rimworld", "real.owner")   // only Faun removed
+            };
+            var r = DirtySetComputer.Compute(g, change);
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/RBM_UnguligradeLegs"));
+        }
+
         [Test]
         public void DependencyGraphData_Parse_ReadsMayRequireIndex_CaseInsensitive()
         {
@@ -451,6 +575,58 @@ namespace Gagarin.Tests
             };
             var r = DirtySetComputer.Compute(BuildGraph(), change);
             Assert.That(r.SeedDefOverride, Is.EqualTo(0));
+        }
+
+        // defOverrides is keyed only by the WINNING mod (ProvenanceGraph.AddNode sets
+        // node.sourceMod to the last-write-wins owner and indexes defOverrides under that same
+        // packageId) -- so a def that lost an override never gets a defOverrides entry at all,
+        // and a def that won one carries BOTH a real node.SourceMod (reachable by Seed 8) and a
+        // defOverrides entry (reachable by Seed 7) for the identical id. Removing the winner
+        // must dirty it (via either or both seeds); removing a mod that only ever lost the
+        // override must leave it clean, since the winner's content never depended on the loser.
+        private static DependencyGraphData BuildOverrideWinnerGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.Nodes.Add(new GraphNode { Id = "GeneDef/Eyes_Red", DefName = "Eyes_Red", SourceMod = "oppey.eyegenes2" });
+            g.DefOverrides["oppey.eyegenes2"] = new List<string> { "GeneDef/Eyes_Red" };
+            return g;
+        }
+
+        [Test]
+        public void DefOverride_WinningMod_HasBothSourceModAndOverrideEntry_RemovedMod_DirtiesDef()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld.biotech", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("ludeon.rimworld.biotech")   // the winner is removed
+            };
+            var r = DirtySetComputer.Compute(BuildOverrideWinnerGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("GeneDef/Eyes_Red"));
+            // Both seeds recognize this id as relevant, but each seed's counter only
+            // increments on dirty.Add returning true (first insertion) -- Seed 7 runs before
+            // Seed 8 in seed order, so Seed 7 claims the credit and Seed 8's `continue` never
+            // reaches its own dirty.Add for an id Seed 7 already added. The result set is
+            // identical either way (a HashSet, order-independent); only the per-seed
+            // diagnostic counters are order-sensitive, which is why this is pinned explicitly.
+            Assert.That(r.SeedDefOverride, Is.EqualTo(1));
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void DefOverride_LosingMod_Removed_WinnerStays_NoFlip()
+        {
+            // A mod that never won the override has no defOverrides entry and is not the
+            // node's SourceMod, so its own removal has zero bearing on this def's content --
+            // neither seed should fire.
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("some.losing.mod", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("oppey.eyegenes2")   // only the loser is removed
+            };
+            var r = DirtySetComputer.Compute(BuildOverrideWinnerGraph(), change);
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/Eyes_Red"));
+            Assert.That(r.SeedDefOverride, Is.EqualTo(0));
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
         }
 
         [Test]

@@ -316,6 +316,18 @@ EXPECT_SCOPEESCAPE=0
 # RogueMod.PatchOperationAdd -- proving the FullName, not just the bare "PatchOperationAdd", is what
 # gets checked against SafeLeafOps.
 EXPECT_ROGUEOP=0
+# --expect-patch-injected-child: positive regression for DefRecompute.BuildTopLevelIdsToRun's
+# "unreachable patch-injected child" gap. TestMod_Static (UNCHANGED) injects a brand-new top-level
+# def, TC_PatchInjected_Child (CASE 14), via a PatchOperationAdd targeting the Defs ROOT — that
+# child has no raw body of its own and ParentName="TC_PatchInjectedBase". TestMod_Change dirties
+# TC_PatchInjectedBase directly (run-a -> run-b, Seed 2); inheritance-closure fan-out then dirties
+# TC_PatchInjected_Child too, even though its only owner (TestMod_Static) never changed. Before the
+# fix, the unchanged-mod top-level filter could never mark TestMod_Static's Add op relevant (its
+# captured edge records the Defs-root anchor, never the new child's own id) and DefRecompute wrongly
+# recomputed the child as deleted. Same assertion shape as --expect-order-preserved: both ops are
+# reachable and must be replayed, so the recompute gate uses the DEFAULT real-recompute assertion
+# (fallback==false, recomputeMismatches==0) — no special parser needed.
+EXPECT_PATCHINJECTEDCHILD=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at MAX_MODS total (default 150) — the
@@ -375,6 +387,8 @@ for arg in "$@"; do
         EXPECT_SCOPEESCAPE=1
     elif [[ "$arg" == "--expect-rogue-op" ]]; then
         EXPECT_ROGUEOP=1
+    elif [[ "$arg" == "--expect-patch-injected-child" ]]; then
+        EXPECT_PATCHINJECTEDCHILD=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
@@ -391,7 +405,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -475,6 +489,12 @@ elif [[ $EXPECT_ROGUEOP -eq 1 ]]; then
     # name-colliding PatchOperationAdd.
     RUN_A_CHANGE="Change_RunA_RogueOp.xml"
     RUN_B_CHANGE="Change_RunB_RogueOp.xml"
+elif [[ $EXPECT_PATCHINJECTEDCHILD -eq 1 ]]; then
+    # --expect-patch-injected-child: same shape as --expect-order-preserved — the change file MUST
+    # differ between runs so TC_PatchInjectedBase is seeded dirty (Seed 2), fanning out via
+    # inheritance closure to TestMod_Static's (unchanged) patch-injected TC_PatchInjected_Child.
+    RUN_A_CHANGE="Change_RunA_PatchInjectedChild.xml"
+    RUN_B_CHANGE="Change_RunB_PatchInjectedChild.xml"
 elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
     # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove / --add: hold Change.xml at run A for BOTH runs
     # so the change vehicle's patch file does NOT change. The only between-run delta is mode-specific

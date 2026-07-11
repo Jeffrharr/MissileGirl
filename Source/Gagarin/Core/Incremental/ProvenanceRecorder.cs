@@ -813,6 +813,61 @@ namespace Gagarin
                 applyStack.Pop();
         }
 
+        // Recovers ownership for def nodes an Add-shaped operation creates fresh (issue: the
+        // RBM_UnguligradeLegs live gap, 2026-07-09 EDGE_CASES_LOOP_PROGRESS.md). RimWorld's
+        // ParseAndProcessXML keys `loadingAsset` by original-file-node identity, so a
+        // brand-new top-level def a patch splices in gets RegisterNode called with a null
+        // asset -- and the operation's OWN patch edge records only the xpath TARGET it
+        // selected (the insertion anchor), never the new child's id, so neither RegisterNode
+        // nor the ordinary patch-edge data can attribute it. We recover it here, directly:
+        // called from the Apply postfix for a successful Add-shaped op with the raw target
+        // nodes it selected (still attached to the live document, BEFORE any DefFromNodeNew
+        // call runs over the combined doc), walk each target's NEWLY-APPENDED child
+        // elements and record (id, sourceMod) into the graph's patchInjectedOwners index.
+        // `priorChildCounts` (parallel to `targets`) is each target's ChildNodes.Count
+        // snapshotted at SELECTION time, i.e. before this op appended anything -- required
+        // because a broad target (e.g. an Add anchored on the `Defs` root; TestMod_GenOp's
+        // doc-path-fallback fixture does this deliberately) can already have thousands of
+        // pre-existing children. Without the snapshot every one of those pre-existing
+        // children -- most belonging to unrelated mods -- would be misattributed to this
+        // op's mod, clobbering the fallback for any of THEM whose own SourceMod happened to
+        // be empty (this was the actual live RBM_UnguligradeLegs bug: an unrelated
+        // `/Defs`-root Add's mod became every def's fallback owner). This index is
+        // consulted only as a fallback when a node's real SourceMod came back empty; a node
+        // with real attribution already has a correct SourceMod that takes precedence over
+        // this index everywhere it's read.
+        //
+        // `prepend` reflects the op's own <order> field: the default Append behaviour lands
+        // new children AFTER the prior ones, but <order>Prepend</order> lands them BEFORE,
+        // pushing the prior children to the tail. See PatchInjectedChildSelector for the
+        // index math for each case.
+        public static void RecordAddedChildren(
+            PatchOperation patch, IList<XmlNode> targets, IList<int> priorChildCounts, bool prepend = false)
+        {
+            if (!Active || patch == null || targets == null)
+                return;
+            if (!patchIds.TryGetValue(patch, out string patchId))
+                return;
+            string sourceMod = patchId.Contains("#") ? patchId.Substring(0, patchId.IndexOf('#')) : null;
+            if (string.IsNullOrEmpty(sourceMod))
+                return;
+
+            for (int t = 0; t < targets.Count; t++)
+            {
+                XmlNode target = targets[t];
+                if (target == null)
+                    continue;
+                int priorCount = priorChildCounts != null && t < priorChildCounts.Count
+                    ? priorChildCounts[t] : 0;
+                foreach (XmlElement child in PatchInjectedChildSelector.SelectNewlyAdded(target, priorCount, prepend))
+                {
+                    string id = graph.KeyForNode(child);
+                    if (id != null)
+                        graph.AddPatchInjectedOwner(id, sourceMod);
+                }
+            }
+        }
+
         // Records matched/modified node ids for a single PatchOperation.Apply. The ids
         // were computed at selection time (see KeyMatched); modifiedNodeIds are the
         // matched ids when the operation succeeded, else null. Only operations carrying

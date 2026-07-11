@@ -114,6 +114,25 @@ namespace Gagarin
         private readonly SortedSet<string> unresolvedGateMods =
             new SortedSet<string>(StringComparer.Ordinal);
 
+        // patchInjectedOwners: nodeId -> sourceMod, for def nodes RegisterNode captured with
+        // NO resolvable LoadableXmlAsset (SourceMod/SourceFile both null). This happens for
+        // any def a PatchOperationAdd (or similar) splices in as a brand-new top-level
+        // element: RimWorld's ParseAndProcessXML keys `loadingAsset` by original-file-node
+        // identity (assetlookup, populated once per file in CombineIntoUnifiedXML), and a
+        // patch-created node was never one of those, so the lookup -- and therefore the
+        // asset RegisterNode receives -- comes back null. Crucially, such a node's own patch
+        // edge (if any) records the XPATH TARGET/anchor it was inserted at as
+        // matched/modifiedNodeIds, NOT the new child's own id (RimWorld's Add selects the
+        // insertion point, not content it is about to create) -- so the existing
+        // patchEdges/ModifiedNodeIds data can never attribute the node either. This is a
+        // second, purpose-built index: RecordAddedChildren (driven by the Apply postfix for
+        // Add-shaped operations) walks each successful op's matched/target nodes' children
+        // right after Apply returns -- while they are still raw XmlNodes, before any
+        // DefFromNodeNew call -- and records their (id, sourceMod) pair here directly. Root
+        // cause of the RBM_UnguligradeLegs live gap (2026-07-09 EDGE_CASES_LOOP_PROGRESS.md).
+        private readonly Dictionary<string, string> patchInjectedOwners =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
         // ParentName resolution is keyed by a composite "{defType}:{name}" rather than a
         // bare name. RimWorld's inheritance is defType-scoped: a TerrainDef with
         // ParentName="HotSpring" inherits the TerrainDef named HotSpring, NOT a ThoughtDef
@@ -225,6 +244,7 @@ namespace Gagarin
             mayRequire.Clear();
             unresolvedGateMods.Clear();
             defOverrides.Clear();
+            patchInjectedOwners.Clear();
             keyCache.Clear();
             DocumentPathFallbackCount = 0;
         }
@@ -255,20 +275,27 @@ namespace Gagarin
                     sourceFile = sourceFile
                 };
             }
-            else if (!string.Equals(existing.sourceMod, sourceMod, StringComparison.OrdinalIgnoreCase))
+            else if (!string.IsNullOrEmpty(sourceMod) &&
+                !string.Equals(existing.sourceMod, sourceMod, StringComparison.OrdinalIgnoreCase))
             {
                 // A later mod re-declares the same defName (issue #43): the real
                 // DefDatabase drops the earlier registration and keeps this one, so mirror
                 // that here (last-write-wins) instead of leaving the node permanently
                 // attributed to whichever mod happened to register it first.
+                //
+                // Guarded on a non-empty incoming sourceMod: some defs get RegisterNode
+                // called a second time with no resolvable LoadableXmlAsset (sourceMod ==
+                // null) -- e.g. a second internal pass over an already-registered node. That
+                // second call carries no real attribution; treating it as an "override"
+                // clobbered a perfectly valid earlier sourceMod/sourceFile with null,
+                // silently making the node invisible to every seed keyed on sourceMod (Seed
+                // 7 def-override, and any future removed-owner seed) even though a single,
+                // real, still-loaded mod owns it.
                 existing.sourceMod = sourceMod;
                 existing.sourceFile = sourceFile;
-                if (!string.IsNullOrEmpty(sourceMod))
-                {
-                    if (!defOverrides.TryGetValue(sourceMod, out var owned))
-                        defOverrides[sourceMod] = owned = new HashSet<string>(StringComparer.Ordinal);
-                    owned.Add(id);
-                }
+                if (!defOverrides.TryGetValue(sourceMod, out var owned))
+                    defOverrides[sourceMod] = owned = new HashSet<string>(StringComparer.Ordinal);
+                owned.Add(id);
             }
 
             // Populate the resolution maps keyed by defType so a same-defType ParentName
@@ -327,6 +354,22 @@ namespace Gagarin
         }
 
         public int UnresolvedGateModCount => unresolvedGateMods.Count;
+
+        // Records that nodeId's content was written by sourceMod's patch operation, for a
+        // node RegisterNode will (or already did) capture with no resolvable asset -- see
+        // the patchInjectedOwners field comment for why this is needed. Last write wins
+        // (a later operation touching the same location supersedes an earlier one), matching
+        // AddNode's own override rule. Safe to call before OR after the node's own
+        // RegisterNode call -- callers only ever consult this as a fallback once the full
+        // graph is built, never during capture.
+        public void AddPatchInjectedOwner(string nodeId, string sourceMod)
+        {
+            if (string.IsNullOrEmpty(nodeId) || string.IsNullOrEmpty(sourceMod))
+                return;
+            patchInjectedOwners[nodeId] = sourceMod;
+        }
+
+        public int PatchInjectedOwnerCount => patchInjectedOwners.Count;
 
         // Returns the matched node ids already recorded for one patch edge (empty if the
         // edge is unknown or matched nothing). Used by the PatchOperationFindMod reader
@@ -608,6 +651,23 @@ namespace Gagarin
                 AppendQ(sb, kv.Key);
                 sb.Append(':');
                 AppendArr(sb, kv.Value);
+            }
+            sb.Append("},");
+
+            // patchInjectedOwners: { "<nodeId>": "<sourceMod>", ... }. Single-valued (unlike
+            // mayRequire/defOverrides above) since each node has exactly one owner here.
+            // Fallback owner attribution for a def RegisterNode captured with a null asset
+            // (see the field comment on patchInjectedOwners for the root cause) -- consumed
+            // by DirtySetComputer's Seed 8 only when the node's own SourceMod is empty.
+            sb.Append("\"patchInjectedOwners\":{");
+            first = true;
+            foreach (KeyValuePair<string, string> kv in patchInjectedOwners)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                AppendQ(sb, kv.Key);
+                sb.Append(':');
+                AppendQ(sb, kv.Value);
             }
             sb.Append("},");
 

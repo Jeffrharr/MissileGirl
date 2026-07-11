@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-patch-injected-child mode (CASE 14). Replaces TC_PatchInjectedBase's
+       changeTag value (run-a -> run-b), changing the changed mod's patch-file hash so the
+       diagnostic seeds TC_PatchInjectedBase as dirty directly (Seed 2). Inheritance-closure
+       fan-out must then dirty TC_PatchInjected_Child too (TestMod_Static's ParentName-linked,
+       patch-injected child — see StaticPatches.xml CASE 14), even though TestMod_Static itself
+       never changed. DefRecompute must replay TestMod_Static's Add op (via the
+       patchInjectedOwners fallback in BuildTopLevelIdsToRun) to re-materialize the child; without
+       that fix it is wrongly recomputed as deleted. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[@Name="TC_PatchInjectedBase"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>

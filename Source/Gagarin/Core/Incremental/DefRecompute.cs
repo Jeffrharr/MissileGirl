@@ -62,6 +62,7 @@ namespace Gagarin
         // ancestors when a dirty concrete def needs them.
         public static Dictionary<string, string> Recompute(
             ICollection<string> dirtyIds, ICollection<string> contextIds,
+            DependencyGraphData graph, ICollection<string> changedModIds,
             out List<string> removedConcreteIds)
         {
             removedConcreteIds = new List<string>();
@@ -81,12 +82,18 @@ namespace Gagarin
             //    is a deletion; a context id absent from raw is simply skipped (it only exists to
             //    keep a sequence alive, and an absent one cannot be a sequence target this run).
             var needed = new HashSet<string>(StringComparer.Ordinal);
+            // Dirty concrete ids absent from the raw index are not necessarily deletions: a
+            // patch (PatchOperationAdd targeting xpath="Defs", or a custom op wrapping one,
+            // e.g. Big and Small's PatchOp_AddBionics) can inject a brand-new top-level def
+            // that never had a raw source file at all. Defer the removed/added decision until
+            // after step 4's real patch replay, the only place such a def can materialize.
+            var pendingUnresolved = new List<string>();
             foreach (string id in dirtyIds)
             {
                 if (!rawById.ContainsKey(id))
                 {
                     if (IsConcrete(id))
-                        removedConcreteIds.Add(id);
+                        pendingUnresolved.Add(id);
                     continue;
                 }
                 if (needed.Add(id))
@@ -102,7 +109,7 @@ namespace Gagarin
                         AddAncestors(id, rawById, idByName, needed);
                 }
             }
-            if (needed.Count == 0)
+            if (needed.Count == 0 && pendingUnresolved.Count == 0)
                 return result;
 
             // 3. Build the <Defs> sub-doc from imported copies (never mutate the real bodies).
@@ -121,14 +128,63 @@ namespace Gagarin
                     modByNode[imported] = m;
             }
 
+            // 3b. Build the set of top-level patch ids we actually need to reapply. Blindly
+            //     replaying every mod's ENTIRE patch list (thousands of ops on a real modlist)
+            //     against a sub-doc that holds only a handful of nodes is what made this stall
+            //     for minutes on a real 57-mod run with no forward progress — most of those ops
+            //     can never match anything in `needed` and exist purely to burn CPU on failed
+            //     xpath lookups (each also going through the catch below). For any UNCHANGED
+            //     mod we can safely skip a top-level op whose whole subtree (self + nested
+            //     children) never touched a `needed` node id in the PRIOR graph — that's the
+            //     exact same "unchanged mods behave as captured" trust SubDocExpander/
+            //     RecomputeAllowlist already rely on. CHANGED mods are never filtered: they
+            //     aren't faithfully represented by the prior graph (that's the whole reason
+            //     RecomputeAllowlist vets them op-by-op), so we keep replaying their full patch
+            //     list exactly as before.
+            var changedModSet = new HashSet<string>(
+                changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            HashSet<string> topLevelIdsToRun = BuildTopLevelIdsToRun(graph, needed);
+
+            // 3c. A PENDING id (no raw body — patch-injected) can only ever be resolved by
+            //     actually replaying the patch that creates it. But BuildTopLevelIdsToRun above
+            //     can never mark that op relevant on its own: PatchOperationAdd's captured edge
+            //     records the xpath TARGET/anchor it selected (e.g. the <Defs> root), never the
+            //     new child's own id (the same target-vs-content asymmetry patchInjectedOwners
+            //     exists to work around — see its field comment), so the anchor essentially never
+            //     intersects `needed`. Without this, an UNCHANGED mod's Add-injected def that goes
+            //     dirty ONLY via inheritance-closure fan-out (its own patch file never changed, so
+            //     it is reached solely by an ancestor's Seed 2 dirty) is silently misrecomputed as
+            //     deleted — the op that (re-)creates it never runs. Recover the owning mod for
+            //     each pending id from patchInjectedOwners (populated at capture time by
+            //     ProvenanceRecorder.RecordAddedChildren) and exempt that mod's FULL patch list
+            //     from the filter, exactly like a changed mod — scoped to pendingUnresolved
+            //     specifically (not all of `needed`), since only a pending id is unreachable any
+            //     other way.
+            var modsOwningPendingContent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (graph?.PatchInjectedOwners != null)
+            {
+                foreach (string pendingId in pendingUnresolved)
+                    if (graph.PatchInjectedOwners.TryGetValue(pendingId, out string owner) &&
+                        !string.IsNullOrEmpty(owner))
+                        modsOwningPendingContent.Add(owner);
+            }
+
             // 4. Apply the real patches (every running mod, load order) over the sub-doc —
-            //    exactly LoadedModManager.ApplyPatches's loop, inlined so we add no behaviour.
+            //    exactly LoadedModManager.ApplyPatches's loop, inlined so we add no behaviour,
+            //    except skipping unchanged-mod top-level ops proven irrelevant above.
             foreach (ModContentPack mod in LoadedModManager.RunningMods)
             {
                 if (mod?.Patches == null)
                     continue;
+                bool modChanged = changedModSet.Contains(mod.PackageId ?? string.Empty)
+                    || modsOwningPendingContent.Contains(mod.PackageId ?? string.Empty);
+                string sourceMod = mod.PackageId ?? mod.Name ?? "unknown";
+                int index = 0;
                 foreach (PatchOperation patch in mod.Patches)
                 {
+                    string rootId = $"{sourceMod}#{index++}";
+                    if (!modChanged && topLevelIdsToRun != null && !topLevelIdsToRun.Contains(rootId))
+                        continue;
                     try { patch.Apply(subDoc); }
                     catch (Exception e)
                     {
@@ -144,6 +200,29 @@ namespace Gagarin
                                     packageIds: System.Linq.Enumerable.Select(
                                         LoadedModManager.RunningMods, m => m.PackageId)),
                                 "recompute.patchApply", e.GetType().Name, e.Message));
+                    }
+                }
+            }
+
+            // 4b. Promote any pending ids that materialized via a real patch during step 4
+            //     (e.g. a PatchOperationAdd appending straight into defsRoot). Their ParentName
+            //     ancestor (if any) is pulled in from the raw index too, so inheritance resolves
+            //     exactly as the full load would. An id still absent here is a genuine deletion.
+            if (pendingUnresolved.Count > 0)
+            {
+                var byTopLevelId = new Dictionary<string, XmlElement>(StringComparer.Ordinal);
+                foreach (var (id, el) in TopLevelDefs.Enumerate(defsRoot))
+                    byTopLevelId[id] = el;
+                foreach (string id in pendingUnresolved)
+                {
+                    if (byTopLevelId.TryGetValue(id, out XmlElement promoted))
+                    {
+                        nodeById[id] = promoted;
+                        PromoteAncestors(promoted, rawById, idByName, nodeById, subDoc, defsRoot);
+                    }
+                    else
+                    {
+                        removedConcreteIds.Add(id);
                     }
                 }
             }
@@ -225,6 +304,47 @@ namespace Gagarin
             return resolved;
         }
 
+        // Returns the set of top-level patch ids ("{sourceMod}#{index}") whose subtree (the op
+        // itself or any nested child, e.g. a PatchOperationSequence's ".operations[2]") touched a
+        // `needed` node id per the PRIOR graph's patch edges. Null graph means "no info" — caller
+        // must not filter (falls back to applying everything, the pre-optimization behaviour).
+        private static HashSet<string> BuildTopLevelIdsToRun(DependencyGraphData graph, HashSet<string> needed)
+        {
+            if (graph?.PatchEdges == null)
+                return null;
+
+            var relevantIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (GraphPatchEdge edge in graph.PatchEdges)
+            {
+                if (edge.PatchId == null || edge.ModifiedNodeIds == null)
+                    continue;
+                foreach (string nid in edge.ModifiedNodeIds)
+                {
+                    if (needed.Contains(nid))
+                    {
+                        relevantIds.Add(edge.PatchId);
+                        break;
+                    }
+                }
+            }
+            if (relevantIds.Count == 0)
+                return new HashSet<string>(StringComparer.Ordinal); // no live op relevant at all
+
+            var topLevel = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string id in relevantIds)
+            {
+                // The nested-operation suffix (".operations[2]", ".match", ...) never contains
+                // '#', but packageIds routinely do contain '.' (reverse-DNS style, e.g.
+                // "joof.testharness.static") -- so a bare id.IndexOf('.') can land inside the
+                // packageId itself. Search for the suffix's dot only after the '#' that
+                // separates sourceMod from its index.
+                int hash = id.IndexOf('#');
+                int dot = hash >= 0 ? id.IndexOf('.', hash) : id.IndexOf('.');
+                topLevel.Add(dot >= 0 ? id.Substring(0, dot) : id);
+            }
+            return topLevel;
+        }
+
         // Concrete defs key "{DefType}/{defName}"; abstract bases key "{DefType}@{Name}".
         private static bool IsConcrete(string id) => id.IndexOf('/') >= 0;
 
@@ -242,6 +362,29 @@ namespace Gagarin
                 if (!needed.Add(parentId))
                     return; // already pulled in (and its ancestors)
                 cur = parentId;
+            }
+        }
+
+        // Mirrors AddAncestors for a node PROMOTED after step 4 (a patch-injected def that had
+        // no raw body of its own, so it could not go through step 2's ancestor walk). Follows
+        // node's ParentName chain through the raw index, importing each still-missing ancestor
+        // straight into the already-built sub-doc/nodeById so step 5's inheritance resolution
+        // sees it exactly as it would a def pulled in up front.
+        private static void PromoteAncestors(XmlElement node, Dictionary<string, XmlElement> rawById,
+            Dictionary<string, string> idByName, Dictionary<string, XmlElement> nodeById,
+            XmlDocument subDoc, XmlElement defsRoot)
+        {
+            string parentName = node.GetAttribute("ParentName");
+            while (!string.IsNullOrEmpty(parentName) && idByName.TryGetValue(parentName, out string parentId))
+            {
+                if (nodeById.ContainsKey(parentId))
+                    return; // already present (imported earlier, or itself promoted)
+                if (!rawById.TryGetValue(parentId, out XmlElement rawParent))
+                    return; // ancestor itself missing -- inheritance resolution will surface it
+                var imported = (XmlElement)subDoc.ImportNode(rawParent, true);
+                defsRoot.AppendChild(imported);
+                nodeById[parentId] = imported;
+                parentName = imported.GetAttribute("ParentName");
             }
         }
 

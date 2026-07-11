@@ -356,6 +356,23 @@ namespace Gagarin.Tests
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
 
+        // issue #61 / seed-7211: PatchOperationAddModExtension is a plain PatchOperationPathed
+        // leaf (decompiled 2026-07-10) -- for every xpath match it ensures a "modExtensions"
+        // child exists and imports its configured node's children into it. Same shape as
+        // PatchOperationAdd: local mutation under each matched node, no cross-def read, no
+        // positional/doc-content dependence. Was the fallback reason seed-7211's live run named
+        // ("vanillaexpanded.vanillatradingexpanded#0.match.operations[0] is
+        // Verse.PatchOperationAddModExtension, not a proven-safe leaf op") -- per correction,
+        // hitting a nameable op kind should mean adding recompute support for it, not accepting
+        // the fallback as a clean pass.
+        [Test]
+        public void AddModExtension_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationAddModExtension",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
         // NOT part of the xfail worklist: an orphan branch child (".match" with no corresponding
         // "mod#5" Conditional edge captured) declining as capture-gap is CORRECT, permanent
         // behavior -- the allowlist has no read-set to check safety against and must stay
