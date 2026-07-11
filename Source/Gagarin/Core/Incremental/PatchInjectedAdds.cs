@@ -49,18 +49,8 @@ namespace Gagarin
         public static HashSet<string> NewTopLevelDefIds(XmlDocument patchedDoc, ISet<string> knownIds)
         {
             var added = new HashSet<string>();
-            var root = patchedDoc?.DocumentElement;
-            if (root == null)
-                return added;
-
-            foreach (XmlNode child in root.ChildNodes)
+            foreach (var (id, _) in TopLevelDefs.Enumerate(patchedDoc?.DocumentElement))
             {
-                if (!(child is XmlElement def))
-                    continue;
-                string defName = def["defName"]?.InnerText;
-                if (string.IsNullOrEmpty(defName))
-                    continue;
-                string id = def.Name + "/" + defName;
                 if (knownIds == null || !knownIds.Contains(id))
                     added.Add(id);
             }

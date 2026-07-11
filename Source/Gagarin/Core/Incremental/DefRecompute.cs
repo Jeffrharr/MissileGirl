@@ -211,15 +211,8 @@ namespace Gagarin
             if (pendingUnresolved.Count > 0)
             {
                 var byTopLevelId = new Dictionary<string, XmlElement>(StringComparer.Ordinal);
-                foreach (XmlNode child in defsRoot.ChildNodes)
-                {
-                    if (!(child is XmlElement el))
-                        continue;
-                    string dn = el["defName"]?.InnerText;
-                    if (string.IsNullOrEmpty(dn))
-                        continue;
-                    byTopLevelId[el.Name + "/" + dn] = el;
-                }
+                foreach (var (id, el) in TopLevelDefs.Enumerate(defsRoot))
+                    byTopLevelId[id] = el;
                 foreach (string id in pendingUnresolved)
                 {
                     if (byTopLevelId.TryGetValue(id, out XmlElement promoted))
