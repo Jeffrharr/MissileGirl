@@ -56,7 +56,8 @@ FrameworkPathOverride=/usr/lib/mono/4.8-api /home/deck/.dotnet/dotnet build -c R
 # Offline tests (the real test project; net8.0)
 FrameworkPathOverride=/usr/lib/mono/4.8-api /home/deck/.dotnet/dotnet test Source/Gagarin/Tests/Gagarin.Tests.csproj
 ```
-Note: building updates the tracked artifact `1.6/Plugins/Stable/Gagarin.dll` — it shows up in diffs.
+Note: building writes `1.6/Plugins/Stable/Gagarin.dll` — gitignored, not tracked. A versioned CI
+build + Steam publish step is planned to replace manual local builds for distribution.
 
 ## Workflow
 
