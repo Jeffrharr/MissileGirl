@@ -37,7 +37,7 @@ def _text_list(node, tag):
         return []
     out = []
     for li in parent.findall("li"):
-        if li.text:
+        if li.text and li.text.strip():
             out.append(li.text.strip())
         else:
             pid = li.find("packageId")
