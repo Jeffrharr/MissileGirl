@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Edge-cases loop run-log entry",
+  "description": "One line of EDGE_CASES_LOOP_LOG.jsonl, one per live run_test.sh run in the edge-cases discovery loop (see EDGE_CASES_LOOP_PROGRESS.md).",
+  "type": "object",
+  "required": ["date", "phase", "modlist_desc", "gate_pass", "recompute_pass", "category"],
+  "additionalProperties": false,
+  "properties": {
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "phase": { "type": "string", "minLength": 1 },
+    "modlist_desc": { "type": "string", "minLength": 1 },
+    "gate_pass": { "type": ["boolean", "null"] },
+    "recompute_pass": { "type": ["boolean", "null"] },
+    "category": {
+      "type": "string",
+      "enum": ["clean", "issue_fixed_same_run", "issue_open", "bad_modlist", "harness_bug", "inconclusive"]
+    },
+    "pr": { "type": ["integer", "null"], "minimum": 1 },
+    "notes": { "type": "string" }
+  }
+}
