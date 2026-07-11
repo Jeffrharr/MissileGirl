@@ -541,6 +541,9 @@ classify_failure() {
 fail() {
     echo "[run_test] FAIL: $*" >&2
     echo "[run_test] CLASSIFICATION: $(classify_failure)" >&2
+    # Short grace window before cleanup's trap tears down RimWorld/symlinks/ModsConfig, so
+    # there's a moment to skim Player.log / process state before it's gone.
+    sleep 5
     exit 1
 }
 
