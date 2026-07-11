@@ -513,7 +513,36 @@ fi
 # Helpers
 # ---------------------------------------------------------------------------
 log()  { echo "[run_test] $*"; }
-fail() { echo "[run_test] FAIL: $*" >&2; exit 1; }
+
+# Distinguishes "the candidate modlist itself is broken/incompatible" from "our code is the
+# problem" by grepping Player.log for signatures that already exist and fire today but that
+# nothing previously read: Gagarin's own duplicate-defName/Name= detector
+# (DuplicateHelper.cs -> "GAGARIN:[DUPLICATE:CRITICAL]") and RimWorld's own fatal
+# missing-parent/missing-type/missing-def load errors. Neither of these means our incremental-cache
+# code is broken -- they mean the mod set can't be loaded at all, on any build. Falls back to
+# "gagarin_bug" (main menu was reached, so startup itself is fine) or "unknown" (main menu was
+# never reached and no known bad-modlist signature matched -- still worth a human look).
+classify_failure() {
+    if grep -q "GAGARIN:\[DUPLICATE:CRITICAL\]" "$PLAYER_LOG" 2>/dev/null; then
+        echo "bad_modlist (duplicate defName/Name= conflict across mods -- see GAGARIN:[DUPLICATE:CRITICAL] in Player.log)"
+        return
+    fi
+    if grep -qE "Could not find parent node named|Could not find type named|Could not find def named" "$PLAYER_LOG" 2>/dev/null; then
+        echo "bad_modlist (missing dependency/type/def -- RimWorld's own load error in Player.log)"
+        return
+    fi
+    if grep -q "GAGARIN: Main menu reached" "$PLAYER_LOG" 2>/dev/null; then
+        echo "gagarin_bug (main menu was reached -- startup succeeded, our code is the suspect)"
+        return
+    fi
+    echo "unknown (main menu never reached, no known bad-modlist signature matched -- inspect Player.log)"
+}
+
+fail() {
+    echo "[run_test] FAIL: $*" >&2
+    echo "[run_test] CLASSIFICATION: $(classify_failure)" >&2
+    exit 1
+}
 
 cleanup_done=0
 cleanup() {
@@ -1260,6 +1289,13 @@ log "--- Step 3: launching Run A ---"
 RIMWORLD_PID=""
 launch_rimworld
 
+# Wait for the main menu first: RimWorld queues all mod/def loading strictly BEFORE
+# UIRoot_Entry.Init() (see UIRoot_Entry_Patch.cs), so this marker means startup itself
+# succeeded -- a hang/crash before this point means the candidate modlist is broken, not our
+# code. A shorter budget than the marker below: a load heavy enough to reach the main menu at
+# all reaches it well within 15 minutes even for a large candidate set.
+wait_for_marker "GAGARIN: Main menu reached" "Main menu reached (Run A)" 900
+
 # Wait for ProvenanceRecorder to finish (writes DependencyGraph.json, logs the marker).
 # This is the end of the cold load. 10-minute timeout; a normal cold load is ~4 min.
 wait_for_marker "Provenance captured" "Provenance captured (Run A done)" 1800
@@ -1433,6 +1469,10 @@ fi
 log "--- Step 5: launching Run B ---"
 RIMWORLD_PID=""
 launch_rimworld
+
+# See the matching comment in Step 3 -- same rationale, Run B's own Player.log (reset by
+# launch_rimworld) is checked independently.
+wait_for_marker "GAGARIN: Main menu reached" "Main menu reached (Run B)" 900
 
 # Wait for the recompute gate verdict line. The recompute gate runs right after the
 # dirty-set gate (both inside the same ParseAndProcessXML postfix, once the full rebuild
