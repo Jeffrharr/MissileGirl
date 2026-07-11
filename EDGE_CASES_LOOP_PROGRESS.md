@@ -3,6 +3,18 @@
 Plan: `/home/deck/.claude/plans/i-d-like-to-design-inherited-wilkes.md`
 
 PR #59 (draft): https://github.com/Jeffrharr/MissileGirl/pull/59 — `run_test.sh` retry-race fix + this loop's infra (`sort_modlist.py`, this file).
+PR #65: main-menu marker + `run_test.sh` bad-modlist/gagarin-bug auto-classification.
+
+## Operating rule
+
+Do not end a turn while a concrete next action is known — take it in the same turn. Only stop to
+hand control back when genuinely blocked on user input/permission, or when a live `run_test.sh` run
+is progressing in the background (use `ScheduleWakeup` to resume once it completes, not silence).
+This loop stalls when a session ends with unexplored ideas still on the table; the fix is to keep
+going, not to summarize and wait.
+
+Every live run gets one line appended to `EDGE_CASES_LOOP_LOG.jsonl` (see below) *before* the turn
+ends — don't let a run's result live only in scrollback.
 
 ## Current focus
 
@@ -21,7 +33,16 @@ parked, not abandoned — resume if Phase 2 stalls or surfaces the same defs.
 
 ## Consecutive-clean counter (Phase 2 exit condition: 50)
 
-**5**
+Mechanically derived from `EDGE_CASES_LOOP_LOG.jsonl` — do not hand-maintain a number here (that's
+exactly the bookkeeping that let an unresolved issue go uncounted-but-unflagged before). Run:
+
+```bash
+python3 scripts/compute_streak.py
+```
+
+Rule: `clean`/`issue_fixed_same_run` rows count up; `issue_open` resets to 0; `bad_modlist`/
+`harness_bug`/`inconclusive` rows are skipped (neither counted nor reset) — see the script's
+docstring and `scripts/edge_cases_log.schema.json` for the full category contract.
 
 ## Open issue — DefRecompute perf blowup (FIXED, live-validated) + new dirty-set gap found by that fix
 
@@ -187,15 +208,11 @@ split by root cause per the original plan) and resume the Phase 2 sweep.
 
 ## Log
 
-| date | phase | modlist/case | issue found (Y/N) | root cause | PR | status |
-|---|---|---|---|---|---|---|
-| 2026-07-09 | 2 | random 20-mod real subset (seed 42, sorted via `scripts/sort_modlist.py`), default `run_test.sh --modlist=` | N | — | — | PASS: gate nonDirtyMismatches=0, recompute recomputeMismatches=0, dirtyCount=6/13553 |
-| 2026-07-09 | 2 | random 40-mod real subset (seed 7, sorted) | N | — | — | PASS: gate nonDirtyMismatches=0, recompute recomputeMismatches=0, dirtyCount=6/14232 |
-| 2026-07-09 | 2 (retest, post-fix) | same 80-mod repro after the `run_test.sh` fix | N (harness now correctly reports) | — | — | Gate PASS nonDirtyMismatches=0; recompute gate **fallback=True, recomputeMismatches=0, pass=True** — a legitimate safe-fallback (a changed mod owns a container op, `SubDocExpander` declines per design), not a bug. Overall harness verdict shows FAIL only because default mode's strict criteria requires `fallback=False`; this is really an `--expect-fallback`-shaped case, not a new defect. Not counted against the clean streak. |
-| 2026-07-09 | 2 | random 80-mod real subset (seed 99, sorted); repro file `/tmp/candidate_80_sorted.txt` | **Y** | OPEN — not yet root-caused. Two (or more) mods in this sample define duplicate `Name=` abstract defs (`PlatformBase`, `WaterShallow`, `Plant_Bush` — real mod-authoring conflict, not ours). That trips Gagarin's own duplicate-def CRITICAL detector, which logs "Removed cache to recover from error!" and redoes the *entire* load as a fresh cold pass — observed **3 separate** "Cache created!/Provenance captured" cycles within one process launch (Player.log lines ~3597, ~4085, one gate PASS logged mid-sequence at 3674). `run_test.sh`'s `wait_for_marker` does a single substring `grep` for "Recompute gate" and kills RimWorld on first match, so it kills the process **mid-retry** — before the *final* settled pass's `GateReport.json` is written, producing `FAIL: GateReport.json not found`. Two candidate root causes to disentangle: (a) is Gagarin's incremental diagnostic even *correct* to run per-retry-pass instead of only once the reload has fully settled (could itself explain unattributed/gate-mismatch noise on real large modlists that happen to have duplicate-def conflicts, which is common at ~800-mod scale); (b) `run_test.sh`'s marker-wait is racy against multiple emissions in one launch and should wait for the *last* occurrence / a more specific "settled" marker instead of first match. | — | fixed in `TestMods/run_test.sh` (harness-only; not a Gagarin correctness bug — `ModsConfig.Reset()` is vanilla RimWorld's own data-load recovery, patched only to keep the cache folder writable). Root cause (a) ruled out: the diagnostic re-running per retry pass is correct/expected, RimWorld itself redoes the whole load. Root cause (b) confirmed and fixed: `wait_for_marker` matched the *first* "Recompute gate" occurrence even when a later `ModsConfig.Reset()` retry superseded it; now polls for `GateReport.json` up to 300s, and if a retry was detected mid-load, waits for the marker *count* to increase (not just re-match) before re-polling for the report file. Re-running the same 80-mod repro to confirm before deciding whether this needs its own PR (harness-only change, no `Source/Gagarin` code touched — may just land as part of loop infra rather than a separate numbered issue). |
-| 2026-07-09 | 2 | bulk real add/remove (30-mod base seed 555, `/tmp/base_555_sorted.txt`; REMOVE 6 mods incl. `DizzyEevee.PocketMapArchitectFix`, `PeteTimesSix.ResearchReinvented`; ADD 6 mods incl. `VPE.Deadlife.Sentinel`, `duz.almosttherefork`) via new `run_test.sh --remove=... --add=...` (mutual-exclusion guard removed — both flags now composable in one Run B) | N | — | — | PASS: dirty-set gate `nonDirtyMismatches=0` (dirtyCount=481/13677); recompute gate `fallback=True, recomputeMismatches=0` — legitimate safe fallback (`vanillaexpanded.vanomalyeinsanity#4` is `PatchOperationInsert`, not a proven-safe leaf op), not a defect. First bulk (multi-mod each direction) add/remove case, per user correction that single-mod toggles weren't representative. |
-| 2026-07-09 | 2 | random 35-mod real subset from all 869 subscribed (seed 9001, sorted); REMOVE 6 (`Memegoddess.TDFindLib` etc), ADD 6 (`winggar.meaningfulparties` etc) | (not read back — superseded by curated-pool sampling switch below) | — | — | launched, result not inspected before pivoting to `bigmodlist.xml`-sourced sampling; not counted either way |
-| 2026-07-09 | 2 | **first curated-pool** bulk add/remove: 35-mod base sampled from RimSort's `bigmodlist.xml` (seed 4001, `scripts/sample_candidates.py`), REMOVE 6 (`akri.pcannibal`, `vanillaexpanded.vfepower`, `owlchemist.midsaversaver`, `vanillaexpanded.vcookehaute`, `imranfish.xmlextensions`, `salvador143.shuttledock`), ADD 6 (`mlie.justputitoverthere`, `fluffytowels.warcaskethaulpatch`, `mlie.betterrecordstab`, `automatic.prisonerbedsetowner`, `als.anomalygravship`, `fuu.nudistsevasion`) | N | — | — | **Full clean PASS** (not just informational): dirty-set gate `pass=True nonDirtyMismatches=0` (dirtyCount=69/14074); recompute gate `pass=True fallback=False recomputeMismatches=0` (recomputed=15, removed=53, splicedDefs=14074==rebuildDefs). First run to clear both gates non-informationally under bulk add/remove. |
-| 2026-07-09 | 2 | curated-pool bulk add/remove, seed 4002 (40-mod base), ADD included `ryan.voe.progressionminingpatch` (VOE Progression addon) without its base-mod dependency | **Y** (tooling bug, not Gagarin) | `scripts/sort_modlist.py`'s `_text_list()` parsed structured `<li><name>/<packageId>` dependency entries as empty strings (see "Known issues" above) — `sample_candidates.py` at the time had no dependency awareness at all, so an addon was added without its required base mod. Real load errors (`Could not find parent node named "OutpostBase"`, missing `VOE.OutpostExtension_Mining` type) — not a Gagarin/gate failure, run never reached the dirty-set gate. | — | Fixed `_text_list()` + added dependency-closure logic to `sample_candidates.py` (see "Known issues"). Not counted against the streak (harness/tooling bug, not an incremental-cache correctness issue) — same treatment as the `ModsConfig.Reset()` finding. |
-| 2026-07-10 | 2 (retest, post-fix) | same 4002d 44-mod curated base, `--remove=V.Rooboid.Faun` (the `RBM_UnguligradeLegs` null-attribution repro) | **Y** (2 new bugs found closing the old one) | (1) `RecordAddedChildren`'s first implementation walked ALL children of an Add's match target, not just the ones it appended — over-broad for `TestMod_GenOp`'s deliberate `/Defs`-root-anchored Add fixture, so `patchInjectedOwners` pointed literally every def at `joof.testharness.genop`, clobbering the real fallback for the two `RBM_*` nodes. Fixed via a child-count snapshot taken at selection time (`rawSinkChildCounts`), only attributing newly-appended children. (2) Re-validating the pre-existing `DefRecompute` perf fix wasn't a regression surfaced a genuine pre-existing bug in `BuildTopLevelIdsToRun`: `id.IndexOf('.')` to strip a nested-op suffix breaks when the packageId itself contains a `.` (routine, e.g. `joof.testharness.static`), truncating to just `"joof"` and silently dropping an unchanged mod's relevant top-level op from the recompute replay set. Fixed by searching for the suffix's `.` only after the id's `#`. | — | Both fixed, 191/191 offline tests pass. Live-validated together: `--remove=V.Rooboid.Faun` on 4002d now gives gate `pass=True nonDirtyMismatches=0` + recompute `recomputeMismatches=0`; default-mode `run_test.sh` (which the `IndexOf` bug broke) now passes; `--expect-mayrequire` and `--expect-nested-in-sequence` re-run clean (no regression). Closes the open `RBM_UnguligradeLegs` gap from the two rows above — same case, now fully resolved, counted as this session's clean run. |
-| 2026-07-09 | 2 | curated-pool bulk add/remove, seed 4002 rerun post-fix (40-mod base, dependency-closed via fixed `sample_candidates.py`); REMOVE 7 (`telardo.MultiFloors` etc), ADD 7 (`VanillaExpanded.VAERoy` etc) | N (inconclusive) | Run B (mods=57 after closure) got through `Provenance captured` then the process exited ~120s later with **no exception, no crash signature, no OOM in dmesg/coredumpctl** in `Player.log` — just a Unity shutdown memory-leak dump, before the dirty-set gate marker. Per CLAUDE.md, a death *after* a `GAGARIN:` line is not the known pre-capture Boehm-GC flake and should be surfaced rather than dismissed — flagging as an **unresolved anomaly**, not yet root-caused (no evidence pointing at our code specifically). | — | Not investigated further this run (no signal to chase); not counted against the streak. Retry with a fresh candidate; revisit if this pattern recurs. |
+The per-run table used to live here as hand-maintained markdown; it's been migrated to
+`EDGE_CASES_LOOP_LOG.jsonl` (one JSON object per run, schema at
+`scripts/edge_cases_log.schema.json`) so the streak in the section above is mechanically derived
+instead of hand-counted prose. **Append one line per live run there, not a table row here** — keep
+root-cause narrative detail in this file's prose sections / commit messages / PRs as before; the
+JSONL only carries the structured fields (`date`, `phase`, `modlist_desc`, `gate_pass`,
+`recompute_pass`, `category`, `pr`, `notes`) needed to compute the streak and to answer "was this
+counted, and why."
