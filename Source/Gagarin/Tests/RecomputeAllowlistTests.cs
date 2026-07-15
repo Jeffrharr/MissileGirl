@@ -403,6 +403,18 @@ namespace Gagarin.Tests
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
 
+        // Same positional-xpath guard as Insert: Test is only safe when its own xpath is
+        // non-positional. A numeric-indexed selector could re-evaluate against a different def
+        // in a smaller sub-doc than it would against the full patched document.
+        [Test]
+        public void Test_PositionalXpath_Declined()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationTest",
+                "Defs/ThingDef[3]/defName", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("positional-xpath"));
+        }
+
         // Edge-cases loop, 2026-07-14 (dubwise.dubsbadhygiene live fallback): same gated shape as
         // AddIf/ReplaceIf/RemoveIf above -- a load-invariant settings flag gates a no-op-or-delegate
         // to the unmodified base PatchOperationAdd.
