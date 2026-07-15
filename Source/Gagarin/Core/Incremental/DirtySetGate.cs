@@ -532,7 +532,8 @@ namespace Gagarin
                     $"<color=yellow>FALLBACK</color> — {fallbackReason}");
                 EmitRecomputeReport(fallback: true, fallbackReason: fallbackReason, miss: NoEmptyList,
                     contextCount: 0, dirtyCount: dirty.Count, recomputed: 0, removed: 0,
-                    splicedDefs: 0, rebuildDefs: rebuild.Count, recomputeMs: 0);
+                    splicedDefs: 0, rebuildDefs: rebuild.Count, recomputeMs: 0,
+                    ancestorIdsFromRawXml: NoEmptyList);
                 // Publish a fallback verdict for the metrics summary: pass (the authoritative full
                 // rebuild stands) but flagged fallback so it is not counted as a real recompute.
                 s_recomputePass = true;
@@ -545,7 +546,8 @@ namespace Gagarin
 
             var sw = Stopwatch.StartNew();
             Dictionary<string, string> recomputed =
-                DefRecompute.Recompute(dirty, context, graph, changedMods, out List<string> removed);
+                DefRecompute.Recompute(dirty, context, graph, changedMods, out List<string> removed,
+                    out List<string> ancestorIdsFromRawXml);
             // newPaths (P2): the added-def id -> source-file map the diagnostic published this
             // load. A recomputed id absent from the baseline cache is a genuinely-new def; the
             // splice appends it as a new <Item path=...> and reads the path from here so the
@@ -569,7 +571,7 @@ namespace Gagarin
             EmitRecomputeReport(fallback: false, fallbackReason: null, miss: miss,
                 contextCount: context.Count, dirtyCount: dirty.Count, recomputed: recomputed.Count,
                 removed: removed.Count, splicedDefs: splicedIdx.Count, rebuildDefs: rebuild.Count,
-                recomputeMs: sw.ElapsedMilliseconds);
+                recomputeMs: sw.ElapsedMilliseconds, ancestorIdsFromRawXml: ancestorIdsFromRawXml);
             if (miss.Count > 0)
             {
                 Log.Warning("GAGARIN: recompute mismatches (recompute != rebuild): " +
@@ -600,7 +602,7 @@ namespace Gagarin
         // fallback=true so the harness can distinguish a real recompute from a declined one.
         private static void EmitRecomputeReport(bool fallback, string fallbackReason,
             List<string> miss, int contextCount, int dirtyCount, int recomputed, int removed,
-            int splicedDefs, int rebuildDefs, long recomputeMs)
+            int splicedDefs, int rebuildDefs, long recomputeMs, List<string> ancestorIdsFromRawXml)
         {
             try
             {
@@ -626,6 +628,18 @@ namespace Gagarin
                 {
                     if (i > 0) sb.Append(',');
                     AppendQuoted(sb, miss[i]);
+                }
+                sb.Append("],");
+                // Sub-doc ids whose presence came from DefRecompute.AddAncestorsFromRawXml's
+                // current-load ParentName walk, not from the dirty/context sets directly -- see that
+                // method's comment for why this source is worth telling apart from
+                // RecomputeAllowlist.CanRecompute's prior-graph-based ancestor set. Issue #75 tracks
+                // actually cross-checking this list against what CanRecompute vetted.
+                sb.Append("\"ancestorIdsFromRawXml\":[");
+                for (int i = 0; i < ancestorIdsFromRawXml.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    AppendQuoted(sb, ancestorIdsFromRawXml[i]);
                 }
                 sb.Append("]}");
                 File.WriteAllText(
