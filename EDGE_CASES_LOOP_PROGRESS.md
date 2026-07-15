@@ -169,6 +169,35 @@ the two bugs found validating: over-broad target walk, `IndexOf('.')` packageId-
 now live-confirmed together. 191/191 offline tests pass. **Ready to open PRs** (likely 2-3,
 split by root cause per the original plan) and resume the Phase 2 sweep.
 
+## Open issue — new-mod blind spot in SubDocExpander (FIXED, live-validated)
+
+`SubDocExpander.Expand`'s "changed mod owns a container op -> force full rebuild" fallback only
+scans `graph.PatchEdges` from the PRIOR dependency graph, so it is structurally blind to a mod
+that is wholly new this load: such a mod never appears as a `GraphPatchEdge.SourceMod` in that
+graph. Its container ops proceed through recompute un-vetted.
+
+Found via run `20260714-160405`: the seed-4005 modlist re-run after `PatchOperationTest` was
+reclassified as a safe leaf op (issue #68) proceeded further than before and hit this instead.
+`regrowth.botr.core`, new this load, owns a `PatchOperationSequence` retexturing `Plant_Rice`/
+`Plant_Potato`/etc. Incremental recompute silently produced wrong content:
+`RecomputeReport.json: fallback:false, recomputeMismatches:40` — including the previously
+unexplained `RG_Filth_LeavesBoilingTree`/`RG_BoilingSettings` `ParentName`-retention symptom,
+which turns out to be the same root cause, not a separate one.
+
+Fixed (issue #70 / PR #71): `DirtySetDiagnostic` publishes `LastNewMods` (packageIds present in
+`CurrentLoadOrder` but absent from `PriorLoadOrder` — the prior graph has literally never seen
+them). `SubDocExpander.Expand` gained an optional `newModIds` parameter; a mod present in both
+`newMods` and `changedMods` (new this load AND known to own patch content) trips the same
+full-rebuild fallback the container-op check uses, named in the reason string. Deliberately
+scoped to the intersection, not "any mod absent from the prior graph" — a new mod that only adds
+textures/defs is already handled safely by Seed 5's added-defs channel and must not force an
+unnecessary fallback.
+
+Offline: 217/217 tests pass (3 new `SubDocExpanderTests` cases). Live-validated by replaying the
+exact archived `20260714-160405` modlists (`--modlist-verbatim=`/`--modlist-verbatim-b=`):
+`RecomputeReport.json` now reads `pass:true, fallback:true, recomputeMismatches:0`, fallback
+reason naming a new mod in `newMods ∩ changedMods`.
+
 ## Known issues (not counted against the streak — avoid these modlists, don't reset for them)
 
 - **`ModsConfig.Reset()` wipes the active modlist to vanilla+DLC** (confirmed via decompile:
