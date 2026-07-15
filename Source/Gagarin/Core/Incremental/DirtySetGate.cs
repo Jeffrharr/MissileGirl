@@ -501,9 +501,10 @@ namespace Gagarin
             }
             DependencyGraphData graph = DependencyGraphData.Load(graphPath);
             ICollection<string> changedMods = DirtySetDiagnostic.LastChangedMods ?? new HashSet<string>();
+            ICollection<string> newMods = DirtySetDiagnostic.LastNewMods ?? new HashSet<string>();
 
             HashSet<string> context = SubDocExpander.Expand(
-                graph, dirty, changedMods, out bool needsFullRebuild, out string fallbackReason);
+                graph, dirty, changedMods, out bool needsFullRebuild, out string fallbackReason, newMods);
 
             // Recompute allowlist (safe-by-default): even when SubDocExpander is willing to recompute,
             // take the incremental path ONLY when every op producing a dirty def is a proven-faithful
