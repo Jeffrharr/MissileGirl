@@ -257,6 +257,11 @@ namespace Gagarin
 
             // childNodeId -> parentNodeId, to walk a dirty def UP to its inheritance ancestors: an op
             // modifying an ancestor produces the dirty descendant's value, so it must be allowlisted too.
+            // Built from the PRIOR load's captured graph (see DirtySetGate.RunRecompute's graphPath
+            // comment) -- NOT the current raw XML. DefRecompute.AddAncestorsFromRawXml walks the
+            // current ParentName chain instead, so the two can diverge if a dirty def's ParentName
+            // changed since the prior load; see that method's comment for the consequence and why
+            // it's currently caught downstream rather than silently wrong.
             var parentOf = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (GraphInheritanceEdge e in graph.InheritanceEdges)
                 if (!string.IsNullOrEmpty(e.ChildNodeId) && !string.IsNullOrEmpty(e.ParentNodeId))

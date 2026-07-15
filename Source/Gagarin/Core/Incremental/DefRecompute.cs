@@ -63,9 +63,16 @@ namespace Gagarin
         public static Dictionary<string, string> Recompute(
             ICollection<string> dirtyIds, ICollection<string> contextIds,
             DependencyGraphData graph, ICollection<string> changedModIds,
-            out List<string> removedConcreteIds)
+            out List<string> removedConcreteIds,
+            out List<string> ancestorIdsFromRawXml)
         {
             removedConcreteIds = new List<string>();
+            // Ids pulled into the sub-doc ONLY via AddAncestorsFromRawXml (i.e. present in `needed`
+            // but never a dirty/context id themselves). Reported so a consumer can tell which sub-doc
+            // members came from the current-load raw-XML walk rather than dirty/context directly --
+            // see AddAncestorsFromRawXml's comment for why that source matters (it can diverge from
+            // RecomputeAllowlist.CanRecompute's prior-graph-based ancestor set).
+            ancestorIdsFromRawXml = new List<string>();
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
             if (dirtyIds == null || dirtyIds.Count == 0)
                 return result;
@@ -88,6 +95,10 @@ namespace Gagarin
             // that never had a raw source file at all. Defer the removed/added decision until
             // after step 4's real patch replay, the only place such a def can materialize.
             var pendingUnresolved = new List<string>();
+            // Dirty/context ids themselves, as opposed to the ancestors AddAncestorsFromRawXml pulls
+            // in on top of them -- the difference (needed minus this set) is reported as
+            // ancestorIdsFromRawXml below.
+            var topLevelIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (string id in dirtyIds)
             {
                 if (!rawById.ContainsKey(id))
@@ -97,7 +108,10 @@ namespace Gagarin
                     continue;
                 }
                 if (needed.Add(id))
-                    AddAncestors(id, rawById, idByName, needed);
+                {
+                    topLevelIds.Add(id);
+                    AddAncestorsFromRawXml(id, rawById, idByName, needed);
+                }
             }
             if (contextIds != null)
             {
@@ -106,9 +120,15 @@ namespace Gagarin
                     if (!rawById.ContainsKey(id))
                         continue; // context-only; absence just means no sub-doc target to add
                     if (needed.Add(id))
-                        AddAncestors(id, rawById, idByName, needed);
+                    {
+                        topLevelIds.Add(id);
+                        AddAncestorsFromRawXml(id, rawById, idByName, needed);
+                    }
                 }
             }
+            foreach (string id in needed)
+                if (!topLevelIds.Contains(id))
+                    ancestorIdsFromRawXml.Add(id);
             if (needed.Count == 0 && pendingUnresolved.Count == 0)
                 return result;
 
@@ -348,9 +368,18 @@ namespace Gagarin
         // Concrete defs key "{DefType}/{defName}"; abstract bases key "{DefType}@{Name}".
         private static bool IsConcrete(string id) => id.IndexOf('/') >= 0;
 
-        // Follow the ParentName chain, adding every ancestor id to needed so the sub-doc can
-        // resolve inheritance exactly as the full load would.
-        private static void AddAncestors(string id, Dictionary<string, XmlElement> rawById,
+        // Follow the ParentName chain through the CURRENT load's raw XML, adding every ancestor id
+        // to needed so the sub-doc can resolve inheritance exactly as the full load would. Distinct
+        // from RecomputeAllowlist.CanRecompute's own ancestor walk, which reads InheritanceEdges out
+        // of the PRIOR load's captured graph (see DirtySetGate.RunRecompute's graphPath comment) —
+        // the two agree only when a dirty def's ParentName hasn't changed since the prior load. If
+        // it has, CanRecompute's relevantTargets can miss an ancestor this walk pulls in, so an edge
+        // touching that ancestor is never vetted for safety. Currently caught downstream: the
+        // recompute path isn't live-serving yet (DirtySetGate runs it after the real rebuild's Save
+        // and diffs the splice against it), so a bad admission surfaces as a recompute mismatch in
+        // the report rather than corrupting what the player sees. That safety net goes away if this
+        // path is ever promoted to skip the full rebuild — close this divergence first.
+        private static void AddAncestorsFromRawXml(string id, Dictionary<string, XmlElement> rawById,
             Dictionary<string, string> idByName, HashSet<string> needed)
         {
             string cur = id;
@@ -365,7 +394,7 @@ namespace Gagarin
             }
         }
 
-        // Mirrors AddAncestors for a node PROMOTED after step 4 (a patch-injected def that had
+        // Mirrors AddAncestorsFromRawXml for a node PROMOTED after step 4 (a patch-injected def that had
         // no raw body of its own, so it could not go through step 2's ancestor walk). Follows
         // node's ParentName chain through the raw index, importing each still-missing ancestor
         // straight into the already-built sub-doc/nodeById so step 5's inheritance resolution
