@@ -340,8 +340,19 @@ EXPECT_PATCHINJECTEDCHILD=0
 # loadthemlast, etc.) around Core/Harmony rather than after them; the --modlist= prepend-then-append
 # scheme would silently break that ordering. Must already contain ludeon.rimworld + vr.missilegirl;
 # test-harness mods are still appended at the end.
+# --modlist-b=FILE / --modlist-verbatim-b=FILE: like --modlist=/--modlist-verbatim=, but for RUN B
+# instead of run A. When given, Step 4 writes ModsConfig for run B from this file directly (same
+# construction as run A: Core+DLC+Harmony+Gagarin+file+test-mods, or verbatim if the -verbatim-b
+# variant) instead of applying --remove=/--add= regex surgery to run A's ModsConfig. Both run A and
+# run B's exact modlists get archived, so a failing run is fully reproducible from two plain files
+# instead of reconstructing a diff — easier to debug than the remove/add mutation approach, and
+# immune to it (a diff-based B list survives independently of whatever run A's ModsConfig looked
+# like right before run B, e.g. after an engine-side ModsConfig.Reset() on a fatal load error).
+# Mutually exclusive with --remove=/--add= (pick one style per run).
 MODLIST_FILE=""
 MODLIST_VERBATIM=""
+MODLIST_FILE_B=""
+MODLIST_VERBATIM_B=""
 MAX_MODS=200
 # --remove=PACKAGEID: a real-mod removal scenario. Run A loads the full --modlist; before run B this
 # mod is removed from ModsConfig (a pure mod-list change), reproducing real add/remove failures (e.g.
@@ -393,6 +404,10 @@ for arg in "$@"; do
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
         MODLIST_VERBATIM="${arg#--modlist-verbatim=}"
+    elif [[ "$arg" == --modlist-b=* ]]; then
+        MODLIST_FILE_B="${arg#--modlist-b=}"
+    elif [[ "$arg" == --modlist-verbatim-b=* ]]; then
+        MODLIST_VERBATIM_B="${arg#--modlist-verbatim-b=}"
     elif [[ "$arg" == --remove=* ]]; then
         REMOVE_MOD="${arg#--remove=}"
     elif [[ "$arg" == --add=* ]]; then
@@ -439,6 +454,18 @@ if [[ -n "$ADD_MOD" && -z "$MODLIST_FILE" && -z "$MODLIST_VERBATIM" ]]; then
 fi
 if [[ -n "$MODLIST_FILE" && -n "$MODLIST_VERBATIM" ]]; then
     echo "[run_test] FAIL: --modlist= and --modlist-verbatim= are mutually exclusive." >&2
+    exit 2
+fi
+if [[ -n "$MODLIST_FILE_B" && -n "$MODLIST_VERBATIM_B" ]]; then
+    echo "[run_test] FAIL: --modlist-b= and --modlist-verbatim-b= are mutually exclusive." >&2
+    exit 2
+fi
+if [[ ( -n "$MODLIST_FILE_B" || -n "$MODLIST_VERBATIM_B" ) && ( -n "$REMOVE_MOD" || -n "$ADD_MOD" ) ]]; then
+    echo "[run_test] FAIL: --modlist-b=/--modlist-verbatim-b= cannot be combined with --remove=/--add= — pick one style for the run-B mod-list change." >&2
+    exit 2
+fi
+if [[ ( -n "$MODLIST_FILE_B" || -n "$MODLIST_VERBATIM_B" ) && (( $(sum_expect_flags) > 0 )) ]]; then
+    echo "[run_test] FAIL: --modlist-b=/--modlist-verbatim-b= cannot be combined with an --expect-* mode." >&2
     exit 2
 fi
 
@@ -1123,24 +1150,21 @@ log "Workshop Gagarin.dll backed up to $WORKSHOP_GAGARIN_BAK ($(stat -c%s "$WORK
 cp "$DEV_GAGARIN_DLL" "$WORKSHOP_GAGARIN_DLL"
 log "Deployed dev Gagarin.dll ($(stat -c%s "$DEV_GAGARIN_DLL") bytes) → workshop."
 
-# ---------------------------------------------------------------------------
-# Step 1: write a fresh MINIMAL ModsConfig.xml (self-contained — never the ambient list)
-# ---------------------------------------------------------------------------
-# The harness ALWAYS loads a small, deterministic modlist: Core + official DLCs + Harmony + Gagarin
-# (vr.missilegirl, under test) + the test-harness mods. It does NOT inherit the user's active mods —
-# an 815-mod ambient list crashes RimWorld's Boehm GC during unrelated mod init (before any of our
-# code runs), which is a flaky non-result. The user's real ModsConfig is backed up and restored on
-# teardown, so their setup is untouched. An optional --modlist=FILE adds a captured problem set on
-# top, hard-capped at $MAX_MODS total.
-log "--- Step 1: writing minimal ModsConfig.xml ---"
-cp "$MODSCONFIG" "$MODSCONFIG_BAK"
-log "Backup saved to $MODSCONFIG_BAK"
-
-# In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
-# absent from run A's baseline graph so run B sees them as genuinely added.
+# write_modsconfig TARGET_MODLIST_FILE TARGET_MODLIST_VERBATIM LABEL
+# Writes $MODSCONFIG from scratch: Core + installed DLCs + Harmony + Gagarin + (the given modlist
+# file, on top) + test-harness mods — or, if a verbatim file is given, that file's own order as-is
+# (still must contain ludeon.rimworld + vr.missilegirl). Shared by Step 1 (run A) and, when
+# --modlist-b=/--modlist-verbatim-b= is given, Step 4 (run B) — so run B gets its own fully-explicit
+# modlist instead of --remove=/--add= regex surgery on whatever run A's ModsConfig looks like by
+# then (which can differ from what we wrote, e.g. after an engine-side ModsConfig.Reset()).
+write_modsconfig() {
+    local target_modlist_file="$1"
+    local target_modlist_verbatim="$2"
+    local label="$3"
+    log "--- writing ModsConfig.xml for $label ---"
 EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" EXPECT_P1="$EXPECT_P1" \
 EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" EXPECT_OWNERSHIP="$EXPECT_OWNERSHIP" \
-MODLIST_FILE="$MODLIST_FILE" MODLIST_VERBATIM="$MODLIST_VERBATIM" MAX_MODS="$MAX_MODS" \
+MODLIST_FILE="$target_modlist_file" MODLIST_VERBATIM="$target_modlist_verbatim" MAX_MODS="$MAX_MODS" \
 RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
 
@@ -1237,17 +1261,35 @@ print(f"  minimal modlist written: {len(active)} mods "
 for pid in active:
     print(f"    <li>{pid}</li>")
 PYEOF
-mc_rc=$?
-if [[ $mc_rc -ne 0 ]]; then
-    fail "Failed to write minimal ModsConfig (rc=$mc_rc)."
-fi
+    local mc_rc=$?
+    if [[ $mc_rc -ne 0 ]]; then
+        fail "Failed to write ModsConfig for $label (rc=$mc_rc)."
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Step 1: write a fresh MINIMAL ModsConfig.xml (self-contained — never the ambient list)
+# ---------------------------------------------------------------------------
+# The harness ALWAYS loads a small, deterministic modlist: Core + official DLCs + Harmony + Gagarin
+# (vr.missilegirl, under test) + the test-harness mods. It does NOT inherit the user's active mods —
+# an 815-mod ambient list crashes RimWorld's Boehm GC during unrelated mod init (before any of our
+# code runs), which is a flaky non-result. The user's real ModsConfig is backed up and restored on
+# teardown, so their setup is untouched. An optional --modlist=FILE adds a captured problem set on
+# top, hard-capped at $MAX_MODS total.
+log "--- Step 1: writing minimal ModsConfig.xml ---"
+cp "$MODSCONFIG" "$MODSCONFIG_BAK"
+log "Backup saved to $MODSCONFIG_BAK"
+
+# In --expect-added mode the added mod is deliberately NOT activated for run A — its defs must be
+# absent from run A's baseline graph so run B sees them as genuinely added.
+write_modsconfig "$MODLIST_FILE" "$MODLIST_VERBATIM" "Run A"
 
 # Archive the exact active modlist NOW (before launching), so even a crashing run leaves behind the
 # list that produced it — the reproducible record the user asked for.
 mkdir -p "$METRICS_DIR"
 MODLIST_ARCHIVE="$METRICS_DIR/livetest-${RUN_TS}-modlist.xml"
 cp "$MODSCONFIG" "$MODLIST_ARCHIVE"
-log "Archived active modlist → $MODLIST_ARCHIVE"
+log "Archived active modlist (Run A) → $MODLIST_ARCHIVE"
 
 # ---------------------------------------------------------------------------
 # Step 2: prepare Run A (cold baseline + provenance capture)
@@ -1410,6 +1452,16 @@ else:
 open(path, "w", encoding="utf-8").write(new)
 print("ModsConfig.xml updated for Run B.")
 PYEOF
+fi
+
+# --modlist-b=/--modlist-verbatim-b=: write run B's ModsConfig from a fully-explicit file, the same
+# way Step 1 wrote run A's — instead of mutating whatever run A's ModsConfig currently contains.
+# Mutually exclusive with --remove=/--add= (enforced at arg-parse time above).
+if [[ -n "$MODLIST_FILE_B" || -n "$MODLIST_VERBATIM_B" ]]; then
+    write_modsconfig "$MODLIST_FILE_B" "$MODLIST_VERBATIM_B" "Run B"
+    MODLIST_ARCHIVE_B="$METRICS_DIR/livetest-${RUN_TS}-modlist-runB.xml"
+    cp "$MODSCONFIG" "$MODLIST_ARCHIVE_B"
+    log "Archived active modlist (Run B) → $MODLIST_ARCHIVE_B"
 fi
 
 # --remove=ID[,ID...]: remove the named real mod(s) from ModsConfig for run B (case-insensitive),
@@ -1635,6 +1687,14 @@ fi
 if [[ -n "$ADD_MOD" ]]; then
     recompute_required=0
 fi
+# --modlist-b=/--modlist-verbatim-b=: same real-bulk-content contract as --remove=/--add= (it IS a
+# real-mod add/remove change, just specified as two explicit full lists instead of a diff) — the
+# dirty-set superset is the required claim; recompute is informational for the same reason (real
+# content routinely includes ops outside SafeLeafOps, e.g. PatchOperationInsert/AddDesignator, which
+# are legitimate safe fallbacks, not defects).
+if [[ -n "$MODLIST_FILE_B" || -n "$MODLIST_VERBATIM_B" ]]; then
+    recompute_required=0
+fi
 
 # The recompute gate only counts toward the verdict when it is required for this mode.
 recompute_verdict=$recompute_ok
@@ -1681,6 +1741,9 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     fi
     if [[ -n "$ADD_MOD" ]]; then
         echo "  real addition:   $ADD_MOD added — dirty set stayed a superset (Seed 5 on real content)"
+    fi
+    if [[ -n "$MODLIST_FILE_B" || -n "$MODLIST_VERBATIM_B" ]]; then
+        echo "  real bulk change: run A/run B modlists archived separately — dirty set stayed a superset over the full diff"
     fi
     echo "========================================"
     EXIT_CODE=0
