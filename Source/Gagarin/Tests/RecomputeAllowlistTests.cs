@@ -472,5 +472,40 @@ namespace Gagarin.Tests
                 "Defs/ThingDef[defName=\"A\"]/comps/li[2]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
+
+        // XFAIL WORKLIST addition (2026-07-15, PR #69 interview on the Insert SafeLeafOps entry):
+        // CanRecompute only ever walks graph.PatchEdges -- it never consults PatchInjectedOwners or
+        // a node's SourceFile. That means two cases look IDENTICAL to it today (a dirty concrete id
+        // with zero producing edges):
+        //   (a) a genuinely unpatched raw def (has a real SourceFile) -- trivially safe, correctly
+        //       admitted by the current "no declining edge found -> true" fallthrough.
+        //   (b) a patch-injected top-level def (no SourceFile) whose creating op's captured edge
+        //       never named the child's own id (same target-vs-content asymmetry as
+        //       PatchOperationAdd -- see DefRecompute.cs's step 3c comment), AND whose owning mod is
+        //       absent from PatchInjectedOwners (populated ONLY by ProvenanceRecorder.
+        //       RecordAddedChildren, which is wired for PatchOperationAdd only -- see this file's
+        //       PatchOperationInsert SafeLeafOps comment). DefRecompute's step 4b can only promote a
+        //       pending id via PatchInjectedOwners; without it, the id falls into removedConcreteIds
+        //       and is silently recomputed as deleted.
+        // CanRecompute admits BOTH today because it has no signal to tell them apart. This pins the
+        // gap for case (b): a node with no SourceFile and no PatchInjectedOwners entry should DECLINE,
+        // not admit by silence. This is the offline-testable half of the Insert-into-new-top-level-
+        // defs gap; the capture-side fix (wiring RecordAddedChildren, or an equivalent, for Insert and
+        // any future op with the same shape) is RimWorld-coupled and can only be proven live. Do not
+        // "fix" this by loosening the assertion -- fix CanRecompute to check graph.Nodes/
+        // PatchInjectedOwners for dirty ids with zero producing edges.
+        [Test]
+        [Ignore("Known gap, tracked by issue #73 -- CanRecompute doesn't yet check PatchInjectedOwners/SourceFile for dirty ids with zero producing edges. Un-ignore once the fix lands.")]
+        public void PatchInjectedNode_NoSourceFile_AbsentFromPatchInjectedOwners_ShouldDecline_OnceGapClosed()
+        {
+            var g = Graph(); // no PatchEdges reference the injected child's own id at all
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "ThingDef/InsertedChild", DefType = "ThingDef", DefName = "InsertedChild",
+                SourceMod = "mod", SourceFile = null,
+            });
+            Assert.That(Can(g, Set("ThingDef/InsertedChild"), Set(), out string cat), Is.False,
+                "CanRecompute has no signal today to decline an unrecoverable patch-injected node -- see comment above");
+        }
     }
 }
