@@ -277,6 +277,24 @@ namespace Gagarin.Tests
             Assert.That(cat, Is.EqualTo("conditional-cross-def"));
         }
 
+        // Edge-cases loop, 2026-07-14 (petetimessix.simplesidearms live fallback): a conditional whose
+        // test reads an inheritance ANCESTOR of the dirty def (e.g. an abstract Name-based template
+        // like ThingDef@BasePawn) -- NOT a genuinely-absent cross-def probe. DefRecompute's own
+        // AddAncestors step (step 2) physically pulls ancestor raw bodies into the real recompute
+        // sub-doc for both dirty AND context ids, so this read is actually reproducible -> ADMITTED.
+        // Contrast with UnsafeOpOnAncestor_Declines just below: here the conditional's test reads the
+        // ancestor's raw (unmodified) content directly, whereas that test has an UNSAFE op producing
+        // the ancestor's value in the first place -- still correctly declines.
+        [Test]
+        public void ConditionalReadsAncestor_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(
+                Conditional("mod#0", "Defs/ThingDef[@Name=\"BasePawn\"]/comps", "ThingDef@BasePawn"),
+                Edge("mod#0.match", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"Colonist\"]", "ThingDef/Colonist"));
+            Inherit(g, "ThingDef@BasePawn", "ThingDef/Colonist");
+            Assert.That(Can(g, Set("ThingDef/Colonist"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
         // An op unrelated to any dirty def does not force a fallback.
         [Test]
         public void IrrelevantUnsafeOp_DoesNotDecline()
@@ -371,6 +389,55 @@ namespace Gagarin.Tests
             var g = Graph(Edge("mod#0", "Verse.PatchOperationAddModExtension",
                 "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Edge-cases loop, 2026-07-14 (sicafe.chair.overhaul live fallback): PatchOperationTest
+        // never mutates the doc (decompiled: `return xml.SelectSingleNode(xpath) != null;`), so a
+        // dirty def it merely tested (matched==modified per capture convention) is faithfully
+        // recomputed regardless -- admitting it is a true no-op, not a correctness gap.
+        [Test]
+        public void Test_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationTest",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Edge-cases loop, 2026-07-14 (dubwise.dubsbadhygiene live fallback): same gated shape as
+        // AddIf/ReplaceIf/RemoveIf above -- a load-invariant settings flag gates a no-op-or-delegate
+        // to the unmodified base PatchOperationAdd.
+        [Test]
+        public void DubsBadHygieneAddDesignator_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "DubsBadHygiene.PatchOperationAddDesignator",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Edge-cases loop, 2026-07-14 (memegoddess.tdpack live fallback): PatchOperationInsert
+        // anchors its InsertBefore/InsertAfter on the matched XmlNode REFERENCE, not a numeric
+        // index, so a non-positional (defName/content-predicate-anchored) match is exactly as local
+        // as Add/Replace/Remove.
+        [Test]
+        public void Insert_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationInsert",
+                "Defs/DesignationCategoryDef[defName=\"Zone\"]/specialDesignatorClasses/li[text()='X']",
+                "DesignationCategoryDef/Zone"));
+            Assert.That(Can(g, Set("DesignationCategoryDef/Zone"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Insert is only safe when its ANCHOR is non-positional -- a numeric-indexed DEF selector
+        // (no defName/Name anchor ahead of it) could re-select a different def in a smaller
+        // sub-doc, same as any other pathed op.
+        [Test]
+        public void Insert_PositionalXpath_Declined()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationInsert",
+                "Defs/DesignationCategoryDef[3]/specialDesignatorClasses/li[text()='X']",
+                "DesignationCategoryDef/Zone"));
+            Assert.That(Can(g, Set("DesignationCategoryDef/Zone"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("positional-xpath"));
         }
 
         // NOT part of the xfail worklist: an orphan branch child (".match" with no corresponding

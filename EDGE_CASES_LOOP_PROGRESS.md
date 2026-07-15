@@ -44,6 +44,26 @@ Rule: `clean`/`issue_fixed_same_run` rows count up; `issue_open` resets to 0; `b
 `harness_bug`/`inconclusive` rows are skipped (neither counted nor reset) — see the script's
 docstring and `scripts/edge_cases_log.schema.json` for the full category contract.
 
+## Harness change: `--modlist-b=`/`--modlist-verbatim-b=` (2026-07-14)
+
+Switched Phase 2's bulk-sweep invocation style from `--remove=`/`--add=` (regex-mutates run A's
+ModsConfig for run B) to explicit two-full-modlist files, matching user request for easier
+debugging (both runs' exact modlists stored on disk, not reconstructed from a diff). Found and
+fixed two harness gaps along the way (both harness-only, not `Source/Gagarin` correctness bugs —
+not counted against the streak per the `ModsConfig.Reset()`/`sample_candidates.py` precedent):
+1. **`ModsConfig.Reset()` false-positive, freshly hit** (already a known issue below) — root cause
+   of iteration-7's first attempt showing all 7 `--remove=` targets as "not found": the engine wiped
+   ModsConfig back to vanilla+DLC sometime after run A's archived pre-launch snapshot (which *did*
+   have all 7). Not our bug; the two-full-modlist approach sidesteps it structurally since run B's
+   list no longer depends on run A's live ModsConfig state at all.
+2. **New**: `--modlist-b=`/`--modlist-verbatim-b=` initially used the strict default recompute
+   assertion (`fallback==false` required) instead of the informational-recompute carve-out that
+   `--remove=`/`--add=` already have for real bulk content. Real modlists routinely include ops
+   outside `SafeLeafOps` (e.g. `PatchOperationInsert`, `DubsBadHygiene.PatchOperationAddDesignator`)
+   which are legitimate safe fallbacks, not defects — the strict mode is meant for synthetic
+   single-change fixtures. Fixed by adding the same `recompute_required=0` carve-out for the new
+   flags (`TestMods/run_test.sh`).
+
 ## Open issue — DefRecompute perf blowup (FIXED, live-validated) + new dirty-set gap found by that fix
 
 `DefRecompute.Recompute` was replaying **every** `PatchOperation` from **every** running mod
@@ -215,4 +235,5 @@ instead of hand-counted prose. **Append one line per live run there, not a table
 root-cause narrative detail in this file's prose sections / commit messages / PRs as before; the
 JSONL only carries the structured fields (`date`, `phase`, `modlist_desc`, `gate_pass`,
 `recompute_pass`, `category`, `pr`, `notes`) needed to compute the streak and to answer "was this
-counted, and why."
+counted, and why." Seeds 4003-4005 (2026-07-14, run under `--modlist-b=`) are recorded as
+`EDGE_CASES_LOOP_LOG.jsonl` rows rather than table rows below, per that migration.
