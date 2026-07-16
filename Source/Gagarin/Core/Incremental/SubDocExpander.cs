@@ -207,6 +207,35 @@ namespace Gagarin
             return context;
         }
 
+        // Structured version of the two decline checks above: returns the packageIds that would
+        // trip either one (a changed mod owns a container op / a changed mod is wholly new this
+        // load), without a caller having to parse Expand's human-readable fallbackReason string.
+        // Purely additive -- Expand's own signature and behavior are untouched, so every existing
+        // caller/test is unaffected. Exists for TrialExecution.cs (issue #72): before giving up on
+        // the incremental path entirely, it needs to know exactly WHICH mod(s) to trial-execute.
+        public static HashSet<string> DeclinedMods(
+            DependencyGraphData graph, ICollection<string> changedModIds, ICollection<string> newModIds = null)
+        {
+            var declined = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (graph == null)
+                return declined;
+
+            var changedMods = new HashSet<string>(
+                changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var newMods = new HashSet<string>(
+                newModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (GraphPatchEdge edge in graph.PatchEdges)
+                if (changedMods.Contains(edge.SourceMod) && ContainerOpType(edge.PatchId) != null)
+                    declined.Add(edge.SourceMod);
+
+            foreach (string mod in newMods)
+                if (changedMods.Contains(mod))
+                    declined.Add(mod);
+
+            return declined;
+        }
+
         // If patchId names a direct sequence child ("...operations[N]"), return the patchId of
         // the parent sequence container (everything before the trailing ".operations[N]");
         // otherwise null. Operates on the full id: a packageId can contain dots but never the
