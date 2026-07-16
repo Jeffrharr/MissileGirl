@@ -420,7 +420,10 @@ namespace Gagarin
         // Builds the raw-body indices from the def assets loaded this run (Context.XmlAssets,
         // <Defs>-rooted). Concrete -> "{Type}/{defName}", abstract -> "{Type}@{Name}"; Name -> id;
         // node -> owning mod (resolved from the asset's mod).
-        private static void BuildRawIndex(Dictionary<string, XmlElement> rawById,
+        //
+        // internal (not private): TrialExecution.cs (issue #72) reuses this exact raw-body
+        // indexing to build its own scoped scratch doc, rather than duplicating the walk.
+        internal static void BuildRawIndex(Dictionary<string, XmlElement> rawById,
             Dictionary<string, string> idByName, Dictionary<XmlNode, ModContentPack> modByRaw)
         {
             if (Context.XmlAssets == null)

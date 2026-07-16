@@ -506,6 +506,37 @@ namespace Gagarin
             HashSet<string> context = SubDocExpander.Expand(
                 graph, dirty, changedMods, out bool needsFullRebuild, out string fallbackReason, newMods);
 
+            // Trial-execution escape hatch (issue #72): the two decline checks Expand just ran
+            // are deliberately blunt static analysis over the PRIOR graph -- they decline whenever
+            // they cannot structurally PROVE safety, even though the declining mod's raw,
+            // unexecuted PatchOperations are available right now via ModContentPack.Patches. Real
+            // (but tightly bounded -- see TrialExecution.cs's header for the hang-safety argument
+            // versus the reverted ComputeAddedContentFlips) execution can sometimes settle what
+            // static analysis can't, e.g. a genuinely new mod whose entire sequence targets defs
+            // already inside dirty/context needs no baseline evidence at all. Only attempted when
+            // Expand actually declined; on success this overrides needsFullRebuild and folds the
+            // trial-discovered ids into context, so the existing CanRecompute -> DefRecompute path
+            // below runs completely unchanged from here on. On failure the original decline stands,
+            // just with a more specific reason appended.
+            if (needsFullRebuild)
+            {
+                HashSet<string> declinedMods = SubDocExpander.DeclinedMods(graph, changedMods, newMods);
+                if (TrialExecution.TryAdmit(declinedMods, dirty, context, graph,
+                        out HashSet<string> foldedContext, out string trialReason))
+                {
+                    Log.Warning("GAGARIN: <color=white>Recompute gate</color> trial execution " +
+                        $"admitted declined mod(s) [{string.Join(", ", declinedMods)}] -- " +
+                        $"{foldedContext.Count - context.Count} trial-discovered id(s) folded into context.");
+                    needsFullRebuild = false;
+                    fallbackReason = null;
+                    context = foldedContext;
+                }
+                else
+                {
+                    fallbackReason = $"{fallbackReason} (trial execution declined to admit: {trialReason})";
+                }
+            }
+
             // Recompute allowlist (safe-by-default): even when SubDocExpander is willing to recompute,
             // take the incremental path ONLY when every op producing a dirty def is a proven-faithful
             // pattern (leaf op with a stable xpath, sequence-with-context, same-def conditional).
