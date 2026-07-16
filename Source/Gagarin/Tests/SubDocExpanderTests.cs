@@ -324,5 +324,75 @@ namespace Gagarin.Tests
             Assert.That(fullRebuild, Is.True);
             Assert.That(reason, Does.Contain("regrowth.botr.core"));
         }
+
+        // DeclinedMods (issue #72 — trial execution needs to know exactly WHICH mod(s) tripped a
+        // decline, not just the human-readable reason string). Mirrors ChangedModSequenceOp_
+        // TriggersFallback's fixture shape: the changed mod owns the container op.
+        [Test]
+        public void DeclinedMods_ChangedModOwnsContainerOp_NamesThatMod()
+        {
+            var g = Graph(
+                Edge("joof.testharness.change#0.operations[0]", "joof.testharness.change", "ThingDef/TC_SeqTarget"),
+                Edge("joof.testharness.change#0.operations[1]", "joof.testharness.change", "ThingDef/TC_Identity"));
+
+            HashSet<string> declined = SubDocExpander.DeclinedMods(g, Set("joof.testharness.change"));
+
+            Assert.That(declined, Is.EquivalentTo(new[] { "joof.testharness.change" }));
+        }
+
+        // Mirrors NewModWithNoBaselineRepresentation_TriggersFallback's fixture shape: a changed
+        // mod that is wholly new this load (zero edges in the prior graph) still needs to be
+        // named so the trial-execution driver can find it among LoadedModManager.RunningMods.
+        [Test]
+        public void DeclinedMods_NewModWithNoBaselineRepresentation_NamesThatMod()
+        {
+            var g = Graph(Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/Unrelated"));
+
+            HashSet<string> declined = SubDocExpander.DeclinedMods(
+                g, Set("regrowth.botr.core"), Set("regrowth.botr.core"));
+
+            Assert.That(declined, Is.EquivalentTo(new[] { "regrowth.botr.core" }));
+        }
+
+        // A changed mod whose op is top-level (no container) never trips either decline check —
+        // DeclinedMods must agree with Expand's own fullRebuild=false verdict for this shape.
+        [Test]
+        public void DeclinedMods_ChangedModTopLevelOp_Empty()
+        {
+            var g = Graph(Edge("joof.testharness.change#0", "joof.testharness.change", "ThingDef/A"));
+
+            HashSet<string> declined = SubDocExpander.DeclinedMods(g, Set("joof.testharness.change"));
+
+            Assert.That(declined, Is.Empty);
+        }
+
+        // An unchanged mod's container op is exactly what sibling expansion handles faithfully —
+        // it must not be reported as declined.
+        [Test]
+        public void DeclinedMods_UnchangedModContainerOp_Empty()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"));
+
+            HashSet<string> declined = SubDocExpander.DeclinedMods(g, Set("other.mod"));
+
+            Assert.That(declined, Is.Empty);
+        }
+
+        // Both decline conditions can co-occur across different mods in the same load; DeclinedMods
+        // must name all of them so a caller can attempt trial execution for every one.
+        [Test]
+        public void DeclinedMods_BothConditionsAtOnce_NamesBoth()
+        {
+            var g = Graph(
+                Edge("joof.testharness.change#0.operations[0]", "joof.testharness.change", "ThingDef/TC_SeqTarget"),
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/Unrelated"));
+
+            HashSet<string> declined = SubDocExpander.DeclinedMods(
+                g, Set("joof.testharness.change", "regrowth.botr.core"), Set("regrowth.botr.core"));
+
+            Assert.That(declined, Is.EquivalentTo(new[] { "joof.testharness.change", "regrowth.botr.core" }));
+        }
     }
 }
