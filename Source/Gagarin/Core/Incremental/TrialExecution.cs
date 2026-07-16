@@ -149,11 +149,22 @@ namespace Gagarin
                         knownGraphNodeIds.Add(n.Id);
 
             var modByPackageId = new Dictionary<string, ModContentPack>(StringComparer.OrdinalIgnoreCase);
+            var realOrder = new List<string>();
             foreach (ModContentPack mod in LoadedModManager.RunningMods)
-                if (mod?.PackageId != null)
-                    modByPackageId[mod.PackageId] = mod;
+            {
+                if (mod?.PackageId == null)
+                    continue;
+                modByPackageId[mod.PackageId] = mod;
+                realOrder.Add(mod.PackageId);
+            }
 
-            foreach (string packageId in declinedMods)
+            // Real load order, not declinedMods's incidental HashSet enumeration order --
+            // foldedContext accumulates across mods in this loop (see method comment), so a mod
+            // processed out of true order could see (or fail to see) an earlier mod's
+            // trial-discovered ids for reasons that have nothing to do with the actual mod list.
+            // Offline-tested only (ModLoadOrderTests) -- issue #83 tracks a live fixture with 2+
+            // declined mods to prove ordering actually changes the outcome vs. raw HashSet order.
+            foreach (string packageId in ModLoadOrder.Sort(declinedMods, realOrder))
             {
                 if (!modByPackageId.TryGetValue(packageId, out ModContentPack mod))
                 {
