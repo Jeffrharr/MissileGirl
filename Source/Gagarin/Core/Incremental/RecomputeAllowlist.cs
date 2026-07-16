@@ -461,6 +461,26 @@ namespace Gagarin
             return true; // every producing op is allowlisted
         }
 
+        // Ancestor ids DefRecompute's current-raw-XML ParentName walk pulled in
+        // (ancestorIdsFromRawXml) that CanRecompute's relevantTargets (this method's own
+        // prior-graph InheritanceEdges walk) never vetted -- see CanRecompute's comment for why the
+        // two can diverge (issue #75). Pulled out of DirtySetGate.RunRecompute as a pure function so
+        // the set-subtraction itself is offline-testable, independent of the RimWorld-coupled
+        // recompute path it's normally called from. relevantTargets is never null here: CanRecompute
+        // assigns it on every return path, and the one call site only reaches this after CanRecompute
+        // has already succeeded.
+        public static List<string> ComputeAncestorDivergence(
+            List<string> ancestorIdsFromRawXml, HashSet<string> relevantTargets)
+        {
+            var divergence = new List<string>();
+            if (ancestorIdsFromRawXml == null)
+                return divergence;
+            foreach (string id in ancestorIdsFromRawXml)
+                if (!relevantTargets.Contains(id))
+                    divergence.Add(id);
+            return divergence;
+        }
+
         private static void Block(string category, string reason, out string blockReason, out string blockCategory)
         {
             blockCategory = category;

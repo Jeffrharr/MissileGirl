@@ -562,9 +562,8 @@ namespace Gagarin
             // have blessed the op-set without vetting an ancestor only this raw-XML walk sees. Log-
             // only for now (mirrors the "recompute" inconsistency kind below) — no auto-fallback
             // escalation until real-world frequency data justifies one.
-            List<string> ancestorDivergence = ancestorIdsFromRawXml
-                .Where(id => relevantTargets == null || !relevantTargets.Contains(id))
-                .ToList();
+            List<string> ancestorDivergence =
+                RecomputeAllowlist.ComputeAncestorDivergence(ancestorIdsFromRawXml, relevantTargets);
             if (ancestorDivergence.Count > 0 && GagarinPrefs.Metrics)
                 MetricsLog.Append(MetricsLog.BuildInconsistency(
                     CurrentEnvelope(), "recompute-ancestor-divergence", ancestorDivergence.Count,
