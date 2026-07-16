@@ -49,6 +49,14 @@
 // both mean the baseline execution path for that mod cannot be trusted, so we decline rather
 // than guess.
 //
+// Deliberately whole-mod, not op-scoped: a new mod's leaf ops are just as unprovable as its
+// container ops today, since RecomputeAllowlist.CanRecompute has the identical blind spot (it
+// too only walks this same prior graph's PatchEdges, so a new mod's op — safe or not — never
+// shows up to be vetted and would otherwise fall through to allowlisted-by-default). This is
+// intentionally the widest fallback we can draw given zero prior-graph evidence — expected to
+// narrow later (per-op, once capture/replay can vet a new mod's ops directly) as more of the
+// recompute-gap backlog closes, same trajectory as SafeLeafOps growing over time.
+//
 // Why pure: it is just graph/string analysis over DependencyGraphData, no RimWorld types, so it
 // is unit-tested offline exactly like DirtySetComputer. It mirrors scripts/closure.py one-to-one
 // so offline analysis and in-game expansion cannot drift.

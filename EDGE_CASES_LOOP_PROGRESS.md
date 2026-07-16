@@ -198,6 +198,13 @@ exact archived `20260714-160405` modlists (`--modlist-verbatim=`/`--modlist-verb
 `RecomputeReport.json` now reads `pass:true, fallback:true, recomputeMismatches:0`, fallback
 reason naming a new mod in `newMods ∩ changedMods`.
 
+Deliberately whole-mod rather than op-scoped (check-my-vibe interview, PR #71): a new mod's leaf
+ops are equally unprovable today, since `RecomputeAllowlist.CanRecompute` has the identical blind
+spot over the same prior graph (an op with zero prior-graph representation is never vetted and
+falls through to allowlisted-by-default). This is the widest fallback the current evidence
+justifies — expect to narrow it to per-op once capture/replay can vet a new mod's ops directly,
+same trajectory as `SafeLeafOps` growing over time.
+
 ## Known issues (not counted against the streak — avoid these modlists, don't reset for them)
 
 - **`ModsConfig.Reset()` wipes the active modlist to vanilla+DLC** (confirmed via decompile:
