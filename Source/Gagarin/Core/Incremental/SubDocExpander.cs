@@ -104,8 +104,16 @@ namespace Gagarin
                 return context;
 
             var dirty = AsSet(dirtyIds);
-            var changedMods = AsSet(changedModIds);
-            var newMods = AsSet(newModIds);
+            // Package ids, not node ids: compared case-insensitively like every other mod-id set
+            // in the incremental pipeline (DirtySetComputer/DirtySetDiagnostic/DefRecompute all use
+            // OrdinalIgnoreCase for packageId sets). Built fresh rather than via AsSet — AsSet
+            // returns an input HashSet<string> as-is when one is passed in (its own Ordinal default
+            // only applies when it has to allocate), so relying on it here would silently inherit
+            // whichever comparer the caller's set happened to have.
+            var changedMods = new HashSet<string>(
+                changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var newMods = new HashSet<string>(
+                newModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 
             // One pass over the patch edges builds both lookups AND checks the fallback:
             //   nodeToEdges:      modifiedNodeId -> edges that modified it (to find a dirty def's
@@ -148,15 +156,27 @@ namespace Gagarin
             // loop above to trip the container-op check — it simply never appears as a
             // GraphPatchEdge.SourceMod, whether or not it owns a container op. Check membership
             // directly against newModIds instead of relying on edge absence.
+            //
+            // Collect EVERY qualifying mod rather than stopping at the first: this fallback is
+            // expected to narrow over time (see file header), and a reason naming only one
+            // culprit is misleading once more than one qualifies — proving mod A's ops safe and
+            // re-running would still show fallback:true, just now naming mod B, which reads as
+            // "the fix didn't work" instead of "a second mod also qualifies". Sorted so the
+            // reason string is deterministic across runs (HashSet iteration order is not).
             if (!needsFullRebuild)
             {
+                var qualifying = new List<string>();
                 foreach (string mod in newMods)
+                    if (changedMods.Contains(mod))
+                        qualifying.Add(mod);
+
+                if (qualifying.Count > 0)
                 {
-                    if (!changedMods.Contains(mod))
-                        continue;
+                    qualifying.Sort(StringComparer.OrdinalIgnoreCase);
                     needsFullRebuild = true;
-                    fallbackReason = $"new mod {mod} has no baseline representation in the prior graph";
-                    break;
+                    fallbackReason = qualifying.Count == 1
+                        ? $"new mod {qualifying[0]} has no baseline representation in the prior graph"
+                        : $"new mods [{string.Join(", ", qualifying)}] have no baseline representation in the prior graph";
                 }
             }
 
