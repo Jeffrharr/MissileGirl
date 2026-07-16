@@ -47,8 +47,10 @@ distinguishable). Event types:
   stage did not run.
 - `error` — `stage`, `exceptionType` (runtime type name — the key grouping axis), `message`.
 - `inconsistency` — the high-value anomalies: `kind` (`gate` = dirty set missed a real change /
-  silent staleness; `recompute` = recomputed defs diverged from the rebuild), `mismatchCount`,
-  `sampleIds`.
+  silent staleness; `recompute` = recomputed defs diverged from the rebuild;
+  `recompute-ancestor-divergence` = DefRecompute's current-raw-XML ancestor walk found an id
+  CanRecompute's prior-graph ancestor walk never vetted — issue #75, log-only for now),
+  `mismatchCount`, `sampleIds`.
 
 ## Summarize error records by type
 
