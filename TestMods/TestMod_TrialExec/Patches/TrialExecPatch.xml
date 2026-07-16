@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Issue #72: the trial-execution escape hatch.
+       This op is owned by joof.testharness.trialexec itself, the mod SubDocExpander sees as BOTH
+       wholly new this load AND owning a container op (PatchOperationSequence); either condition
+       alone forces needsFullRebuild==true today. Both children target only this mod's own two new
+       ThingDefs (see Defs/TrialExecDefs.xml), which the added-defs seed (Seed 5) already dirtied
+       before TrialExecution ever runs. A bounded trial replay of just this sequence against a
+       scratch doc scoped to dirty union context (see TrialExecution.TryRun) can therefore settle
+       the safety question outright: the sequence never reaches a def outside that scope, so
+       TrialContainment.IsContained reports zero overflow and DeclinedMods' entry for this mod is
+       folded into context instead of forcing the full-rebuild fallback. -->
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_TrialExec_A"]</xpath>
+        <value>
+          <trialExecTag>touched-a</trialExecTag>
+        </value>
+      </li>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_TrialExec_B"]</xpath>
+        <value>
+          <trialExecTag>touched-b</trialExecTag>
+        </value>
+      </li>
+    </operations>
+  </Operation>
+</Patch>

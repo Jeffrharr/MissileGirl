@@ -325,6 +325,46 @@ that code path gets intercepted first by `RecomputeAllowlist`'s `conditional-cro
 (already correct and tested), so the buggy path is currently unreachable in production. It remains
 a documented, offline-untestable caveat rather than a fixture.
 
+## Trial-execution escape hatch (issue #72) — `--expect-trial-execution`
+
+```bash
+bash TestMods/run_test.sh --expect-trial-execution
+```
+
+`TestMod_TrialExec` — symlinked always but held OUT of `ModsConfig.xml` for run A and inserted
+before run B (same P2-style mod-list-change convention as `--expect-added`). It is deliberately
+**both** of `SubDocExpander`'s blunt decline conditions at once: it is wholly new this load (no
+baseline representation in run A's `DependencyGraph.json`), *and* its own patch
+(`TestMod_TrialExec/Patches/TrialExecPatch.xml`) is a `PatchOperationSequence` — a container op —
+applied by the very mod that triggered the decline. Either condition alone used to force
+`needsFullRebuild==true` unconditionally, even though the mod's raw, unexecuted `PatchOperation`s
+are available via `ModContentPack.Patches` at exactly that point in the load.
+
+`TrialExecution.TryRun` (`Source/Gagarin/Core/Incremental/TrialExecution.cs`) replays the
+declining mod's full patch list — never any other mod's, never the whole running-mod list — against
+a scratch `<Defs>` doc built from exactly `dirty ∪ context` (a few dozen nodes at most, reusing
+`DefRecompute.BuildRawIndex`). `TestMod_TrialExec`'s two `ThingDef`s are already dirtied via the
+added-defs seed (Seed 5) before the trial ever runs, so both nodes are present in the scratch doc
+and the sequence's two `PatchOperationAdd` children only mutate them in place — discovering **zero**
+new top-level ids. `TrialContainment.IsContained` (the pure containment helper,
+`Source/Gagarin/Core/Incremental/TrialContainment.cs`) trivially admits an empty target set, so
+`DirtySetGate.RunRecompute` folds the mod's declined status into an admission instead of falling
+back to a full rebuild.
+
+This design is deliberately narrower than the reverted `DirtySetDiagnostic.ComputeAddedContentFlips`
+attempt (see that file's history comment), which replayed a real mod's patches against a scratch
+copy of the **whole current candidate document** (tens of thousands of defs) and hung a real load.
+`TryRun` is bounded to one mod, one replay, one tiny scratch doc; any exception (a custom op
+assuming ambient state the scoped doc doesn't carry) is caught and treated as "could not prove
+safe," never as a crash that escapes and aborts the load.
+
+Same assertion shape as `--expect-order-preserved`/`--expect-patch-injected-child` — the point is
+proving **admission**, not another decline — so this uses the **default** real-recompute assertion
+(`fallback==false`, `recomputeMismatches==0`), not a dedicated parser. `TrialContainment`'s pure
+overflow logic (a trial-discovered id colliding with a REAL, already-known node in the prior graph)
+is offline-tested (`TrialContainmentTests`); `TrialExecution.cs` itself is RimWorld-coupled and only
+validated live via this fixture.
+
 ## Pass criteria
 
 Default run (`bash TestMods/run_test.sh`):
