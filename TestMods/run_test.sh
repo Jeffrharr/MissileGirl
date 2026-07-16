@@ -294,6 +294,18 @@ EXPECT_OPKIND=0
 # so RecomputeAllowlist must ADMIT them and the recompute gate uses the DEFAULT real-recompute
 # assertion (fallback==false, recomputeMismatches==0) -- no special parser needed.
 EXPECT_ORDERPRESERVED=0
+# --expect-test-op: positive regression, PASSES live (issue #74). CASE 15: TestMod_Static
+# (UNCHANGED) carries a PatchOperationSequence whose operations are [0] a PatchOperationTest (an
+# always-true, same-def, non-positional existence gate on TC_TestGate_Target itself) then [1] a
+# PatchOperationAdd that mutates the same def. Verse.PatchOperationTest has been in SafeLeafOps
+# since 2026-07-14 (its ApplyWorker is a pure `SelectSingleNode(xpath) != null` read that never
+# touches the XmlDocument -- offline-pinned by
+# RecomputeAllowlistTests.Test_ShouldBeAdmitted_OnceProvenSafe), but that entry had never been
+# proven live past the fallback point with the recompute gate REQUIRED to pass. TestMod_Change
+# dirties TC_TestGate_Target directly (run-a->run-b, Seed 2). Same shape as --expect-op-kind --
+# RecomputeAllowlist must ADMIT the recompute, so the recompute gate uses the DEFAULT
+# real-recompute assertion (fallback==false, recomputeMismatches==0); recompute_required stays 1.
+EXPECT_TESTOP=0
 # --expect-scope-escape: live proof that RecomputeAllowlist's positional-safety check is a
 # structural per-step parser, not a string-position heuristic (review-flagged gap, offline-pinned by
 # RecomputeAllowlistTests.PositionalXpath_SiblingAxisAfterAnchor_Declined /
@@ -394,6 +406,8 @@ for arg in "$@"; do
         EXPECT_OPKIND=1
     elif [[ "$arg" == "--expect-order-preserved" ]]; then
         EXPECT_ORDERPRESERVED=1
+    elif [[ "$arg" == "--expect-test-op" ]]; then
+        EXPECT_TESTOP=1
     elif [[ "$arg" == "--expect-scope-escape" ]]; then
         EXPECT_SCOPEESCAPE=1
     elif [[ "$arg" == "--expect-rogue-op" ]]; then
@@ -420,7 +434,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -504,6 +518,12 @@ elif [[ $EXPECT_ORDERPRESERVED -eq 1 ]]; then
     # TestMod_Static carries.
     RUN_A_CHANGE="Change_RunA_OrderPreserved.xml"
     RUN_B_CHANGE="Change_RunB_OrderPreserved.xml"
+elif [[ $EXPECT_TESTOP -eq 1 ]]; then
+    # --expect-test-op: same shape — the change file MUST differ between runs so
+    # TC_TestGate_Target is seeded dirty (Seed 2) and recomputed under the PatchOperationTest-gated
+    # sequence TestMod_Static carries.
+    RUN_A_CHANGE="Change_RunA_TestOp.xml"
+    RUN_B_CHANGE="Change_RunB_TestOp.xml"
 elif [[ $EXPECT_SCOPEESCAPE -eq 1 ]]; then
     # --expect-scope-escape: same shape as --expect-recompute-gap — the change file MUST differ
     # between runs so TC_ScopeEscape_B is seeded dirty (Seed 2) and recomputed under the
@@ -1677,6 +1697,15 @@ opkind_ok=1
 # (in-sub-doc) for both ops, so the allowlist must ADMIT it — the default recompute assertion
 # (recompute_required stays 1) is the whole point of this mode; no separate _ok var needed.
 
+# --expect-test-op: same shape as --expect-order-preserved (positive admission, not a
+# decline-proving mode). Verse.PatchOperationTest is in SafeLeafOps (offline-pinned by
+# RecomputeAllowlistTests.Test_ShouldBeAdmitted_OnceProvenSafe) and this live mode asserts the
+# resulting real recompute (fallback==false, recomputeMismatches==0) via the DEFAULT recompute
+# assertion below (recompute_required stays 1) — proven-safe admission, PASSES live from day one
+# (issue #74). testop_ok is a trivial placeholder (never flipped to 0), mirroring opkind_ok, kept
+# only for symmetry with the final && condition below.
+testop_ok=1
+
 # --remove (real-mod removal): the claim is purely that the dirty set stays a SUPERSET over real
 # content (nonDirtyMismatches==0). Recompute is informational — a real removal typically includes
 # MayRequire-gated defs the recompute-fidelity gap cannot yet reproduce.
@@ -1702,7 +1731,7 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 && $scopeescape_ok -eq 1 && $rogueop_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 && $testop_ok -eq 1 && $scopeescape_ok -eq 1 && $rogueop_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -1715,6 +1744,8 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
         echo "  nested-in-sequence: fallback=true AND DependencyGraph.json has a populated read-set edge for the sequence-nested conditional — capture proven (issue #25 item 3)"
     elif [[ $EXPECT_OPKIND -eq 1 ]]; then
         echo "  op-kind:         fallback=false, mismatches=0 (proven-safe admission, PatchOperationFindMod is in SafeLeafOps) — PASSES live"
+    elif [[ $EXPECT_TESTOP -eq 1 ]]; then
+        echo "  test-op:         fallback=false, mismatches=0 (proven-safe admission, Verse.PatchOperationTest is in SafeLeafOps) — PASSES live (issue #74)"
     elif [[ $EXPECT_SCOPEESCAPE -eq 1 ]]; then
         echo "  scope-escape:    fallback=true (positional-xpath) — sibling-axis escape from a lexically-earlier anchor correctly DECLINED by the structural per-step parser"
     elif [[ $EXPECT_ROGUEOP -eq 1 ]]; then
@@ -1752,7 +1783,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok  scope-escape pass=$scopeescape_ok  rogue-op pass=$rogueop_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok  test-op pass=$testop_ok  scope-escape pass=$scopeescape_ok  rogue-op pass=$rogueop_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1

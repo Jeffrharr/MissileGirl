@@ -286,4 +286,32 @@
       </ThingDef>
     </value>
   </Operation>
+
+  <!-- CASE 15: PatchOperationTest admitted as a proven-safe leaf op inside a sequence (issue #74).
+       RecomputeAllowlist.SafeLeafOps has carried Verse.PatchOperationTest since 2026-07-14 (the
+       sicafe.chair.overhaul edge case) on the strength of its decompiled ApplyWorker being a pure
+       `SelectSingleNode(xpath) != null` read that never touches the XmlDocument — but that entry
+       has never been proven live PAST the fallback point, with the recompute gate REQUIRED to
+       pass (see RecomputeAllowlistTests.Test_ShouldBeAdmitted_OnceProvenSafe for the offline pin).
+       This sequence runs [0] a PatchOperationTest whose xpath tests for TC_TestGate_Target's own
+       existence (always true — the def is defined in TestDefs.xml and never removed, so the test
+       gate is a deterministic, same-def, non-positional no-op) then [1] a PatchOperationAdd that
+       actually mutates the same def. Because the test never touches the doc, this sequence behaves
+       identically to a bare PatchOperationAdd from the recomputed def's perspective — the whole
+       point is proving RecomputeAllowlist agrees and ADMITS the recompute rather than declining
+       on an unrecognized/unsafe op kind. TC_TestGate_Target is dirtied directly by TestMod_Change
+       (Seed 2); this file (TestMod_Static) never changes. See expect-test-op. -->
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationTest">
+        <xpath>Defs/ThingDef[defName="TC_TestGate_Target"]</xpath>
+      </li>
+      <li Class="PatchOperationAdd">
+        <xpath>Defs/ThingDef[defName="TC_TestGate_Target"]</xpath>
+        <value>
+          <testGateTag>gated-add</testGateTag>
+        </value>
+      </li>
+    </operations>
+  </Operation>
 </Patch>
