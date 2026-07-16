@@ -203,4 +203,23 @@
   <ThingDef Abstract="True" Name="TC_PatchInjectedBase">
     <label>patch-injected base</label>
   </ThingDef>
+
+  <!-- CASE 15: Verse.PatchOperationTest admitted as a proven-safe leaf op (issue #74 — closing the
+       live-validation gap for RecomputeAllowlist.SafeLeafOps' Test entry, added 2026-07-14 for the
+       sicafe.chair.overhaul edge case but never proven past the fallback point with the recompute
+       gate REQUIRED to pass). Mirrors CASE 10 (expect-op-kind) and CASE 11
+       (expect-order-preserved) exactly: TestMod_Static's PatchOperationSequence runs [0] a
+       PatchOperationTest whose xpath is TC_TestGate_Target's own defName (always present, so the
+       gate always passes — a deterministic, same-def, non-positional test) then [1] a
+       PatchOperationAdd targeting the same def. PatchOperationTest never mutates the XmlDocument
+       (its ApplyWorker is a pure `SelectSingleNode(xpath) != null` read; see RecomputeAllowlist.cs's
+       SafeLeafOps comment), so admitting it as a safe leaf op is a true no-op from the recomputed
+       def's perspective. TC_TestGate_Target is dirtied directly by TestMod_Change (Seed 2); unlike
+       CASE 10 (which proves an op-kind DECLINE), this is a proven-safe positive regression from day
+       one — RecomputeAllowlist must ADMIT recompute for it (offline-pinned by
+       RecomputeAllowlistTests.Test_ShouldBeAdmitted_OnceProvenSafe). See expect-test-op. -->
+  <ThingDef>
+    <defName>TC_TestGate_Target</defName>
+    <label>test gate target</label>
+  </ThingDef>
 </Defs>

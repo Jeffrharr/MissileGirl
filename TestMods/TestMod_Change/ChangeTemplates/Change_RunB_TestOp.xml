@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Run B for the expect-test-op mode (CASE 15, issue #74). Replaces TC_TestGate_Target's
+       changeTag value (run-a -> run-b), changing the changed mod's patch-file hash so the
+       diagnostic seeds TC_TestGate_Target as dirty (Seed 2). TestMod_Static's CASE 15 sequence
+       (a PatchOperationTest gate, always true, followed by a PatchOperationAdd) produces
+       TC_TestGate_Target, so RecomputeAllowlist must admit the recompute now that
+       Verse.PatchOperationTest is in SafeLeafOps — see StaticPatches.xml CASE 15. -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>Defs/ThingDef[defName="TC_TestGate_Target"]/changeTag</xpath>
+    <value>
+      <changeTag>run-b</changeTag>
+    </value>
+  </Operation>
+</Patch>

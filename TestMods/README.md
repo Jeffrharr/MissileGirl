@@ -223,18 +223,20 @@ informational only (doesn't affect `pass`), so this isn't asserted by the harnes
 worth checking manually if you touch either the dirty-set or the coverage-audit code paths, since
 this is the one fixture that can catch a regression in either.
 
-## Op-kind / ordering / positional-safety regressions — `--expect-op-kind`, `--expect-order-preserved`, `--expect-scope-escape`, `--expect-rogue-op`
+## Op-kind / ordering / positional-safety regressions — `--expect-op-kind`, `--expect-order-preserved`, `--expect-test-op`, `--expect-scope-escape`, `--expect-rogue-op`
 
 ```bash
 bash TestMods/run_test.sh --expect-op-kind
 bash TestMods/run_test.sh --expect-order-preserved
+bash TestMods/run_test.sh --expect-test-op
 bash TestMods/run_test.sh --expect-scope-escape
 bash TestMods/run_test.sh --expect-rogue-op
 ```
 
-CASE 10/11/12 in `TestMod_Static/Patches/StaticPatches.xml`, defs `TC_OpKind_Target` /
-`TC_Order_Source` / `TC_ScopeEscape_A`+`TC_ScopeEscape_B` in `TestMod_Defs`. All dirty their target
-directly via `TestMod_Change`'s `Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_OrderPreserved.xml`
+CASE 10/11/15 in `TestMod_Static/Patches/StaticPatches.xml`, defs `TC_OpKind_Target` /
+`TC_Order_Source` / `TC_TestGate_Target` in `TestMod_Defs` (CASE 12's `TC_ScopeEscape_A`+
+`TC_ScopeEscape_B` below). All dirty their target directly via `TestMod_Change`'s
+`Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_OrderPreserved.xml` / `Change_Run{A,B}_TestOp.xml`
 / `Change_Run{A,B}_ScopeEscape.xml` (Seed 2, patch-file hash change) — same mechanism as
 `--expect-recompute-gap`.
 
@@ -252,6 +254,17 @@ directly via `TestMod_Change`'s `Change_Run{A,B}_OpKind.xml` / `Change_Run{A,B}_
   then a `PatchOperationConditional` reading it). Both ops are same-def (in the recompute sub-doc),
   so the allowlist already admits them; this pins that `DefRecompute` applies same-def ops in file
   order faithfully — guards against a future regression, not a currently-known gap.
+- **`--expect-test-op` is a proven-safe positive admission, PASSES live from day one (issue #74).**
+  CASE 15 wraps a `PatchOperationTest` (an always-true, same-def, non-positional existence gate on
+  `TC_TestGate_Target` itself) and a `PatchOperationAdd` targeting the same def inside a single
+  `PatchOperationSequence`. `Verse.PatchOperationTest` has been in `SafeLeafOps` since 2026-07-14 —
+  its decompiled `ApplyWorker` is a pure `SelectSingleNode(xpath) != null` read that never mutates
+  the `XmlDocument`, so admitting it as a safe leaf op is a true no-op from the recomputed def's
+  perspective — but that entry had never been proven live past the fallback point with the
+  recompute gate REQUIRED to pass. Unlike `--expect-op-kind` (which was an XFAIL until FindMod was
+  proven safe), this fixture asserts a real recompute (`fallback==false`, `recomputeMismatches==0`)
+  from the start, not a formerly-declining mode that has since been fixed; offline-pinned by
+  `RecomputeAllowlistTests.Test_ShouldBeAdmitted_OnceProvenSafe`.
 - **`--expect-rogue-op`** is a live proof of the fully-qualified `RecomputeAllowlist.SafeLeafOps`
   sweep — the original CRITICAL review finding that a bare-simple-name-keyed allowlist could be
   spoofed by an unrelated mod's same-named class. `TestMod_RogueOp` ships `RogueMod.PatchOperationAdd`
