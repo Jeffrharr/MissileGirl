@@ -122,11 +122,16 @@ namespace Gagarin
                 return; // nothing was rebuilt this load — nothing to fingerprint or gate
 
             // Parse the rebuild ONCE: it feeds both the per-def fingerprint (written every load) and
-            // the gate diff below.
+            // the gate diff below. rebuildPaths is the id -> source-path side index (issue #72's
+            // trial-discovered-def fallback — see UnifiedCacheDiff.IndexPathsById), read from the
+            // same document so it costs nothing beyond one more pass over already-parsed nodes.
             Dictionary<string, string> rebuild;
+            Dictionary<string, string> rebuildPaths;
             try
             {
-                rebuild = UnifiedCacheDiff.IndexById(LoadCache(rebuilt));
+                XmlDocument rebuildDoc = LoadCache(rebuilt);
+                rebuild = UnifiedCacheDiff.IndexById(rebuildDoc);
+                rebuildPaths = UnifiedCacheDiff.IndexPathsById(rebuildDoc);
             }
             catch (Exception e)
             {
@@ -206,7 +211,7 @@ namespace Gagarin
                 // are reused verbatim and already proven equal by the gate above, so any mismatch
                 // here is a recompute fidelity gap.
                 if (GagarinPrefs.DirtySetRecompute)
-                    RunRecompute(baselineDoc, rebuild, dirty);
+                    RunRecompute(baselineDoc, rebuild, dirty, rebuildPaths);
 
                 // Metrics: one combined load_summary for this load (diagnostic figures + this
                 // gate's verdict + any recompute verdict), plus inconsistency records for the
@@ -483,7 +488,8 @@ namespace Gagarin
         // is stale, so we fall back to the full rebuild for this load rather than risk an
         // unfaithful recompute.
         private static void RunRecompute(XmlDocument baselineDoc,
-            Dictionary<string, string> rebuild, HashSet<string> dirty)
+            Dictionary<string, string> rebuild, HashSet<string> dirty,
+            Dictionary<string, string> rebuildPaths)
         {
             // The graph is the PRIOR run's DependencyGraph.json — snapshotted execution paths we
             // trust for UNCHANGED mods' sequences. (Same file DirtySetDiagnostic just consumed.)
@@ -599,13 +605,24 @@ namespace Gagarin
                 MetricsLog.Append(MetricsLog.BuildInconsistency(
                     CurrentEnvelope(), "recompute-ancestor-divergence", ancestorDivergence.Count,
                     ancestorDivergence.GetRange(0, Math.Min(20, ancestorDivergence.Count))));
-            // newPaths (P2): the added-def id -> source-file map the diagnostic published this
-            // load. A recomputed id absent from the baseline cache is a genuinely-new def; the
+            // newPaths (P2 + issue #72 trial-execution fallback): the added-def id -> source-file
+            // map. A recomputed id absent from the baseline cache is a genuinely-new def; the
             // splice appends it as a new <Item path=...> and reads the path from here so the
-            // appended item byte-matches what a full rebuild would have written. Null/absent for
-            // ids that already existed (replaced in place, keeping their original wrapper).
+            // appended item byte-matches what a full rebuild would have written.
+            // DirtySetDiagnostic.LastNewPaths (P2/Seed 5) only covers raw <Defs>-file-declared
+            // additions -- it has no entry for a def that TrialExecution folded into context
+            // because a declining mod's PatchOperation created it (no raw file of its own). For
+            // those, fall back to rebuildPaths -- the id -> path index of the ground-truth full
+            // rebuild that already ran this load (see UnifiedCacheDiff.IndexPathsById for why
+            // this is only sound in gate/validation mode, where a real rebuild always precedes
+            // the recompute). Null/absent (both sources) for ids that already existed (replaced
+            // in place, keeping their original wrapper). Offline-tested only -- issue #83 tracks
+            // building a live fixture where a declined mod's trial genuinely discovers new
+            // content, since --expect-trial-execution's TrialTargetIds is always empty by design.
+            Dictionary<string, string> newPaths = MergeNewPaths(
+                DirtySetDiagnostic.LastNewPaths, rebuildPaths);
             XmlDocument spliced = UnifiedCacheSplice.Splice(
-                baselineDoc, recomputed, removed, DirtySetDiagnostic.LastNewPaths);
+                baselineDoc, recomputed, removed, newPaths);
             // Normalize through the same whitespace-insensitive parse the rebuild went through, so
             // OuterXml comparison is not tripped by formatting differences.
             Dictionary<string, string> splicedIdx = UnifiedCacheDiff.IndexById(Reparse(spliced));
@@ -643,6 +660,20 @@ namespace Gagarin
                 MetricsLog.Append(MetricsLog.BuildInconsistency(
                     CurrentEnvelope(), "recompute", miss.Count,
                     miss.GetRange(0, Math.Min(20, miss.Count))));
+        }
+
+        // primary wins; fallback only fills ids primary doesn't have. Both may be null.
+        private static Dictionary<string, string> MergeNewPaths(
+            Dictionary<string, string> primary, Dictionary<string, string> fallback)
+        {
+            var merged = primary != null
+                ? new Dictionary<string, string>(primary, StringComparer.Ordinal)
+                : new Dictionary<string, string>(StringComparer.Ordinal);
+            if (fallback != null)
+                foreach (KeyValuePair<string, string> kv in fallback)
+                    if (!merged.ContainsKey(kv.Key))
+                        merged[kv.Key] = kv.Value;
+            return merged;
         }
 
         private static readonly List<string> NoEmptyList = new List<string>();
