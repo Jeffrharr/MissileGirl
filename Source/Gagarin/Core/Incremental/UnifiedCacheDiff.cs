@@ -59,6 +59,35 @@ namespace Gagarin
             return map;
         }
 
+        // id -> source path (the <Item>'s "path" attribute), for every item in a loaded
+        // DefXmlStorage document. Same keying as IndexById. Exists so a trial-discovered new
+        // def (issue #72) can recover its path from the ground-truth full rebuild that always
+        // precedes a gate/recompute run: TrialExecution's synthetic scratch doc never goes
+        // through RimWorld's real DirectXmlToObjectNew.DefFromNodeNew hook (the only place a
+        // LoadableXmlAsset is known), so it has no way to produce this path itself, but the
+        // rebuild that just ran for comparison already carries it for every def, patch-injected
+        // or not. Only valid because gate mode always runs AFTER a real rebuild; would need
+        // reconsidering if the incremental path is ever used to skip the rebuild in production.
+        public static Dictionary<string, string> IndexPathsById(XmlDocument defXmlStorage)
+        {
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            XmlElement root = defXmlStorage?.DocumentElement;
+            if (root == null)
+                return map;
+            foreach (XmlNode item in root.ChildNodes)
+            {
+                if (!(item is XmlElement itemElement))
+                    continue;
+                XmlElement def = FirstElement(itemElement);
+                if (def == null)
+                    continue;
+                string id = DefId(def);
+                if (id != null)
+                    map[id] = itemElement.GetAttribute("path");
+            }
+            return map;
+        }
+
         // The def ids — excluding the dirty set — whose resolved XML differs between baseline
         // and rebuild. Empty iff the dirty set is a true superset of what actually changed.
         // A def present in one cache but not the other (and not dirty) counts as a mismatch:

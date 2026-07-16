@@ -50,6 +50,25 @@ namespace Gagarin.Tests
             Assert.That(map["ThingDef/Steel"], Does.Contain("<mass>1</mass>"));
         }
 
+        // issue #72: TrialExecution folds a patch-injected new def into context, and the gate's
+        // recompute needs its source path from the ground-truth rebuild (Unified.xml already
+        // carries one for every def, patch-injected or not, via RimWorld's real loadingAsset).
+        [Test]
+        public void IndexPathsById_KeysByIdMirroringIndexById()
+        {
+            var doc = new XmlDocument();
+            doc.LoadXml(
+                "<DefXmlStorage>" +
+                "<Item path=\"Mods/Core/Defs/Steel.xml\"><ThingDef><defName>Steel</defName></ThingDef></Item>" +
+                "<Item path=\"\"><ThingDef><defName>PatchInjected</defName></ThingDef></Item>" +
+                "</DefXmlStorage>");
+
+            var map = UnifiedCacheDiff.IndexPathsById(doc);
+
+            Assert.That(map["ThingDef/Steel"], Is.EqualTo("Mods/Core/Defs/Steel.xml"));
+            Assert.That(map["ThingDef/PatchInjected"], Is.EqualTo(string.Empty));
+        }
+
         [Test]
         public void NoChange_NoMismatches()
         {
