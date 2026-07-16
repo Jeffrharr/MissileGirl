@@ -185,6 +185,7 @@ FINDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_FindMod"
 THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
 OWNERBASE_MOD_DIR="$SCRIPT_DIR/TestMod_OwnerBase"
 OWNER_MOD_DIR="$SCRIPT_DIR/TestMod_Owner"
+TRIALEXEC_MOD_DIR="$SCRIPT_DIR/TestMod_TrialExec"
 
 # --expect-findmod: exercise the #40 PatchOperationFindMod capture fix. joof.testharness.findmod (an
 # UNCHANGED mod) carries a PatchOperationFindMod gated on joof.testharness.gate's DISPLAY NAME (the
@@ -340,6 +341,19 @@ EXPECT_ROGUEOP=0
 # reachable and must be replayed, so the recompute gate uses the DEFAULT real-recompute assertion
 # (fallback==false, recomputeMismatches==0) — no special parser needed.
 EXPECT_PATCHINJECTEDCHILD=0
+# --expect-trial-execution: issue #72, the trial-execution escape hatch for SubDocExpander's two
+# blunt declines. joof.testharness.trialexec is symlinked always but held OUT of ModsConfig for run
+# A and inserted before run B -- same P2-style mod-list-change convention as TestMod_Added -- so it
+# is simultaneously BOTH decline conditions at once: wholly new this load, AND its own patch is a
+# PatchOperationSequence (a container op) applied by the changed mod itself. Either alone forces
+# needsFullRebuild==true under the OLD behavior. Its sequence targets only its own two new
+# ThingDefs, already dirtied by the added-defs seed (Seed 5) before TrialExecution ever runs, so a
+# bounded trial replay (scoped to dirty union context, never the mod's whole universe) discovers
+# zero new top-level ids and TrialContainment.IsContained trivially admits it. Same assertion shape
+# as --expect-order-preserved/--expect-patch-injected-child: both declines are overridden, so the
+# recompute gate uses the DEFAULT real-recompute assertion (fallback==false, recomputeMismatches==0)
+# -- proving ADMISSION, not another decline.
+EXPECT_TRIALEXEC=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at MAX_MODS total (default 150) — the
@@ -414,6 +428,8 @@ for arg in "$@"; do
         EXPECT_ROGUEOP=1
     elif [[ "$arg" == "--expect-patch-injected-child" ]]; then
         EXPECT_PATCHINJECTEDCHILD=1
+    elif [[ "$arg" == "--expect-trial-execution" ]]; then
+        EXPECT_TRIALEXEC=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
@@ -434,7 +450,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD $EXPECT_TRIALEXEC)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -542,11 +558,13 @@ elif [[ $EXPECT_PATCHINJECTEDCHILD -eq 1 ]]; then
     # inheritance closure to TestMod_Static's (unchanged) patch-injected TC_PatchInjected_Child.
     RUN_A_CHANGE="Change_RunA_PatchInjectedChild.xml"
     RUN_B_CHANGE="Change_RunB_PatchInjectedChild.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
-    # P2 / P4 / P1 / CASE 9 / #40 FindMod / --remove / --add: hold Change.xml at run A for BOTH runs
-    # so the change vehicle's patch file does NOT change. The only between-run delta is mode-specific
-    # (P2: a mod added before run B; P4: the gate mod removed; P1: the JoofTest.PropDef def file
-    # swapped; CASE 9: TestMod_ThirdMod removed; #40: the gate mod removed (same toggle as P4);
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || $EXPECT_TRIALEXEC -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
+    # P2 / P4 / P1 / CASE 9 / #40 FindMod / issue #72 trial-execution / --remove / --add: hold
+    # Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT change. The only
+    # between-run delta is mode-specific (P2: a mod added before run B; P4: the gate mod removed; P1:
+    # the JoofTest.PropDef def file swapped; CASE 9: TestMod_ThirdMod removed; #40: the gate mod
+    # removed (same toggle as P4); issue #72: joof.testharness.trialexec added before run B, same
+    # mod-list-change shape as P2;
     # --remove/--add: a real mod removed/added before run B), so the dirty set is driven purely by
     # that channel rather than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
@@ -640,6 +658,7 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-findmod"
     rm -f "$MODS_DIR/joof-testharness-ownerbase"
     rm -f "$MODS_DIR/joof-testharness-owner"
+    rm -f "$MODS_DIR/joof-testharness-trialexec"
     log "Symlinks removed."
 
     # Reset the P1 def file to its committed Run A value so a --expect-p1 run doesn't leave the git
@@ -1156,6 +1175,10 @@ ln -sfn "$FINDMOD_MOD_DIR"    "$MODS_DIR/joof-testharness-findmod"
 # added/removed) in --expect-ownership -- the whole point is zero mod-list delta between runs.
 ln -sfn "$OWNERBASE_MOD_DIR" "$MODS_DIR/joof-testharness-ownerbase"
 ln -sfn "$OWNER_MOD_DIR"     "$MODS_DIR/joof-testharness-owner"
+# The trial-execution fixture (issue #72) is symlinked unconditionally, same convention as the
+# added-defs fixture: inert (never in ModsConfig) unless --expect-trial-execution activates it, and
+# only before run B (the genuine mod-list change that drives both of SubDocExpander's declines).
+ln -sfn "$TRIALEXEC_MOD_DIR" "$MODS_DIR/joof-testharness-trialexec"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -1436,6 +1459,32 @@ import sys
 path = sys.argv[1]
 content = open(path, encoding="utf-8").read()
 pkg = "joof.testharness.added"
+if pkg in content:
+    print(f"  {pkg}: already present")
+else:
+    # Land it after the last test mod so it is the trailing, freshly-added entry.
+    content = content.replace(
+        "    <li>joof.testharness.change</li>",
+        f"    <li>joof.testharness.change</li>\n    <li>{pkg}</li>",
+        1
+    )
+    print(f"  {pkg}: added (run-B mod-list change)")
+open(path, "w", encoding="utf-8").write(content)
+print("ModsConfig.xml updated for Run B.")
+PYEOF
+fi
+
+# --expect-trial-execution (issue #72): insert joof.testharness.trialexec into ModsConfig now, AFTER
+# run A captured its baseline graph without it -- same P2-style mod-list change as --expect-added.
+# Run B then sees the mod as BOTH wholly new AND owning a container op (its own PatchOperationSequence),
+# the two conditions the trial-execution escape hatch exists to admit instead of declining outright.
+if [[ $EXPECT_TRIALEXEC -eq 1 ]]; then
+    log "Adding joof.testharness.trialexec to ModsConfig for Run B (the mod-list change)..."
+    python3 - "$MODSCONFIG" <<'PYEOF'
+import sys
+path = sys.argv[1]
+content = open(path, encoding="utf-8").read()
+pkg = "joof.testharness.trialexec"
 if pkg in content:
     print(f"  {pkg}: already present")
 else:

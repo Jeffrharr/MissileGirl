@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Issue #72: the trial-execution escape hatch.
+       Both of these ThingDefs exist ONLY when joof.testharness.trialexec is in the active mod
+       list. The harness keeps that mod OUT of ModsConfig.xml for run A (so run A's baseline
+       DependencyGraph.json never records these nodes) and adds it for run B, same convention as
+       TestMod_Added's P2 fixture. On run B the added-defs seed (Seed 5) must dirty both of these
+       BEFORE TrialExecution ever runs, so the scoped scratch doc TryRun builds (dirty union
+       context) already contains their raw bodies; the sequence in TrialExecPatch.xml then only
+       mutates existing scratch nodes in place, discovering zero new top-level ids and trivially
+       satisfying TrialContainment.IsContained. That is the case the fixture exists to prove: a
+       wholly-new mod whose container op never reaches outside dirty/context needs no baseline
+       evidence, and trial execution can admit it instead of forcing the caller all the way back
+       to a full rebuild. -->
+  <ThingDef>
+    <defName>TC_TrialExec_A</defName>
+    <label>test trial-exec a</label>
+  </ThingDef>
+
+  <ThingDef>
+    <defName>TC_TrialExec_B</defName>
+    <label>test trial-exec b</label>
+  </ThingDef>
+</Defs>
