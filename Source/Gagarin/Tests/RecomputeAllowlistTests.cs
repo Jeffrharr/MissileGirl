@@ -277,6 +277,24 @@ namespace Gagarin.Tests
             Assert.That(cat, Is.EqualTo("conditional-cross-def"));
         }
 
+        // Edge-cases loop, 2026-07-14 (petetimessix.simplesidearms live fallback): a conditional whose
+        // test reads an inheritance ANCESTOR of the dirty def (e.g. an abstract Name-based template
+        // like ThingDef@BasePawn) -- NOT a genuinely-absent cross-def probe. DefRecompute's own
+        // AddAncestors step (step 2) physically pulls ancestor raw bodies into the real recompute
+        // sub-doc for both dirty AND context ids, so this read is actually reproducible -> ADMITTED.
+        // Contrast with UnsafeOpOnAncestor_Declines just below: here the conditional's test reads the
+        // ancestor's raw (unmodified) content directly, whereas that test has an UNSAFE op producing
+        // the ancestor's value in the first place -- still correctly declines.
+        [Test]
+        public void ConditionalReadsAncestor_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(
+                Conditional("mod#0", "Defs/ThingDef[@Name=\"BasePawn\"]/comps", "ThingDef@BasePawn"),
+                Edge("mod#0.match", "Verse.PatchOperationAdd", "Defs/ThingDef[defName=\"Colonist\"]", "ThingDef/Colonist"));
+            Inherit(g, "ThingDef@BasePawn", "ThingDef/Colonist");
+            Assert.That(Can(g, Set("ThingDef/Colonist"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
         // An op unrelated to any dirty def does not force a fallback.
         [Test]
         public void IrrelevantUnsafeOp_DoesNotDecline()
@@ -373,6 +391,67 @@ namespace Gagarin.Tests
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
 
+        // Edge-cases loop, 2026-07-14 (sicafe.chair.overhaul live fallback): PatchOperationTest
+        // never mutates the doc (decompiled: `return xml.SelectSingleNode(xpath) != null;`), so a
+        // dirty def it merely tested (matched==modified per capture convention) is faithfully
+        // recomputed regardless -- admitting it is a true no-op, not a correctness gap.
+        [Test]
+        public void Test_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationTest",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Same positional-xpath guard as Insert: Test is only safe when its own xpath is
+        // non-positional. A numeric-indexed selector could re-evaluate against a different def
+        // in a smaller sub-doc than it would against the full patched document.
+        [Test]
+        public void Test_PositionalXpath_Declined()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationTest",
+                "Defs/ThingDef[3]/defName", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("positional-xpath"));
+        }
+
+        // Edge-cases loop, 2026-07-14 (dubwise.dubsbadhygiene live fallback): same gated shape as
+        // AddIf/ReplaceIf/RemoveIf above -- a load-invariant settings flag gates a no-op-or-delegate
+        // to the unmodified base PatchOperationAdd.
+        [Test]
+        public void DubsBadHygieneAddDesignator_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "DubsBadHygiene.PatchOperationAddDesignator",
+                "Defs/ThingDef[defName=\"A\"]", "ThingDef/A"));
+            Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Edge-cases loop, 2026-07-14 (memegoddess.tdpack live fallback): PatchOperationInsert
+        // anchors its InsertBefore/InsertAfter on the matched XmlNode REFERENCE, not a numeric
+        // index, so a non-positional (defName/content-predicate-anchored) match is exactly as local
+        // as Add/Replace/Remove.
+        [Test]
+        public void Insert_ShouldBeAdmitted_OnceProvenSafe()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationInsert",
+                "Defs/DesignationCategoryDef[defName=\"Zone\"]/specialDesignatorClasses/li[text()='X']",
+                "DesignationCategoryDef/Zone"));
+            Assert.That(Can(g, Set("DesignationCategoryDef/Zone"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Insert is only safe when its ANCHOR is non-positional -- a numeric-indexed DEF selector
+        // (no defName/Name anchor ahead of it) could re-select a different def in a smaller
+        // sub-doc, same as any other pathed op.
+        [Test]
+        public void Insert_PositionalXpath_Declined()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationInsert",
+                "Defs/DesignationCategoryDef[3]/specialDesignatorClasses/li[text()='X']",
+                "DesignationCategoryDef/Zone"));
+            Assert.That(Can(g, Set("DesignationCategoryDef/Zone"), Set(), out string cat), Is.False);
+            Assert.That(cat, Is.EqualTo("positional-xpath"));
+        }
+
         // NOT part of the xfail worklist: an orphan branch child (".match" with no corresponding
         // "mod#5" Conditional edge captured) declining as capture-gap is CORRECT, permanent
         // behavior -- the allowlist has no read-set to check safety against and must stay
@@ -404,6 +483,41 @@ namespace Gagarin.Tests
             var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
                 "Defs/ThingDef[defName=\"A\"]/comps/li[2]", "ThingDef/A"));
             Assert.That(Can(g, Set("ThingDef/A"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // XFAIL WORKLIST addition (2026-07-15, PR #69 interview on the Insert SafeLeafOps entry):
+        // CanRecompute only ever walks graph.PatchEdges -- it never consults PatchInjectedOwners or
+        // a node's SourceFile. That means two cases look IDENTICAL to it today (a dirty concrete id
+        // with zero producing edges):
+        //   (a) a genuinely unpatched raw def (has a real SourceFile) -- trivially safe, correctly
+        //       admitted by the current "no declining edge found -> true" fallthrough.
+        //   (b) a patch-injected top-level def (no SourceFile) whose creating op's captured edge
+        //       never named the child's own id (same target-vs-content asymmetry as
+        //       PatchOperationAdd -- see DefRecompute.cs's step 3c comment), AND whose owning mod is
+        //       absent from PatchInjectedOwners (populated ONLY by ProvenanceRecorder.
+        //       RecordAddedChildren, which is wired for PatchOperationAdd only -- see this file's
+        //       PatchOperationInsert SafeLeafOps comment). DefRecompute's step 4b can only promote a
+        //       pending id via PatchInjectedOwners; without it, the id falls into removedConcreteIds
+        //       and is silently recomputed as deleted.
+        // CanRecompute admits BOTH today because it has no signal to tell them apart. This pins the
+        // gap for case (b): a node with no SourceFile and no PatchInjectedOwners entry should DECLINE,
+        // not admit by silence. This is the offline-testable half of the Insert-into-new-top-level-
+        // defs gap; the capture-side fix (wiring RecordAddedChildren, or an equivalent, for Insert and
+        // any future op with the same shape) is RimWorld-coupled and can only be proven live. Do not
+        // "fix" this by loosening the assertion -- fix CanRecompute to check graph.Nodes/
+        // PatchInjectedOwners for dirty ids with zero producing edges.
+        [Test]
+        [Ignore("Known gap, tracked by issue #73 -- CanRecompute doesn't yet check PatchInjectedOwners/SourceFile for dirty ids with zero producing edges. Un-ignore once the fix lands.")]
+        public void PatchInjectedNode_NoSourceFile_AbsentFromPatchInjectedOwners_ShouldDecline_OnceGapClosed()
+        {
+            var g = Graph(); // no PatchEdges reference the injected child's own id at all
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "ThingDef/InsertedChild", DefType = "ThingDef", DefName = "InsertedChild",
+                SourceMod = "mod", SourceFile = null,
+            });
+            Assert.That(Can(g, Set("ThingDef/InsertedChild"), Set(), out string cat), Is.False,
+                "CanRecompute has no signal today to decline an unrecoverable patch-injected node -- see comment above");
         }
     }
 }

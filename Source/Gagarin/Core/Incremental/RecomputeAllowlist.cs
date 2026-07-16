@@ -40,8 +40,8 @@
 //       same branch. A cross-def conditional (reads a def absent from the sub-doc) is NOT allowlisted.
 //       (Covers CASE 5; declines CASE 6.)
 // Everything else falls back with a category so the cause is logged and the backlog is frequency-
-// ranked: unknown-op-kind (Insert, AddIf/ReplaceIf/RemoveIf, FindMod, AddModExtension, EditResearch,
-// any custom op), positional-xpath, conditional-cross-def, dynamic-op (an op generated at runtime by an
+// ranked: unknown-op-kind (custom/third-party ops not yet proven safe), positional-xpath,
+// conditional-cross-def, dynamic-op (an op generated at runtime by an
 // opaque enclosing op, attributed as "...generated[N]"), capture-gap (an empty/missing op type on a
 // producing edge — an op the capture could not attribute).
 //
@@ -63,7 +63,7 @@ namespace Gagarin
     public static class RecomputeAllowlist
     {
         // Pure-leaf modifiers: effect is local to the matched node, so faithful over a sub-doc that
-        // contains that node. (PatchOperationInsert is deliberately absent — it is positional.)
+        // contains that node.
         //
         // Keyed by FULLY-QUALIFIED type name (namespace + class), not the bare simple name: the
         // capture side (ProvenanceRecorder.RecordPatch/RecordFindModEdge) now records
@@ -80,6 +80,22 @@ namespace Gagarin
             "Verse.PatchOperationAttributeAdd",
             "Verse.PatchOperationAttributeRemove",
             "Verse.PatchOperationSetName",
+            // Decompiled 2026-07-14 (edge-cases loop fallback for memegoddess.tdpack): inserts the
+            // xpath-matched node's own new sibling(s) via InsertBefore/InsertAfter anchored on the
+            // XmlNode REFERENCE SelectNodes returned -- not a numeric child index -- so, exactly like
+            // Add/Replace/Remove, its effect is local to whichever node the (non-positional) xpath
+            // matched, regardless of how many other nodes/defs are absent from a smaller sub-doc.
+            // Still gated by IsUnsafePositional below: an xpath using [n]/last()/position()/sibling-
+            // axis to pick the anchor really could re-select a different node in a smaller doc, so
+            // that case still declines. NOT yet covered: an Insert anchored so its new sibling(s)
+            // become entirely new TOP-LEVEL DEFS (mirroring PatchOperationAdd's `/Defs`-root
+            // pattern) would need the same patchInjectedOwners provenance PatchOperation_Patch's
+            // RecordAddedChildren gives Add (CASE 14) to stay correct if the owning mod is itself
+            // unchanged and the new def is only dirtied via inheritance fan-out -- RecordAddedChildren
+            // is not wired for Insert. Live-observed case (memegoddess.tdpack#2) inserts a `<li>`
+            // sibling inside an existing def's `specialDesignatorClasses` list, not a new top-level
+            // def, so this gap doesn't apply yet; revisit if/when a live run actually exercises it.
+            "Verse.PatchOperationInsert",
             // Decompiled 2026-07-10 (seed-7211's fallback reason named this op): a plain
             // PatchOperationPathed leaf -- for every xpath match, ensures a "modExtensions"
             // child element exists and imports the configured node's children into it. Same
@@ -108,6 +124,25 @@ namespace Gagarin
             "AnomalyPatch.PatchOperationReplaceIf",
             "AnomalyPatch.PatchOperationRemoveIf",
             "TTPF.PatchOperationEditResearch",
+            // Decompiled 2026-07-14 (edge-cases loop fallback for sicafe.chair.overhaul):
+            // Verse.PatchOperationTest.ApplyWorker is `return xml.SelectSingleNode(xpath) != null;`
+            // -- a pure read, it never touches the XmlDocument. PatchOperation_Patch's capture
+            // records matched==modified for every successful pathed op (see its comment on why:
+            // that's true for every OTHER PatchOperationPathed subclass, and SubDocExpander relies
+            // on it to pull the tested node into sequence-sibling context so the real Sequence.Apply
+            // replay sees the same node PatchOperationTest gated on). So Test can show up as a
+            // "producing" edge for a dirty def it merely tested, never mutated. Since it contributes
+            // zero content change to that def either way, admitting it as a safe leaf is a true
+            // no-op from the recomputed def's perspective -- and it still gets the same
+            // IsUnsafePositional guard below as any other pathed op, so a positional/cross-def Test
+            // (which really could gate a sequence differently in a smaller sub-doc) still declines.
+            "Verse.PatchOperationTest",
+            // Decompiled 2026-07-14 (edge-cases loop fallback for dubwise.dubsbadhygiene): same
+            // gated-load-invariant shape as the AnomalyPatch.*If trio above --
+            // DubsBadHygieneMod.CentralHeating_Active is a static settings field (never doc
+            // content); when true, ApplyWorker no-ops (returns true without touching xml), else it
+            // delegates unmodified to base PatchOperationAdd.ApplyWorker.
+            "DubsBadHygiene.PatchOperationAddDesignator",
         };
 
         // A numeric index predicate or last()/position() call makes def-SELECTION unstable when the
@@ -216,14 +251,17 @@ namespace Gagarin
                 return false;
             }
 
-            // The recompute sub-doc holds the dirty defs plus the context SubDocExpander pulled in.
-            var subDoc = new HashSet<string>(dirty, StringComparer.Ordinal);
-            if (contextIds != null)
-                foreach (string id in contextIds)
-                    subDoc.Add(id);
+            var context = contextIds != null
+                ? new HashSet<string>(contextIds, StringComparer.Ordinal)
+                : new HashSet<string>(StringComparer.Ordinal);
 
             // childNodeId -> parentNodeId, to walk a dirty def UP to its inheritance ancestors: an op
             // modifying an ancestor produces the dirty descendant's value, so it must be allowlisted too.
+            // Built from the PRIOR load's captured graph (see DirtySetGate.RunRecompute's graphPath
+            // comment) -- NOT the current raw XML. DefRecompute.AddAncestorsFromRawXml walks the
+            // current ParentName chain instead, so the two can diverge if a dirty def's ParentName
+            // changed since the prior load; see that method's comment for the consequence and why
+            // it's currently caught downstream rather than silently wrong.
             var parentOf = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (GraphInheritanceEdge e in graph.InheritanceEdges)
                 if (!string.IsNullOrEmpty(e.ChildNodeId) && !string.IsNullOrEmpty(e.ParentNodeId))
@@ -236,6 +274,24 @@ namespace Gagarin
             {
                 string cur = d;
                 while (parentOf.TryGetValue(cur, out string parent) && relevantTargets.Add(parent))
+                    cur = parent;
+            }
+
+            // The recompute sub-doc physically holds dirty ∪ context PLUS each one's transitive
+            // inheritance ancestors -- DefRecompute's own AddAncestors call (step 2) pulls ancestor
+            // raw bodies in too, because real XmlInheritance resolution needs them. A conditional
+            // whose test reads an ANCESTOR of a dirty/context def (e.g. an abstract Name-based
+            // template like ThingDef@BasePawn) is therefore already reproducible, even though the
+            // ancestor is neither itself dirty nor a sequence-sibling. Missing this made every such
+            // ancestor-scoped conditional wrongly fall back as "conditional-cross-def" — 2026-07-14,
+            // edge-cases loop (petetimessix.simplesidearms#0 testing ThingDef@BasePawn, an ancestor
+            // of the actual dirty Pawn-derived def).
+            var subDoc = new HashSet<string>(relevantTargets, StringComparer.Ordinal);
+            foreach (string id in context)
+            {
+                subDoc.Add(id);
+                string cur = id;
+                while (parentOf.TryGetValue(cur, out string parent) && subDoc.Add(parent))
                     cur = parent;
             }
 
