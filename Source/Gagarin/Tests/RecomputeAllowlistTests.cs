@@ -66,7 +66,12 @@ namespace Gagarin.Tests
         private static HashSet<string> Set(params string[] ids) => new HashSet<string>(ids);
 
         private static bool Can(DependencyGraphData g, HashSet<string> dirty, HashSet<string> ctx, out string cat)
-            => RecomputeAllowlist.CanRecompute(g, dirty, ctx, out _, out cat);
+            => RecomputeAllowlist.CanRecompute(g, dirty, ctx, out _, out cat, out _);
+
+        // Overload for tests that need to inspect relevantTargets (issue #75) directly.
+        private static bool Can(DependencyGraphData g, HashSet<string> dirty, HashSet<string> ctx,
+            out string cat, out HashSet<string> relevantTargets)
+            => RecomputeAllowlist.CanRecompute(g, dirty, ctx, out _, out cat, out relevantTargets);
 
         // CASE 1: a plain defName-anchored leaf op on the dirty def -> ADMITTED.
         [Test]
@@ -317,7 +322,7 @@ namespace Gagarin.Tests
         [Test]
         public void NullGraph_Declined()
         {
-            Assert.That(RecomputeAllowlist.CanRecompute(null, Set("ThingDef/A"), Set(), out _, out string cat), Is.False);
+            Assert.That(RecomputeAllowlist.CanRecompute(null, Set("ThingDef/A"), Set(), out _, out string cat, out _), Is.False);
             Assert.That(cat, Is.EqualTo("capture-gap"));
         }
 
@@ -555,6 +560,38 @@ namespace Gagarin.Tests
             });
             g.PatchInjectedOwners["ThingDef/InsertedChild"] = "mod";
             Assert.That(Can(g, Set("ThingDef/InsertedChild"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Issue #75: relevantTargets is now exposed via CanRecompute's 6th out param so a caller can
+        // cross-check it against DefRecompute's own (separate, current-raw-XML) ancestor walk. These
+        // two cases pin what relevantTargets actually contains -- a 2-level inheritance chain (dirty
+        // child -> parent -> grandparent, all wired via InheritanceEdges) should walk the FULL chain,
+        // not just the immediate parent.
+        [Test]
+        public void RelevantTargets_TwoLevelInheritanceChain_IncludesAllAncestors()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"Child\"]/label", "ThingDef/Child"));
+            Inherit(g, "ThingDef/Grandparent", "ThingDef/Parent");
+            Inherit(g, "ThingDef/Parent", "ThingDef/Child");
+
+            Assert.That(Can(g, Set("ThingDef/Child"), Set(), out string cat, out HashSet<string> relevantTargets),
+                Is.True, $"declined as {cat}");
+            Assert.That(relevantTargets, Is.EquivalentTo(
+                new[] { "ThingDef/Child", "ThingDef/Parent", "ThingDef/Grandparent" }));
+        }
+
+        // A def with no inheritance edges at all -> relevantTargets is just the dirty set itself, no
+        // spurious ancestors invented.
+        [Test]
+        public void RelevantTargets_NoInheritanceEdges_IsJustDirtySet()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"Solo\"]/label", "ThingDef/Solo"));
+
+            Assert.That(Can(g, Set("ThingDef/Solo"), Set(), out string cat, out HashSet<string> relevantTargets),
+                Is.True, $"declined as {cat}");
+            Assert.That(relevantTargets, Is.EquivalentTo(new[] { "ThingDef/Solo" }));
         }
     }
 }
