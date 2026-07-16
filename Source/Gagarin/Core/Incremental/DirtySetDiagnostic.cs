@@ -65,6 +65,17 @@ namespace Gagarin
         // Null until computed; reset each load so a stale set can't leak into a later gate.
         public static ICollection<string> LastChangedMods;
 
+        // Mods newly present this load (in CurrentLoadOrder, absent from PriorLoadOrder) — the
+        // PRIOR dependency graph has literally never captured them, so it carries zero PatchEdges
+        // evidence for whether their ops are container ops, leaf ops, or anything else. Published
+        // for SubDocExpander: without this, a brand-new mod that owns e.g. a
+        // PatchOperationSequence is invisible to the "changed mod owns a container op" fallback
+        // (it just never appears as a PatchEdge.SourceMod in the prior graph), so the incremental
+        // path proceeds and silently produces wrong content (run 20260714-160405:
+        // regrowth.botr.core's Plant_* retexture sequence). Null until computed; reset each load
+        // so a stale set can't leak into a later gate.
+        public static ICollection<string> LastNewMods;
+
         // The node ids whose own raw source FILE changed this load (Seed 1) — i.e. a non-patch change
         // channel. Published for PatchCoverageAudit (the invisible-op detector): a def that changed
         // between cache and rebuild is "explained" if it or an inheritance ancestor had its raw body
@@ -87,6 +98,7 @@ namespace Gagarin
             LastDirtySet = null; // clear last load's set before anything can read it
             LastNewPaths = null; // and the added-def path map (read by the recompute splice)
             LastChangedMods = null;
+            LastNewMods = null;
             LastChangedNodeIds = null;
             LastDiagnosticValid = false; // reset so a stale summary can't leak into a later load
             LastResult = null;
@@ -164,6 +176,7 @@ namespace Gagarin
                 GraphChange change = BuildChange(graph, changedAssets, __result,
                     out Dictionary<string, string> newPaths);
                 LastChangedMods = change.ChangedMods; // publish for the M2b-2b sub-doc gate
+                LastNewMods = NewlyPresentMods(change); // publish for the new-mod fallback (SubDocExpander)
                 LastChangedNodeIds = change.ChangedNodeIds; // publish for the invisible-op audit (Seed 1 channel)
                 LastNewPaths = newPaths;              // publish for the M2b recompute splice (P2)
 
@@ -310,6 +323,23 @@ namespace Gagarin
                     newPaths[id] = file;
             }
             return change;
+        }
+
+        // Package ids present in CurrentLoadOrder but absent from PriorLoadOrder — mods the
+        // prior graph has never seen at all. Shares its "current minus prior" shape with
+        // ComputeDefOverrideFlips' candidateMods construction below, but is not scoped down to
+        // ChangedDefFileMods/patch-relevance: SubDocExpander needs the raw presence fact, not a
+        // content-change signal.
+        private static HashSet<string> NewlyPresentMods(GraphChange change)
+        {
+            var prior = new HashSet<string>(
+                change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var packageId in change.CurrentLoadOrder ?? new List<string>())
+                if (packageId != null && !prior.Contains(packageId))
+                    result.Add(packageId);
+            return result;
         }
 
         private static bool LooksLikePatchFile(string path)

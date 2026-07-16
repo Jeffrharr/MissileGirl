@@ -234,5 +234,95 @@ namespace Gagarin.Tests
             Assert.That(context, Is.Empty);
             Assert.That(fullRebuild, Is.False);
         }
+
+        // Run 20260714-160405: a mod that is wholly new this load has ZERO edges anywhere in the
+        // prior graph, so the container-op loop above can never see it — without the newModIds
+        // check the incremental path would silently proceed and recompute Plant_Rice's vanilla,
+        // un-retextured value (regrowth.botr.core's own PatchOperationSequence never gets a
+        // chance to decline). The graph here only knows an unrelated vendor mod, mirroring a
+        // prior graph captured before the new mod ever existed.
+        [Test]
+        public void NewModWithNoBaselineRepresentation_TriggersFallback()
+        {
+            var g = Graph(Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/Unrelated"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/Plant_Rice"),
+                Set("regrowth.botr.core"), out bool fullRebuild, out string reason,
+                Set("regrowth.botr.core"));
+
+            Assert.That(fullRebuild, Is.True);
+            Assert.That(context, Is.Empty);
+            Assert.That(reason, Does.Contain("regrowth.botr.core"));
+        }
+
+        // A mod can be "new" (present in CurrentLoadOrder, absent from PriorLoadOrder) yet own no
+        // patches at all — textures/defs only, so it never lands in changedMods (no /Patches/
+        // file changed this load). Being new on its own must not force a fallback.
+        [Test]
+        public void NewModAbsentFromChangedMods_NoFallback()
+        {
+            var g = Graph(Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(), out bool fullRebuild,
+                out string reason, Set("textures.only.mod"));
+
+            Assert.That(fullRebuild, Is.False);
+            Assert.That(reason, Is.Null);
+        }
+
+        // Callers that omit newModIds entirely (every pre-fix call site) must see identical
+        // behaviour to before this parameter existed.
+        [Test]
+        public void NewModIds_OmittedDefault_BackwardCompatible()
+        {
+            var g = Graph(
+                Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/A"),
+                Edge("vendor.seq#0.operations[1]", "vendor.seq", "ThingDef/B"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"), Set(), out bool fullRebuild, out _);
+
+            Assert.That(fullRebuild, Is.False);
+            Assert.That(context, Is.EquivalentTo(new[] { "ThingDef/B" }));
+        }
+
+        // Two new+changed mods can independently qualify in the same load (live case:
+        // vanillaexpanded.vwe and regrowth.botr.core both new+changed in run 20260714-160405).
+        // Naming only the first one HashSet iteration happens to hit would mislead someone who
+        // later proves that mod's ops safe and re-runs expecting fallback:false — the reason
+        // must name every qualifying mod, sorted for a stable, diffable message.
+        [Test]
+        public void MultipleNewChangedMods_ReasonListsAll()
+        {
+            var g = Graph(Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/Unrelated"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/A"),
+                Set("regrowth.botr.core", "vanillaexpanded.vwe"), out bool fullRebuild,
+                out string reason, Set("regrowth.botr.core", "vanillaexpanded.vwe"));
+
+            Assert.That(fullRebuild, Is.True);
+            Assert.That(context, Is.Empty);
+            Assert.That(reason, Does.Contain("regrowth.botr.core"));
+            Assert.That(reason, Does.Contain("vanillaexpanded.vwe"));
+            Assert.That(reason.IndexOf("regrowth.botr.core", System.StringComparison.Ordinal),
+                Is.LessThan(reason.IndexOf("vanillaexpanded.vwe", System.StringComparison.Ordinal)),
+                "reason should list qualifying mods in a stable (sorted) order");
+        }
+
+        // newModIds and changedModIds can disagree on a mod's packageId casing (e.g. captured at
+        // different times, or from a manifest vs. LoadedModManager) — the intersection must still
+        // recognize them as the same mod, matching the OrdinalIgnoreCase convention every other
+        // mod-id set in the incremental pipeline uses.
+        [Test]
+        public void NewModVsChangedMod_CaseInsensitiveMatch()
+        {
+            var g = Graph(Edge("vendor.seq#0.operations[0]", "vendor.seq", "ThingDef/Unrelated"));
+
+            var context = SubDocExpander.Expand(g, Set("ThingDef/Plant_Rice"),
+                Set("ReGrowth.BOTR.Core"), out bool fullRebuild, out string reason,
+                Set("regrowth.botr.core"));
+
+            Assert.That(fullRebuild, Is.True);
+            Assert.That(reason, Does.Contain("regrowth.botr.core"));
+        }
     }
 }
