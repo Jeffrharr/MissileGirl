@@ -506,8 +506,12 @@ namespace Gagarin.Tests
         // any future op with the same shape) is RimWorld-coupled and can only be proven live. Do not
         // "fix" this by loosening the assertion -- fix CanRecompute to check graph.Nodes/
         // PatchInjectedOwners for dirty ids with zero producing edges.
+        //
+        // Gap closed (issue #73): CanRecompute now builds a nodeById lookup and declines with a new
+        // "unrecoverable-patch-injected" category whenever a dirty id has zero producing edges, a
+        // GraphNode entry IS present, that node's SourceFile is null/empty, AND the id is absent from
+        // PatchInjectedOwners. Un-ignored below now that the assertion holds for real.
         [Test]
-        [Ignore("Known gap, tracked by issue #73 -- CanRecompute doesn't yet check PatchInjectedOwners/SourceFile for dirty ids with zero producing edges. Un-ignore once the fix lands.")]
         public void PatchInjectedNode_NoSourceFile_AbsentFromPatchInjectedOwners_ShouldDecline_OnceGapClosed()
         {
             var g = Graph(); // no PatchEdges reference the injected child's own id at all
@@ -518,6 +522,39 @@ namespace Gagarin.Tests
             });
             Assert.That(Can(g, Set("ThingDef/InsertedChild"), Set(), out string cat), Is.False,
                 "CanRecompute has no signal today to decline an unrecoverable patch-injected node -- see comment above");
+            Assert.That(cat, Is.EqualTo("unrecoverable-patch-injected"));
+        }
+
+        // Companion case (a) from the comment above: a genuinely unpatched raw def -- has a real
+        // SourceFile and zero producing edges -- must still ADMIT. Distinguishes "found, but looks
+        // patch-injected" (declines) from "found, plainly a normal raw def" (admits); both have zero
+        // producing edges, so SourceFile is the only signal that tells them apart.
+        [Test]
+        public void RawDef_WithSourceFile_ZeroProducingEdges_StillAdmitted()
+        {
+            var g = Graph(); // no patch edges touch this def at all -- it's untouched raw XML
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "ThingDef/PlainRaw", DefType = "ThingDef", DefName = "PlainRaw",
+                SourceMod = "mod", SourceFile = "Defs/ThingDefs/Plain.xml",
+            });
+            Assert.That(Can(g, Set("ThingDef/PlainRaw"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
+
+        // Companion case: a patch-injected def (no SourceFile, zero producing edges) whose owning mod
+        // IS attributed via PatchInjectedOwners -- the recoverable shape DefRecompute's step 4b can
+        // actually promote. Must still ADMIT; only the UNATTRIBUTED patch-injected shape declines.
+        [Test]
+        public void PatchInjectedNode_NoSourceFile_PresentInPatchInjectedOwners_StillAdmitted()
+        {
+            var g = Graph(); // no PatchEdges reference the injected child's own id at all
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "ThingDef/InsertedChild", DefType = "ThingDef", DefName = "InsertedChild",
+                SourceMod = "mod", SourceFile = null,
+            });
+            g.PatchInjectedOwners["ThingDef/InsertedChild"] = "mod";
+            Assert.That(Can(g, Set("ThingDef/InsertedChild"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
     }
 }
