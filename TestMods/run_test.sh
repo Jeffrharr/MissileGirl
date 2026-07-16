@@ -276,14 +276,14 @@ EXPECT_SEQNESTED=0
 # dirty-set gate is asserted (nonDirtyMismatches==0); recompute is informational — this fixture's
 # purpose is to reveal whether the pipeline already covers this case, not to assume it does.
 EXPECT_THIRDMOD=0
-# --expect-op-kind: live proof of RecomputeAllowlist's "unknown-op-kind" decline (offline-pinned by
-# RecomputeAllowlistTests.FindMod_Declined). TestMod_Static (UNCHANGED) carries a
-# PatchOperationFindMod (CASE 10) targeting "Harmony" (brrainz.harmony's display name, always
-# present) so its <match> fires identically in both runs -- isolating the allowlist decline from
-# FindMod's own branch-evaluation semantics (already covered by TestMod_FindMod / issue #40).
-# TestMod_Change dirties TC_OpKind_Target directly (run-a->run-b, Seed 2). Same assertion shape as
-# --expect-recompute-gap/--expect-nested-conditional, but the fallbackReason must name the op kind
-# rather than a conditional.
+# --expect-op-kind: positive regression, PASSES live (validated 2026-07-09). TestMod_Static
+# (UNCHANGED) carries a PatchOperationFindMod (CASE 10) targeting "Harmony" (brrainz.harmony's
+# display name, always present) so its <match> fires identically in both runs -- isolating the
+# allowlist's admission decision from FindMod's own branch-evaluation semantics (already covered by
+# TestMod_FindMod / issue #40). TestMod_Change dirties TC_OpKind_Target directly (run-a->run-b, Seed
+# 2). Verse.PatchOperationFindMod is in SafeLeafOps (offline-pinned by
+# RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe), so RecomputeAllowlist must ADMIT
+# the recompute -- the DEFAULT recompute assertion (fallback==false, recomputeMismatches==0) below.
 EXPECT_OPKIND=0
 # --expect-order-preserved: positive regression pinning DefRecompute's ordering guarantee for defs
 # actually present in the sub-doc (CASE 11). TestMod_Static (UNCHANGED) applies two same-def ops to
@@ -1665,12 +1665,12 @@ if [[ $EXPECT_SEQNESTED -eq 1 ]]; then
     recompute_required=0
 fi
 
-# --expect-op-kind: XFAIL WORKLIST ITEM, not a decline-proving mode. RecomputeAllowlist currently
-# declines PatchOperationFindMod as "unknown-op-kind" (offline-pinned by
-# RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe, which fails today by design).
-# This live mode asserts the DESIRED end state instead: a real recompute (fallback==false,
-# recomputeMismatches==0) via the DEFAULT recompute assertion below (recompute_required stays 1) —
-# expected to currently FAIL until FindMod is proven safe and added to SafeLeafOps.
+# --expect-op-kind: positive regression, not a decline-proving mode. PatchOperationFindMod is in
+# SafeLeafOps (offline-pinned by RecomputeAllowlistTests.FindMod_ShouldBeAdmitted_OnceProvenSafe)
+# and this live mode asserts the resulting real recompute (fallback==false, recomputeMismatches==0)
+# via the DEFAULT recompute assertion below (recompute_required stays 1) — PASSES live, validated
+# 2026-07-09. opkind_ok is a trivial placeholder (never flipped to 0) kept only so it can sit
+# alongside the decline-proving _ok vars in the final && condition below.
 opkind_ok=1
 
 # --expect-order-preserved: unlike the decline-proving modes above, this fixture is same-def
@@ -1714,7 +1714,7 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     elif [[ $EXPECT_SEQNESTED -eq 1 ]]; then
         echo "  nested-in-sequence: fallback=true AND DependencyGraph.json has a populated read-set edge for the sequence-nested conditional — capture proven (issue #25 item 3)"
     elif [[ $EXPECT_OPKIND -eq 1 ]]; then
-        echo "  op-kind (XFAIL): fallback=false, mismatches=0 EXPECTED — currently fails until PatchOperationFindMod is proven safe and added to SafeLeafOps"
+        echo "  op-kind:         fallback=false, mismatches=0 (proven-safe admission, PatchOperationFindMod is in SafeLeafOps) — PASSES live"
     elif [[ $EXPECT_SCOPEESCAPE -eq 1 ]]; then
         echo "  scope-escape:    fallback=true (positional-xpath) — sibling-axis escape from a lexically-earlier anchor correctly DECLINED by the structural per-step parser"
     elif [[ $EXPECT_ROGUEOP -eq 1 ]]; then
