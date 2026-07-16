@@ -305,6 +305,14 @@ namespace Gagarin
                 if (IsConditional(edge.OperationType))
                     conditionalReads[edge.PatchId] = edge.MatchedNodeIds;
 
+            // Tracks which DIRTY ids were actually produced by a real (non-conditional-test) edge
+            // during the loop below. A dirty id left OUT of this set falls through to the
+            // nodeById/PatchInjectedOwners check just before the final return — the "no producing
+            // edge found" case is only trivially safe for a genuinely unpatched raw def; a
+            // patch-injected top-level def with the same (empty) producing-edge shape needs that
+            // extra check to tell the two apart (issue #73).
+            var produced = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (GraphPatchEdge edge in graph.PatchEdges)
             {
                 // Skip conditional TEST edges entirely — they modify nothing (their spurious self-mark is
@@ -317,6 +325,11 @@ namespace Gagarin
 
                 if (!TouchesRelevant(edge.ModifiedNodeIds, relevantTargets))
                     continue; // this op does not produce any dirty def — irrelevant
+
+                if (edge.ModifiedNodeIds != null)
+                    foreach (string id in edge.ModifiedNodeIds)
+                        if (dirty.Contains(id))
+                            produced.Add(id);
 
                 // Capture gap: an op the capture could not attribute a kind to. Cannot prove safe.
                 if (string.IsNullOrEmpty(edge.OperationType))
@@ -388,6 +401,47 @@ namespace Gagarin
                 // else: a top-level or sequence-child safe leaf op with a stable xpath — allowlisted.
                 // (Sequence children are only reached because SubDocExpander already pulled their
                 // siblings into context; otherwise it would have set needsFullRebuild upstream.)
+            }
+
+            // Every dirty id with a producing edge has been allowlisted above. What remains is any
+            // dirty id with ZERO producing edges — today's fallthrough treats that as trivially safe
+            // (a genuinely unpatched raw def carries its own body verbatim, nothing to recompute).
+            // But a patch-injected top-level def (no raw SourceFile — see ProvenanceGraph's
+            // patchInjectedOwners comment) can ALSO show zero producing edges: its creating op's
+            // captured edge names the `Defs`-root anchor it matched, never the child's own id (the
+            // same target-vs-content asymmetry DefRecompute's step 3c works around for
+            // PatchOperationAdd). When the owning mod is additionally missing from
+            // graph.PatchInjectedOwners (the only fallback attribution for that shape), we have no
+            // way to reproduce or even attribute this def over a sub-doc — decline rather than admit
+            // by silence (issue #73). A dirty id with NO GraphNode entry at all is left on the
+            // existing "admit" path: every pre-#73 test fixture never populates graph.Nodes, and an
+            // id truly unknown to the graph is not evidence of a patch-injected node either way.
+            if (produced.Count < dirty.Count)
+            {
+                var nodeById = new Dictionary<string, GraphNode>(StringComparer.Ordinal);
+                foreach (GraphNode node in graph.Nodes)
+                    if (!string.IsNullOrEmpty(node.Id))
+                        nodeById[node.Id] = node;
+
+                foreach (string id in dirty)
+                {
+                    if (produced.Contains(id))
+                        continue;
+
+                    if (!nodeById.TryGetValue(id, out GraphNode node))
+                        continue; // unknown to the graph entirely — not evidence of patch-injection
+
+                    if (!string.IsNullOrEmpty(node.SourceFile))
+                        continue; // has a real raw body — genuinely unpatched, trivially safe
+
+                    if (graph.PatchInjectedOwners.ContainsKey(id))
+                        continue; // attributed to its owning mod — recoverable
+
+                    Block("unrecoverable-patch-injected",
+                        $"dirty id {id} has no producing edge, no raw SourceFile, and no PatchInjectedOwners attribution — cannot prove recompute-safe",
+                        out blockReason, out blockCategory);
+                    return false;
+                }
             }
 
             return true; // every producing op is allowlisted
