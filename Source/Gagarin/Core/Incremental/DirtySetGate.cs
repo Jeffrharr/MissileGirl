@@ -513,9 +513,15 @@ namespace Gagarin
             // here and the authoritative full rebuild stands. Each decline is logged with its category
             // so the backlog of what to allowlist next is frequency-ranked. Folded into the existing
             // needsFullRebuild path so fallback is one code path.
+            // Pre-declared (rather than an inline `out` type) because it's read further down, past the
+            // needsFullRebuild early-return below — the compiler can't prove it's assigned on every
+            // path reaching that read purely from the short-circuited `&&` here, so it needs an
+            // explicit default. It is only ever actually read on the path where CanRecompute ran and
+            // admitted (the only path that survives the needsFullRebuild return just below).
+            HashSet<string> relevantTargets = null;
             if (!needsFullRebuild &&
                 !RecomputeAllowlist.CanRecompute(graph, dirty, context,
-                    out string blockReason, out string blockCategory))
+                    out string blockReason, out string blockCategory, out relevantTargets))
             {
                 needsFullRebuild = true;
                 fallbackReason = blockReason;
@@ -549,6 +555,20 @@ namespace Gagarin
             Dictionary<string, string> recomputed =
                 DefRecompute.Recompute(dirty, context, graph, changedMods, out List<string> removed,
                     out List<string> ancestorIdsFromRawXml);
+            // Cross-check (issue #75): DefRecompute just walked the CURRENT raw XML's ParentName
+            // chain (ancestorIdsFromRawXml) independently of CanRecompute's own walk of the PRIOR
+            // graph's InheritanceEdges (relevantTargets, captured above). The two can diverge when a
+            // dirty def's ParentName changed since the prior load, in which case CanRecompute may
+            // have blessed the op-set without vetting an ancestor only this raw-XML walk sees. Log-
+            // only for now (mirrors the "recompute" inconsistency kind below) — no auto-fallback
+            // escalation until real-world frequency data justifies one.
+            List<string> ancestorDivergence = ancestorIdsFromRawXml
+                .Where(id => relevantTargets == null || !relevantTargets.Contains(id))
+                .ToList();
+            if (ancestorDivergence.Count > 0 && GagarinPrefs.Metrics)
+                MetricsLog.Append(MetricsLog.BuildInconsistency(
+                    CurrentEnvelope(), "recompute-ancestor-divergence", ancestorDivergence.Count,
+                    ancestorDivergence.GetRange(0, Math.Min(20, ancestorDivergence.Count))));
             // newPaths (P2): the added-def id -> source-file map the diagnostic published this
             // load. A recomputed id absent from the baseline cache is a genuinely-new def; the
             // splice appends it as a new <Item path=...> and reads the path from here so the
@@ -634,8 +654,9 @@ namespace Gagarin
                 // Sub-doc ids whose presence came from DefRecompute.AddAncestorsFromRawXml's
                 // current-load ParentName walk, not from the dirty/context sets directly -- see that
                 // method's comment for why this source is worth telling apart from
-                // RecomputeAllowlist.CanRecompute's prior-graph-based ancestor set. Issue #75 tracks
-                // actually cross-checking this list against what CanRecompute vetted.
+                // RecomputeAllowlist.CanRecompute's prior-graph-based ancestor set. Cross-checked
+                // against relevantTargets just above (issue #75); a divergence is logged as a
+                // "recompute-ancestor-divergence" MetricsLog inconsistency, log-only for now.
                 sb.Append("\"ancestorIdsFromRawXml\":[");
                 for (int i = 0; i < ancestorIdsFromRawXml.Count; i++)
                 {

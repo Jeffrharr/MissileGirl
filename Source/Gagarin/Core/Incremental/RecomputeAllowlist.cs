@@ -230,24 +230,37 @@ namespace Gagarin
 
         // Returns true when the sub-doc recompute is trusted for this load. When false, blockCategory
         // / blockReason explain why (for the metrics backlog) and the caller must full-rebuild.
+        //
+        // relevantTargets (issue #75) exposes the PRIOR-graph-based dirty ∪ ancestors(dirty) set this
+        // method computes internally (see below), so a caller can cross-check it against
+        // DefRecompute.Recompute's separate CURRENT-raw-XML ParentName walk (its
+        // ancestorIdsFromRawXml out param) — the two can diverge whenever a dirty def's ParentName
+        // changed since the prior load (see the parentOf comment below for why). Assigned on every
+        // return path so a caller always has something to compare against, regardless of which branch
+        // admitted or declined.
         public static bool CanRecompute(
             DependencyGraphData graph,
             ICollection<string> dirtyIds,
             ICollection<string> contextIds,
             out string blockReason,
-            out string blockCategory)
+            out string blockCategory,
+            out HashSet<string> relevantTargets)
         {
             blockReason = null;
             blockCategory = null;
 
             var dirty = AsSet(dirtyIds);
             if (dirty.Count == 0)
+            {
+                relevantTargets = dirty; // nothing dirty, so nothing is relevant either
                 return true; // nothing to recompute — trivially safe (the splice changes nothing)
+            }
 
             if (graph == null)
             {
                 blockCategory = "capture-gap";
                 blockReason = "no dependency graph available to verify recompute safety";
+                relevantTargets = new HashSet<string>(StringComparer.Ordinal); // no graph to derive ancestors from
                 return false;
             }
 
@@ -268,8 +281,9 @@ namespace Gagarin
                     parentOf[e.ChildNodeId] = e.ParentNodeId;
 
             // relevantTargets = dirty ∪ ancestors(dirty). An edge produces a dirty def iff it modifies
-            // one of these.
-            var relevantTargets = new HashSet<string>(dirty, StringComparer.Ordinal);
+            // one of these. Assigned into the out param directly (issue #75) so callers can cross-
+            // check it against DefRecompute's separate current-raw-XML ancestor walk.
+            relevantTargets = new HashSet<string>(dirty, StringComparer.Ordinal);
             foreach (string d in dirty)
             {
                 string cur = d;
