@@ -77,6 +77,21 @@
 #                       fed the same Seed 6 index the P4 fixture exercises. Recompute is informational (not
 #                       yet asserted required) since no recompute-fidelity predictor has been validated for
 #                       FindMod-gated content the way MayRequireGate was for P4.
+#     --expect-typeprovider  Live fixture for issue #86 (custom Def-type provider removal invalidates
+#                       dependent defs across other mods). joof.testharness.typeconsumer (UNCHANGED,
+#                       byte-identical between runs) declares several unconditional, unpatched
+#                       <JoofTest.GadgetDef> instances -- a custom def type supplied by
+#                       joof.testharness.typeprovider's own C# assembly, not this mod's own. The
+#                       provider mod is active for Run A and REMOVED before Run B (a pure mod-list
+#                       change, same toggle as --expect-mayrequire/--expect-findmod), so the .NET Type
+#                       itself disappears and TestMod_TypeConsumer's defs can no longer be constructed
+#                       by ANY mod's XML -- even though TestMod_TypeConsumer has no patches touching
+#                       these defs and no MayRequire anywhere. This is the real oppey.eyegenes2 /
+#                       nals.facialanimation shape (FacialAnimation.EyeballColorDef), reproduced with a
+#                       throwaway type. PR 1 scope: asserts only the dirty-set gate stays a superset
+#                       (nonDirtyMismatches==0) AND the new type-provider seed fired (seeds.typeProvider
+#                       > 0 in DirtySet.json). Recompute is informational (not yet asserted required) --
+#                       PR 2 will add a TypeProviderGate mirroring MayRequireGate and tighten this bar.
 #     --expect-ownership  Live fixture for issue #50 (def-ownership rematch for a changed-but-not-added
 #                       mod). joof.testharness.owner is present in BOTH runs' modlist (no ModsConfig
 #                       change at all -- unlike --expect-added/--add=, this never touches ModsConfig).
@@ -186,6 +201,8 @@ THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
 OWNERBASE_MOD_DIR="$SCRIPT_DIR/TestMod_OwnerBase"
 OWNER_MOD_DIR="$SCRIPT_DIR/TestMod_Owner"
 TRIALEXEC_MOD_DIR="$SCRIPT_DIR/TestMod_TrialExec"
+TYPEPROVIDER_MOD_DIR="$SCRIPT_DIR/TestMod_TypeProvider"
+TYPECONSUMER_MOD_DIR="$SCRIPT_DIR/TestMod_TypeConsumer"
 
 # --expect-findmod: exercise the #40 PatchOperationFindMod capture fix. joof.testharness.findmod (an
 # UNCHANGED mod) carries a PatchOperationFindMod gated on joof.testharness.gate's DISPLAY NAME (the
@@ -354,6 +371,12 @@ EXPECT_PATCHINJECTEDCHILD=0
 # recompute gate uses the DEFAULT real-recompute assertion (fallback==false, recomputeMismatches==0)
 # -- proving ADMISSION, not another decline.
 EXPECT_TRIALEXEC=0
+# --expect-typeprovider: issue #86, custom Def-type provider removal. joof.testharness.typeprovider
+# (present Run A, REMOVED before Run B) ships a C# assembly defining JoofTest.GadgetDef : Def;
+# joof.testharness.typeconsumer (UNCHANGED both runs) declares unconditional, unpatched
+# <JoofTest.GadgetDef> instances of its own. PR 1 scope: dirty-set superset gate
+# (nonDirtyMismatches==0) + seeds.typeProvider > 0 in DirtySet.json; recompute is informational.
+EXPECT_TYPEPROVIDER=0
 # --modlist=FILE: an OPTIONAL extra modlist (one packageId per line, '#' comments allowed) to load
 # ON TOP OF the minimal base (Core + DLCs + Harmony + Gagarin + test mods). Use it to reproduce a
 # specific problem set captured from a prior run. Hard-capped at MAX_MODS total (default 150) — the
@@ -430,6 +453,8 @@ for arg in "$@"; do
         EXPECT_PATCHINJECTEDCHILD=1
     elif [[ "$arg" == "--expect-trial-execution" ]]; then
         EXPECT_TRIALEXEC=1
+    elif [[ "$arg" == "--expect-typeprovider" ]]; then
+        EXPECT_TYPEPROVIDER=1
     elif [[ "$arg" == --modlist=* ]]; then
         MODLIST_FILE="${arg#--modlist=}"
     elif [[ "$arg" == --modlist-verbatim=* ]]; then
@@ -450,7 +475,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD $EXPECT_TRIALEXEC)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD $EXPECT_TRIALEXEC $EXPECT_TYPEPROVIDER)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -558,13 +583,15 @@ elif [[ $EXPECT_PATCHINJECTEDCHILD -eq 1 ]]; then
     # inheritance closure to TestMod_Static's (unchanged) patch-injected TC_PatchInjected_Child.
     RUN_A_CHANGE="Change_RunA_PatchInjectedChild.xml"
     RUN_B_CHANGE="Change_RunB_PatchInjectedChild.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || $EXPECT_TRIALEXEC -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
-    # P2 / P4 / P1 / CASE 9 / #40 FindMod / issue #72 trial-execution / --remove / --add: hold
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || $EXPECT_TRIALEXEC -eq 1 || $EXPECT_TYPEPROVIDER -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
+    # P2 / P4 / P1 / CASE 9 / #40 FindMod / issue #72 trial-execution / issue #86 type-provider /
+    # --remove / --add: hold
     # Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT change. The only
     # between-run delta is mode-specific (P2: a mod added before run B; P4: the gate mod removed; P1:
     # the JoofTest.PropDef def file swapped; CASE 9: TestMod_ThirdMod removed; #40: the gate mod
     # removed (same toggle as P4); issue #72: joof.testharness.trialexec added before run B, same
-    # mod-list-change shape as P2;
+    # mod-list-change shape as P2; issue #86: joof.testharness.typeprovider removed before run B,
+    # same toggle as P4;
     # --remove/--add: a real mod removed/added before run B), so the dirty set is driven purely by
     # that channel rather than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
@@ -659,6 +686,8 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-ownerbase"
     rm -f "$MODS_DIR/joof-testharness-owner"
     rm -f "$MODS_DIR/joof-testharness-trialexec"
+    rm -f "$MODS_DIR/joof-testharness-typeprovider"
+    rm -f "$MODS_DIR/joof-testharness-typeconsumer"
     log "Symlinks removed."
 
     # Reset the P1 def file to its committed Run A value so a --expect-p1 run doesn't leave the git
@@ -1109,6 +1138,28 @@ except Exception as e:
 PYEOF
 }
 
+parse_dirtyset_typeprovider() {
+    # --expect-typeprovider (issue #86) only: assert the type-provider channel actually fired, i.e.
+    # Seed 9 dirtied one or more of joof.testharness.typeconsumer's JoofTest.GadgetDef instances via
+    # the TypeProviderIndex XOR (seeds.typeProvider > 0 in DirtySet.json). A zero would mean the
+    # capture side never recorded joof.testharness.typeprovider as the assembly owner of those defs
+    # — the exact silent-staleness this PR closes — so the gate would only pass by luck. We expect 3
+    # here (TC_TypeConsumer_A/B/C).
+    python3 - "$DIRTYSET_REPORT" <<'PYEOF'
+import sys, json
+try:
+    data = json.load(open(sys.argv[1]))
+    seeds = data.get("seeds", {})
+    tp = seeds.get("typeProvider", 0)
+    dirty = data.get("dirtyCount", "?")
+    print(f"  seeds.typeProvider={tp}  dirtyCount={dirty}")
+    sys.exit(0 if tp > 0 else 1)
+except Exception as e:
+    print(f"  ERROR parsing DirtySet.json: {e}", file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
 # ---------------------------------------------------------------------------
 # Pre-flight: every test-mod XML must be well-formed BEFORE we launch.
 # ---------------------------------------------------------------------------
@@ -1179,6 +1230,11 @@ ln -sfn "$OWNER_MOD_DIR"     "$MODS_DIR/joof-testharness-owner"
 # added-defs fixture: inert (never in ModsConfig) unless --expect-trial-execution activates it, and
 # only before run B (the genuine mod-list change that drives both of SubDocExpander's declines).
 ln -sfn "$TRIALEXEC_MOD_DIR" "$MODS_DIR/joof-testharness-trialexec"
+# The type-provider fixture (issue #86) is symlinked unconditionally; only --expect-typeprovider
+# activates both mods for run A, then removes joof.testharness.typeprovider (only) before run B --
+# joof.testharness.typeconsumer stays active in both runs, unchanged.
+ln -sfn "$TYPEPROVIDER_MOD_DIR" "$MODS_DIR/joof-testharness-typeprovider"
+ln -sfn "$TYPECONSUMER_MOD_DIR" "$MODS_DIR/joof-testharness-typeconsumer"
 log "Symlinks created:"
 ls -la "$MODS_DIR/joof-testharness-"* 2>/dev/null || true
 
@@ -1207,6 +1263,7 @@ write_modsconfig() {
     log "--- writing ModsConfig.xml for $label ---"
 EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" EXPECT_P1="$EXPECT_P1" \
 EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" EXPECT_OWNERSHIP="$EXPECT_OWNERSHIP" \
+EXPECT_TYPEPROVIDER="$EXPECT_TYPEPROVIDER" \
 MODLIST_FILE="$target_modlist_file" MODLIST_VERBATIM="$target_modlist_verbatim" MAX_MODS="$MAX_MODS" \
 RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
@@ -1280,6 +1337,12 @@ if os.environ.get("EXPECT_FINDMOD", "0") == "1":
 # other EXPECT_* mode above. ownerbase must precede owner so owner's Run B declaration wins.
 if os.environ.get("EXPECT_OWNERSHIP", "0") == "1":
     test_mods += ["joof.testharness.ownerbase", "joof.testharness.owner"]
+# --expect-typeprovider (#86): typeprovider (ships the JoofTest.GadgetDef C# type) + typeconsumer
+# (declares unpatched instances of it) are both active for run A. typeprovider is removed before
+# run B in Step 4 below (same present-then-removed pattern as the gate mod for P4/#40);
+# typeconsumer stays active, unchanged, in both runs.
+if os.environ.get("EXPECT_TYPEPROVIDER", "0") == "1":
+    test_mods += ["joof.testharness.typeprovider", "joof.testharness.typeconsumer"]
 active += test_mods
 
 if len(active) > max_mods:
@@ -1523,6 +1586,28 @@ print("ModsConfig.xml updated for Run B.")
 PYEOF
 fi
 
+# --expect-typeprovider (#86): REMOVE joof.testharness.typeprovider from ModsConfig now, AFTER run A
+# captured a baseline graph that includes its typeProviders index entries. This pure mod-list change
+# is what makes JoofTest.GadgetDef's Type disappear for run B, so Seed 9 must dirty
+# joof.testharness.typeconsumer's (UNCHANGED) def instances of it. joof.testharness.typeconsumer
+# itself stays active in both runs. (Teardown still restores the original from the step-1 backup.)
+if [[ $EXPECT_TYPEPROVIDER -eq 1 ]]; then
+    log "Removing joof.testharness.typeprovider from ModsConfig for Run B (the mod-list change)..."
+    python3 - "$MODSCONFIG" <<'PYEOF'
+import sys, re
+path = sys.argv[1]
+content = open(path, encoding="utf-8").read()
+pkg = "joof.testharness.typeprovider"
+new = re.sub(r"[ \t]*<li>" + re.escape(pkg) + r"</li>\s*\n", "", content, count=1)
+if new != content:
+    print(f"  {pkg}: removed (run-B mod-list change)")
+else:
+    print(f"  {pkg}: WARNING not found — typeprovider was not active for run A?")
+open(path, "w", encoding="utf-8").write(new)
+print("ModsConfig.xml updated for Run B.")
+PYEOF
+fi
+
 # --modlist-b=/--modlist-verbatim-b=: write run B's ModsConfig from a fully-explicit file, the same
 # way Step 1 wrote run A's — instead of mutating whatever run A's ModsConfig currently contains.
 # Mutually exclusive with --remove=/--add= (enforced at arg-parse time above).
@@ -1677,6 +1762,19 @@ if [[ $EXPECT_OWNERSHIP -eq 1 ]]; then
     ownership_ok=0; parse_dirtyset_ownership && ownership_ok=1 || ownership_ok=0
 fi
 
+# --expect-typeprovider (#86, PR 1): require the type-provider seed to have fired (seeds.typeProvider
+# > 0) — proof Seed 9's TypeProviderIndex XOR dirtied joof.testharness.typeconsumer's UNCHANGED
+# JoofTest.GadgetDef instances purely because joof.testharness.typeprovider (the assembly owner)
+# left the load. Recompute is informational (not yet asserted required): PR 2 adds a
+# TypeProviderGate/DefRecompute step mirroring MayRequireGate before this can be tightened, same
+# progression --expect-mayrequire went through.
+typeprovider_ok=1
+if [[ $EXPECT_TYPEPROVIDER -eq 1 ]]; then
+    log "Type-provider channel result (#86):"
+    typeprovider_ok=0; parse_dirtyset_typeprovider && typeprovider_ok=1 || typeprovider_ok=0
+    recompute_required=0
+fi
+
 # --expect-recompute-gap: the INVERSE verdict. We require the recompute to have genuinely run and
 # DIVERGED (the silent wrong value), so the normal recompute-pass is not required; instead gap_ok
 # demands recomputeMismatches>0 && fallback==false. The dirty-set gate is still required to be a
@@ -1780,7 +1878,7 @@ if [[ $recompute_required -eq 0 ]]; then
     recompute_verdict=1
 fi
 
-if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 && $testop_ok -eq 1 && $scopeescape_ok -eq 1 && $rogueop_ok -eq 1 ]]; then
+if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequire_ok -eq 1 && $p1_ok -eq 1 && $gap_ok -eq 1 && $nested_ok -eq 1 && $seqnested_ok -eq 1 && $ownership_ok -eq 1 && $opkind_ok -eq 1 && $testop_ok -eq 1 && $scopeescape_ok -eq 1 && $rogueop_ok -eq 1 && $typeprovider_ok -eq 1 ]]; then
     echo ""
     echo "========================================"
     echo "  LIVE TEST HARNESS: PASS"
@@ -1816,6 +1914,9 @@ if [[ $gate_ok -eq 1 && $recompute_verdict -eq 1 && $added_ok -eq 1 && $mayrequi
     if [[ $EXPECT_OWNERSHIP -eq 1 ]]; then
         echo "  ownership (#50): TC_Ownership_Target dirtied via defOverrideRematch with zero mod-list delta"
     fi
+    if [[ $EXPECT_TYPEPROVIDER -eq 1 ]]; then
+        echo "  type-provider (#86): seeds.typeProvider > 0 (unchanged joof.testharness.typeconsumer's JoofTest.GadgetDef defs dirtied on provider mod removal)"
+    fi
     if [[ -n "$REMOVE_MOD" ]]; then
         echo "  real removal:    $REMOVE_MOD removed — dirty set stayed a superset (P1+P4 on real content)"
     fi
@@ -1832,7 +1933,7 @@ else
     echo "========================================"
     echo "  LIVE TEST HARNESS: FAIL"
     echo "  dirty-set gate pass=$gate_ok  recompute gate pass=$recompute_ok (required=$recompute_required)"
-    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok  test-op pass=$testop_ok  scope-escape pass=$scopeescape_ok  rogue-op pass=$rogueop_ok"
+    echo "  added-defs pass=$added_ok  mayRequire pass=$mayrequire_ok  p1 pass=$p1_ok  ownership pass=$ownership_ok  recompute-gap pass=$gap_ok  nested-conditional pass=$nested_ok  nested-in-sequence pass=$seqnested_ok  op-kind pass=$opkind_ok  test-op pass=$testop_ok  scope-escape pass=$scopeescape_ok  rogue-op pass=$rogueop_ok  type-provider pass=$typeprovider_ok"
     echo "  See GateReport.json / RecomputeReport.json (+ RecomputeMismatch.json) for details."
     echo "========================================"
     EXIT_CODE=1
