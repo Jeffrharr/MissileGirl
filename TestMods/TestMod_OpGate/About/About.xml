@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Operation Gate</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.opgate</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>The UNCHANGED mod reproducing issue #40 case 3: MayRequire="joof.testharness.gate"
+sits directly on a PatchOperation's own &lt;li&gt; wrapper (inside a PatchOperationSequence), not
+on def content and not on a PatchOperationFindMod branch. RimWorld's list deserializer consumes
+that attribute before the PatchOperation object is constructed, so Verse.PatchOperation itself
+never sees it — the only way to capture it is at the XML-to-object deserialization boundary
+(ProvenanceRecorder's pendingOperationGates / RecordOperationGate). This mod and its files are
+identical across Run A and Run B; the ONLY change between runs is the gate mod being removed, so
+any flip here must be driven by Seed 6 reading a mayRequire entry populated via that path. No game
+content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Gate need not load first (MayRequire checks the active set, not order), but declaring
+         the dependency keeps load order deterministic for the harness. -->
+    <li>joof.testharness.gate</li>
+  </loadAfter>
+</ModMetaData>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- TC_OG_Host: present in BOTH runs, file byte-identical across runs. Its tradeTags carries a
+       tag that OpGatePatch.xml's wrapped Remove conditionally strips (see that file). With the
+       gate mod present (Run A) the resolved def has tradeTags [HostBase] (GatedTag stripped);
+       with it absent (Run B) the Remove op is never even constructed (RimWorld's list
+       deserializer skips it before the PatchOperation is built), so tradeTags stays
+       [HostBase, GatedTag]. This def, its file, and the patch that mutates it never change
+       between runs, so the only way the dirty set can cover the flip is the #40 case-3 fix
+       feeding the operation's own MayRequire gate into the mayRequire index (Seed 6). -->
+  <ThingDef>
+    <defName>TC_OG_Host</defName>
+    <label>opgate host</label>
+    <tradeTags>
+      <li>HostBase</li>
+      <li>GatedTag</li>
+    </tradeTags>
+  </ThingDef>
+</Defs>

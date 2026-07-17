@@ -87,6 +87,14 @@ namespace Gagarin
             public static void Postfix()
             {
                 DuplicateHelper.QueueReportProcessing();
+
+                // Provenance capture (dev-flag gated, cold load only; issue #40 case 3): clear any
+                // pendingOperationGates entry left behind by a PRIOR capture session before THIS cold
+                // load's own gate-capture hooks can run. See ProvenanceRecorder.
+                // ResetPendingOperationGates's header comment for why this must happen here and not in
+                // Reset() (ApplyPatches_Patch.Prefix).
+                if (ProvenanceRecorder.Active)
+                    ProvenanceRecorder.ResetPendingOperationGates();
             }
         }
 
