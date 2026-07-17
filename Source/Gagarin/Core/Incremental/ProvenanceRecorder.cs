@@ -134,6 +134,7 @@ namespace Gagarin
                 Logger.Debug($"GAGARIN: Discarding {pendingOperationGates.Count} " +
                     "never-applied MayRequire gate(s) on Reset.");
             pendingOperationGates.Clear();
+            AssemblyOwnerLookup.Reset();
             overhead.Reset();
             registerSw.Reset();
             recordSw.Reset();
@@ -311,13 +312,23 @@ namespace Gagarin
                 // never matchable, so no seed could dirty them (the bulk of the P1
                 // "un-captured def types" gate misses). Fall back to the type name only
                 // if node somehow isn't an element (a def always has an element here).
-                graph.AddNode(
+                string nodeId = graph.AddNode(
                     element?.Name ?? def.GetType().Name,
                     def.defName,
                     nameAttr,
                     asset?.mod?.PackageId,
                     asset?.FullFilePath,
                     parentName);
+
+                // issue #86: if this def's .NET Type came from a mod's own C# assembly
+                // (a custom Def type, not base-game), record that dependency. A later
+                // removal of the providing mod makes the Type itself disappear, so RimWorld
+                // can no longer construct this element in ANY mod's XML -- even one that
+                // never changed and has no MayRequire. See AssemblyOwnerLookup and
+                // ProvenanceGraph.AddTypeProvider.
+                string providerPackageId = AssemblyOwnerLookup.PackageIdFor(def.GetType().Assembly);
+                if (providerPackageId != null && nodeId != null)
+                    graph.AddTypeProvider(providerPackageId, nodeId);
             }
             finally
             {

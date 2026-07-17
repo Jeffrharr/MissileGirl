@@ -456,6 +456,91 @@ namespace Gagarin.Tests
             Assert.That(r.Nodes, Does.Not.Contain("GeneDef/RBM_UnguligradeLegs"));
         }
 
+        // Seed 9 (issue #86): a def's .NET Type can be supplied by a DIFFERENT mod's C# assembly
+        // than the mod whose XML declares the instance (e.g. FacialAnimation.EyeballColorDef,
+        // a type from nals.facialanimation, instantiated in oppey.eyegenes2's own unpatched
+        // XML). When the type-providing mod leaves the load, the Type disappears, so no mod's
+        // XML can construct that element anymore -- even a consuming mod that never changed.
+        // Mirrors Seed 6 (MayRequire) exactly, just keyed on TypeProviderIndex.
+        private static DependencyGraphData BuildTypeProviderGraph()
+        {
+            var g = new DependencyGraphData { Version = 1 };
+            g.TypeProviderIndex["nals.facialanimation"] = new List<string>
+            {
+                "FacialAnimation.EyeballColorDef/EC_Blue", "FacialAnimation.EyeballColorDef/EC_Green"
+            };
+            g.TypeProviderIndex["ludeon.rimworld.biotech"] = new List<string> { "ThingDef/Gene_X" };
+            return g;
+        }
+
+        [Test]
+        public void TypeProviderFlip_RemovedMod_DirtiesProvidedDefs()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "ludeon.rimworld.biotech", "nals.facialanimation", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("ludeon.rimworld", "ludeon.rimworld.biotech", "oppey.eyegenes2")   // provider removed
+            };
+            var r = DirtySetComputer.Compute(BuildTypeProviderGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("FacialAnimation.EyeballColorDef/EC_Blue"));
+            Assert.That(r.Nodes, Contains.Item("FacialAnimation.EyeballColorDef/EC_Green"));
+            Assert.That(r.SeedTypeProvider, Is.EqualTo(2));
+            // biotech's genes are provided by a mod that's still loaded -> stays clean.
+            Assert.That(r.Nodes, Does.Not.Contain("ThingDef/Gene_X"));
+        }
+
+        [Test]
+        public void TypeProvider_AddedMod_DirtiesProvidedDefs()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "ludeon.rimworld.biotech", "oppey.eyegenes2"),
+                CurrentLoadOrder = Order("ludeon.rimworld", "ludeon.rimworld.biotech", "nals.facialanimation", "oppey.eyegenes2")
+            };
+            var r = DirtySetComputer.Compute(BuildTypeProviderGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("FacialAnimation.EyeballColorDef/EC_Blue"));
+            Assert.That(r.Nodes, Contains.Item("FacialAnimation.EyeballColorDef/EC_Green"));
+            Assert.That(r.SeedTypeProvider, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TypeProvider_ModPresentInBoth_NoFlip()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "nals.facialanimation"),
+                CurrentLoadOrder = Order("nals.facialanimation", "ludeon.rimworld")   // reordered only
+            };
+            var r = DirtySetComputer.Compute(BuildTypeProviderGraph(), change);
+            Assert.That(r.SeedTypeProvider, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("FacialAnimation.EyeballColorDef/EC_Blue"));
+        }
+
+        [Test]
+        public void TypeProvider_PackageIdMatch_IsCaseInsensitive()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "NALS.FacialAnimation"),
+                CurrentLoadOrder = Order("ludeon.rimworld")   // removed, differently-cased
+            };
+            var r = DirtySetComputer.Compute(BuildTypeProviderGraph(), change);
+            Assert.That(r.Nodes, Contains.Item("FacialAnimation.EyeballColorDef/EC_Blue"));
+            Assert.That(r.SeedTypeProvider, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TypeProvider_EmptyIndex_NoOpAndNoOverDirty()
+        {
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("modA", "modB"),
+                CurrentLoadOrder = Order("modA", "modB", "modNew")
+            };
+            var r = DirtySetComputer.Compute(BuildGraph(), change);
+            Assert.That(r.SeedTypeProvider, Is.EqualTo(0));
+        }
+
         [Test]
         public void DependencyGraphData_Parse_ReadsMayRequireIndex_CaseInsensitive()
         {
@@ -482,6 +567,34 @@ namespace Gagarin.Tests
                 "{\"version\":1,\"nodes\":[],\"patchEdges\":[],\"inheritanceEdges\":[],\"metrics\":{}}";
             var g = DependencyGraphData.Parse(json);
             Assert.That(g.MayRequireIndex, Is.Empty);
+        }
+
+        [Test]
+        public void DependencyGraphData_Parse_ReadsTypeProviderIndex_CaseInsensitive()
+        {
+            const string json =
+                "{\"version\":1,\"nodes\":[],\"patchEdges\":[],\"inheritanceEdges\":[]," +
+                "\"typeProviders\":{\"Nals.FacialAnimation\":[\"FacialAnimation.EyeballColorDef/EC_Blue\"," +
+                  "\"FacialAnimation.EyeballColorDef/EC_Green\"]},\"metrics\":{}}";
+            var g = DependencyGraphData.Parse(json);
+            Assert.That(g.TypeProviderIndex, Has.Count.EqualTo(1));
+            // Lookup with different casing must resolve (OrdinalIgnoreCase).
+            Assert.That(g.TypeProviderIndex["nals.facialanimation"],
+                Is.EquivalentTo(new[]
+                {
+                    "FacialAnimation.EyeballColorDef/EC_Blue", "FacialAnimation.EyeballColorDef/EC_Green"
+                }));
+        }
+
+        [Test]
+        public void DependencyGraphData_Parse_PreIssue86Graph_HasEmptyTypeProviderIndex()
+        {
+            // A graph written before issue #86 has no "typeProviders" field; parsing must yield an
+            // empty index (not throw) so old caches load and Seed 9 simply no-ops.
+            const string json =
+                "{\"version\":1,\"nodes\":[],\"patchEdges\":[],\"inheritanceEdges\":[],\"metrics\":{}}";
+            var g = DependencyGraphData.Parse(json);
+            Assert.That(g.TypeProviderIndex, Is.Empty);
         }
 
         // Issue #43: a def replaced outright by a later mod re-declaring the same defName

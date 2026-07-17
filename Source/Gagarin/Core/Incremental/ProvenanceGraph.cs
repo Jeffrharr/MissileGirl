@@ -90,6 +90,16 @@ namespace Gagarin
         private readonly Dictionary<string, HashSet<string>> mayRequire =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        // typeProviders (issue #86): packageId -> node ids whose .NET Def Type was
+        // supplied by that packageId's own C# assembly (a custom Def type, e.g.
+        // FacialAnimation.EyeballColorDef), rather than the base game. When such a mod
+        // leaves the load, RimWorld can no longer construct ANY def of that type in ANY
+        // mod's XML -- including instances owned by an entirely unchanged mod with no
+        // patches, no MayRequire, and no other structural signal. Same shape and
+        // case-insensitive keying as mayRequire above, for the same reason.
+        private readonly Dictionary<string, HashSet<string>> typeProviders =
+            new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
         // defOverrides (issue #43): packageId -> node ids whose def that packageId's own
         // Defs file re-declares under the same defName, entirely replacing an earlier
         // registration (Verse.DefDatabase<T>.Add: "if (defsByName.TryGetValue(...)) Remove(value);
@@ -198,6 +208,19 @@ namespace Gagarin
                 return count;
             }
         }
+        // Distinct packageIds recorded as a custom Def type's provider assembly.
+        public int TypeProviderPackageCount => typeProviders.Count;
+        // Total (packageId, defNodeId) pairs indexed — Seed 9's fan-out upper bound.
+        public int TypeProviderEdgeCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (HashSet<string> ids in typeProviders.Values)
+                    count += ids.Count;
+                return count;
+            }
+        }
         // How many times KeyForNode fell back to DocumentPath (NearestDefElement
         // returned null). High values indicate nodes outside a <Defs> root or an
         // unexpected document structure worth investigating.
@@ -242,6 +265,7 @@ namespace Gagarin
             nameAttrToNodeIdAny.Clear();
             pendingInheritance.Clear();
             mayRequire.Clear();
+            typeProviders.Clear();
             unresolvedGateMods.Clear();
             defOverrides.Clear();
             patchInjectedOwners.Clear();
@@ -250,8 +274,11 @@ namespace Gagarin
         }
 
         // Adds a def node. parentName (if any) is queued for resolution against
-        // the parent's node id once all nodes are known.
-        public void AddNode(string defType, string defName, string nameAttr,
+        // the parent's node id once all nodes are known. Returns the computed node id (or
+        // null if the node had neither a defName nor a Name to key on) so callers that need
+        // it -- e.g. RegisterNode indexing a custom Def type's provider mod -- don't have to
+        // duplicate the id-computation rule.
+        public string AddNode(string defType, string defName, string nameAttr,
             string sourceMod, string sourceFile, string parentName)
         {
             // Concrete defs key by defName; abstract / Name-based templates (which have
@@ -262,7 +289,7 @@ namespace Gagarin
                 ? $"{defType}/{defName}"
                 : (!string.IsNullOrEmpty(nameAttr) ? $"{defType}@{nameAttr}" : null);
             if (id == null)
-                return;
+                return null;
 
             if (!nodes.TryGetValue(id, out var existing))
             {
@@ -325,6 +352,8 @@ namespace Gagarin
                     childDefType = defType,
                     parentName = parentName
                 });
+
+            return id;
         }
 
         // Indexes one MayRequire / MayRequireAnyOf dependency: def node nodeId carries
@@ -341,6 +370,24 @@ namespace Gagarin
             {
                 ids = new HashSet<string>();
                 mayRequire[packageId] = ids;
+            }
+            ids.Add(nodeId);
+        }
+
+        // Indexes one custom-Def-type dependency (issue #86): def node nodeId's .NET Type
+        // was supplied by providerPackageId's own C# assembly (see AssemblyOwnerLookup).
+        // Mirrors AddMayRequire's shape exactly -- packageId -> node ids -- so
+        // DirtySetComputer's Seed 9 can XOR it the same way Seed 6 does the MayRequire
+        // index: a def instantiated via a removed mod's Type can no longer be constructed
+        // by ANY mod's XML, even one that never changed and carries no MayRequire.
+        public void AddTypeProvider(string packageId, string nodeId)
+        {
+            if (string.IsNullOrEmpty(packageId) || string.IsNullOrEmpty(nodeId))
+                return;
+            if (!typeProviders.TryGetValue(packageId, out HashSet<string> ids))
+            {
+                ids = new HashSet<string>();
+                typeProviders[packageId] = ids;
             }
             ids.Add(nodeId);
         }
@@ -637,6 +684,21 @@ namespace Gagarin
             }
             sb.Append("},");
 
+            // typeProviders (issue #86): { "<packageId>": ["<nodeId>", ...], ... }. Same
+            // shape as mayRequire above, so DirtySetComputer's Seed 9 can XOR it the same
+            // way against prior/current load order.
+            sb.Append("\"typeProviders\":{");
+            first = true;
+            foreach (KeyValuePair<string, HashSet<string>> kv in typeProviders)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                AppendQ(sb, kv.Key);
+                sb.Append(':');
+                AppendArr(sb, kv.Value);
+            }
+            sb.Append("},");
+
             // defOverrides (issue #43): { "<packageId>": ["<nodeId>", ...], ... }. Object
             // keyed the same way as mayRequire so DirtySetComputer's Seed 7 can look a
             // packageId up directly when it enters/leaves the load. packageId is whichever
@@ -727,6 +789,8 @@ namespace Gagarin
                 $"\"inheritanceResolvedCount\":{InheritanceResolvedCount}," +
                 $"\"mayRequirePackageCount\":{MayRequirePackageCount}," +
                 $"\"mayRequireEdgeCount\":{MayRequireEdgeCount}," +
+                $"\"typeProviderPackageCount\":{TypeProviderPackageCount}," +
+                $"\"typeProviderEdgeCount\":{TypeProviderEdgeCount}," +
                 $"\"documentPathFallbacks\":{DocumentPathFallbackCount}," +
                 $"\"activeModCount\":{activeModCount}," +
                 $"\"registerMs\":{registerMs}," +

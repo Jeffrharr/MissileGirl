@@ -80,6 +80,7 @@ namespace Gagarin
         public int SeedDefOverride;     // nodes seeded by a def-override owning-mod add/remove (issue #43)
         public int SeedDefOverrideRematch; // nodes seeded by a newly-added mod's current-content override (issue #43 add-direction)
         public int SeedOwnerModRemoved;  // nodes seeded because their sole recorded owner mod left the load order
+        public int SeedTypeProvider;    // nodes seeded by a custom-Def-type provider mod add/remove (issue #86)
         public int InheritanceAdded;    // nodes added by the inheritance closure
         public int SeedUnresolvedFanout; // children fanned out via the unresolved-edge safety net (Change C)
         public int Iterations;          // inheritance-closure frontier steps
@@ -282,6 +283,39 @@ namespace Gagarin
                         continue;
                     if (dirty.Add(node.Id))
                         result.SeedOwnerModRemoved++;
+                }
+            }
+
+            // Seed 9 — custom Def-type provider mod add/remove (issue #86). A def instance's
+            // .NET Type can be supplied by a DIFFERENT mod's C# assembly than the mod whose
+            // XML declares the instance (e.g. FacialAnimation.EyeballColorDef, a type from
+            // nals.facialanimation, instantiated 34 times in oppey.eyegenes2's own unpatched
+            // XML). When the type-providing mod leaves the load, that Type disappears, so
+            // RimWorld can no longer construct ANY instance of it in ANY mod's XML -- even one
+            // whose own file never changed, has no patches touching these defs, and carries no
+            // MayRequire anywhere. Seeds 1-8 have nothing to hook: the consuming mod is
+            // unchanged and the dependency is purely "this def's Type came from mod X's
+            // assembly" (see AssemblyOwnerLookup / ProvenanceRecorder.RegisterNode). Mirrors
+            // Seed 6's XOR exactly, just keyed on TypeProviderIndex instead of MayRequireIndex.
+            // Placed before the inheritance closure so a flipped type-provided base still fans
+            // out to descendants.
+            if (graph.TypeProviderIndex != null && graph.TypeProviderIndex.Count > 0)
+            {
+                var prior = new HashSet<string>(
+                    change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                var current = new HashSet<string>(
+                    change.CurrentLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var kv in graph.TypeProviderIndex)
+                {
+                    // XOR: only a packageId that entered or left the load flips the defs
+                    // whose Type it provides.
+                    if (prior.Contains(kv.Key) == current.Contains(kv.Key))
+                        continue;
+                    foreach (var id in kv.Value)
+                        if (id != null && dirty.Add(id))
+                            result.SeedTypeProvider++;
                 }
             }
 
