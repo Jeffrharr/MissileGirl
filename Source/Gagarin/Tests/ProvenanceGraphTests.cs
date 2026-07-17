@@ -552,6 +552,42 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void TypeProviders_SerializesPackageToNodeIds()
+        {
+            // Issue #86 capture side: each def whose .NET Type came from a mod's own assembly is
+            // indexed under that mod's packageId, de-duplicated, and emitted as a
+            // { packageId: [nodeId, ...] } object -- same shape as mayRequire above.
+            ProvenanceGraph graph = new ProvenanceGraph();
+            graph.AddTypeProvider("nals.facialanimation", "FacialAnimation.EyeballColorDef/EC_Blue");
+            graph.AddTypeProvider("nals.facialanimation", "FacialAnimation.EyeballColorDef/EC_Green");
+            graph.AddTypeProvider("nals.facialanimation", "FacialAnimation.EyeballColorDef/EC_Green"); // dup
+            graph.AddTypeProvider("ludeon.rimworld.biotech", "ThingDef/Gene_Example");
+
+            JsonElement typeProviders = JsonDocument.Parse(graph.Serialize(0))
+                .RootElement.GetProperty("typeProviders");
+
+            var facialAnimation = typeProviders.GetProperty("nals.facialanimation")
+                .EnumerateArray().Select(e => e.GetString()).ToList();
+            Assert.That(facialAnimation, Is.EquivalentTo(new[]
+            {
+                "FacialAnimation.EyeballColorDef/EC_Blue", "FacialAnimation.EyeballColorDef/EC_Green"
+            }));
+            Assert.That(typeProviders.GetProperty("ludeon.rimworld.biotech").GetArrayLength(),
+                Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TypeProviders_EmptyIndex_SerializesEmptyObject()
+        {
+            // A graph with no type-provider content still emits the field (an empty object) so
+            // the schema is stable and the parser's lookup is uniform.
+            JsonElement typeProviders = JsonDocument.Parse(new ProvenanceGraph().Serialize(0))
+                .RootElement.GetProperty("typeProviders");
+            Assert.That(typeProviders.ValueKind, Is.EqualTo(JsonValueKind.Object));
+            Assert.That(typeProviders.EnumerateObject().Any(), Is.False);
+        }
+
+        [Test]
         public void Serialize_RiskyMods_ListsGeneratedAndDocPathOwnersOnly()
         {
             var g = new ProvenanceGraph();

@@ -68,6 +68,14 @@ namespace Gagarin
         public readonly Dictionary<string, List<string>> MayRequireIndex =
             new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
 
+        // typeProviders (issue #86): packageId -> def node ids whose .NET Type was supplied
+        // by that packageId's own C# assembly (a custom Def type). Same shape and rationale
+        // as MayRequireIndex above -- case-insensitive because packageIds are -- but keyed
+        // by assembly ownership instead of a MayRequire/MayRequireAnyOf attribute. Consumed
+        // by DirtySetComputer's Seed 9. Empty when the graph predates issue #86.
+        public readonly Dictionary<string, List<string>> TypeProviderIndex =
+            new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
+
         // defOverrides (issue #43): packageId -> def node ids whose real DefDatabase
         // content that packageId's own Defs file supplies by re-declaring the same
         // defName (last-loaded mod wins; see Verse.DefDatabase<T>.Add). No PatchOperation
@@ -153,6 +161,16 @@ namespace Gagarin
                 var ids = new List<string>();
                 AddStrings(ids, kv.Value);
                 data.MayRequireIndex[kv.Key] = ids;
+            }
+
+            // typeProviders index (issue #86). An object of packageId -> [nodeId, ...].
+            // Absent in pre-#86 graphs, in which case AsObject yields an empty map and
+            // Seed 9 no-ops.
+            foreach (var kv in AsObject(Get(root, "typeProviders")))
+            {
+                var ids = new List<string>();
+                AddStrings(ids, kv.Value);
+                data.TypeProviderIndex[kv.Key] = ids;
             }
 
             // unresolvedGateMods (issue #40). Absent in pre-#40 graphs, in which case
