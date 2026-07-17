@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Type Provider</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.typeprovider</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Live fixture for issue #86. Ships a C# assembly defining a custom def subclass
+`JoofTest.GadgetDef : Def` and nothing else -- no XML instances of its own. Present in Run A,
+REMOVED before Run B (a pure mod-list change, same toggle as joof.testharness.gate for
+--expect-mayrequire). TestMod_TypeConsumer's unconditional, unpatched &lt;JoofTest.GadgetDef&gt;
+instances must be dirtied by the removal even though TestMod_TypeConsumer itself never changed,
+has no patches touching these defs, and no MayRequire anywhere -- because the .NET Type this mod
+supplied no longer exists once it's gone. This is the real oppey.eyegenes2 / nals.facialanimation
+shape (FacialAnimation.EyeballColorDef), reproduced with a throwaway type. No game content —
+dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+</ModMetaData>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Unconditional, unpatched instances of a custom def type supplied by
+       joof.testharness.typeprovider's own C# assembly. Byte-identical across Run A and Run B;
+       this mod's own files never change. -->
+  <JoofTest.GadgetDef>
+    <defName>TC_TypeConsumer_A</defName>
+  </JoofTest.GadgetDef>
+  <JoofTest.GadgetDef>
+    <defName>TC_TypeConsumer_B</defName>
+  </JoofTest.GadgetDef>
+  <JoofTest.GadgetDef>
+    <defName>TC_TypeConsumer_C</defName>
+  </JoofTest.GadgetDef>
+</Defs>

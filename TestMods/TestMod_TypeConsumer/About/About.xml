@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Test Harness — Type Consumer</name>
+  <author>Joof</author>
+  <packageId>joof.testharness.typeconsumer</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Live fixture for issue #86. Declares several unconditional, unpatched
+&lt;JoofTest.GadgetDef&gt; instances -- a custom def type supplied by joof.testharness.typeprovider's
+own C# assembly, not this mod's. This mod is UNCHANGED between Run A and Run B: no patches touch
+these defs, no MayRequire anywhere. The whole point is that nothing about this mod's own files
+looks dirty by any existing seed -- the only thing that changes is whether
+joof.testharness.typeprovider (and therefore the JoofTest.GadgetDef Type) is present in the load.
+No game content — dev/QA use only.</description>
+  <loadAfter>
+    <li>Ludeon.RimWorld</li>
+    <li>Ludeon.RimWorld.Royalty</li>
+    <li>Ludeon.RimWorld.Ideology</li>
+    <li>Ludeon.RimWorld.Biotech</li>
+    <li>Ludeon.RimWorld.Anomaly</li>
+    <li>brrainz.harmony</li>
+    <!-- Supplies the JoofTest.GadgetDef Type our defs below instantiate. -->
+    <li>joof.testharness.typeprovider</li>
+  </loadAfter>
+</ModMetaData>
