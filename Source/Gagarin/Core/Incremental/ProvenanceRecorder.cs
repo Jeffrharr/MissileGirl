@@ -125,21 +125,43 @@ namespace Gagarin
             branchFieldCache.Clear();
             applyStack.Clear();
             generatedChildCounters.Clear();
-            // pendingOperationGates: an entry stashed by RecordOperationGate for a
-            // constructed-but-never-Applied gated operation (an untaken FindMod/Conditional
-            // branch, or an op whose Apply threw -- Harmony skips the Postfix on a throw, so
-            // IndexOperationGate never drains it) would otherwise persist across capture
-            // sessions in the same process. Bound it to one session here.
-            if (GagarinPrefs.CaptureVerbose && pendingOperationGates.Count > 0)
-                Logger.Debug($"GAGARIN: Discarding {pendingOperationGates.Count} " +
-                    "never-applied MayRequire gate(s) on Reset.");
-            pendingOperationGates.Clear();
+            // pendingOperationGates is deliberately NOT cleared here -- see
+            // ResetPendingOperationGates's header comment (issue #40 case 3): by the time
+            // ApplyPatches_Patch.Prefix runs Reset(), ErrorCheckPatches() has already triggered
+            // every mod's lazy LoadPatches() and populated pendingOperationGates for THIS load,
+            // so clearing it here would discard entries before IndexOperationGate ever drains them.
             AssemblyOwnerLookup.Reset();
             overhead.Reset();
             registerSw.Reset();
             recordSw.Reset();
             serializeSw.Reset();
             keyMatchedCount = 0;
+        }
+
+        // Clears any MayRequire/MayRequireAnyOf gate RecordOperationGate stashed for a
+        // constructed-but-never-Applied operation (an untaken FindMod/Conditional branch, or an op
+        // whose Apply threw) in a PRIOR capture session, so it can never bleed into this one.
+        //
+        // Deliberately split out of Reset() (issue #40 case 3): Reset() runs from
+        // ApplyPatches_Patch.Prefix, which is too LATE within a single cold load --
+        // LoadedModManager.ErrorCheckPatches() (called earlier in the same LoadAllActiveMods, per
+        // the decompiled method) is the first thing that touches ModContentPack.Patches for every
+        // mod, lazily triggering ModContentPack.LoadPatches() -- which is exactly what fires
+        // DirectXmlToObject_Patch's gate-capture hooks and populates pendingOperationGates for THIS
+        // load. Clearing the dict at ApplyPatches-Prefix time discarded every entry ErrorCheckPatches
+        // had just stashed moments earlier, before IndexOperationGate ever got a chance to drain them
+        // -- silently zeroing every case-3 MayRequire-wrapper gate for every mod on every load.
+        //
+        // Called instead from TKeySystem_Parse_Patch's postfix (LoadedModManager_Patch.cs):
+        // TKeySystem.Parse only runs when !hotReload (matching this capture's cold-load-only scope),
+        // and it is the last thing LoadAllActiveMods does before ErrorCheckPatches -- so this always
+        // runs exactly once per cold load, strictly before any mod's Patches can be lazily populated.
+        public static void ResetPendingOperationGates()
+        {
+            if (GagarinPrefs.CaptureVerbose && pendingOperationGates.Count > 0)
+                Logger.Debug($"GAGARIN: Discarding {pendingOperationGates.Count} " +
+                    "never-applied MayRequire gate(s) from a prior capture session.");
+            pendingOperationGates.Clear();
         }
 
         // Assigns deterministic patchIds to every PatchOperation in active-mod

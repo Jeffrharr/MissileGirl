@@ -29,6 +29,7 @@ actually consume it.
 | 12 | `PatchOperationConditional` | **Branch**: tests xpath/node existence → `match`/`nomatch` | **Full for the validated case** | `RecomputeAllowlist.BranchParentId` (issue #25, CASE 7 same-def-nesting / CASE 8 sequence-nesting) resolves the leaf's *immediate* gating conditional and expands the allowlist / forces fallback correctly, live-validated (`--expect-nested-conditional`, `--expect-nested-in-sequence`). **Open nuance** (not yet live-tested): if the tested xpath's target existed only because of a *third*, unrelated mod that gets removed entirely (mirroring the #40 shape but for a content-existence test instead of a mod-presence test), it's unconfirmed whether the allowlist mechanism still catches it — worth a targeted live fixture later. |
 | 13 | `PatchOperationTest` (obsolete) | No `match`/`nomatch` — flips its own success/failure, historically paired with `<success>Invert</success>` inside a `Sequence` to fake conditional behavior pre-`Conditional` | **Not supported, documented gap** | No branch shape to hook (nothing to reflect for). Rare/deprecated per the wiki itself; not pursued. |
 | — | `MayRequire` / `MayRequireAnyOf` (attribute, usable on any node incl. inside a `Sequence`, not an operation type) | Declarative gate, survives in the patched tree regardless of runtime evaluation | **Full, live-validated** | Seed 6 / P4 (`IndexMayRequire` doc-scan → `mayRequire` index → XOR on packageId presence). `run_test.sh --expect-mayrequire` passes both the dirty-set gate and the recompute gate. |
+| — | `MayRequire` / `MayRequireAnyOf` directly on a `PatchOperation`'s own `<li>`/`<Operation>` wrapper element (issue #40 case 3) | Declarative gate, but consumed by RimWorld's generic list deserializer *before* the `PatchOperation` object is constructed — nothing on `Verse.PatchOperation` stores it | **Full for the dirty-set gate, live-validated (2026-07-16)** | Capture (`DirectXmlToObject_Patch.cs`'s `ModContentPack_LoadPatches_GateCapture_Patch`/`DirectXmlToObject_GetObjectFromXmlMethod_GateCapture_Patch`, commits `a0127ea`/`3d4d3a0`) hooks the XML-to-object deserialization boundary itself and stashes the gate in `pendingOperationGates`, drained into the same `mayRequire` index Seed 6 already consumes — same reused-XOR-check pattern as `PatchOperationFindMod`. This mechanism existed but was silently zeroed by an ordering bug: `ProvenanceRecorder.Reset()` (called from `ApplyPatches_Patch.Prefix`) cleared `pendingOperationGates` *after* `LoadedModManager.ErrorCheckPatches()` had already triggered every mod's lazy `LoadPatches()` and populated it for the current load — discarding every stash before `IndexOperationGate` ever drained it, for every mod using this shape, on every load. Fixed by splitting the clear into `ResetPendingOperationGates()`, called instead from the earlier `TKeySystem_Parse_Patch.Postfix` hook. `run_test.sh --expect-opgate` is the dedicated regression fixture (see "Issue #40 update 3" below); recompute is fallback-safe (the op lives in a `PatchOperationSequence`), not yet narrowed. |
 | — | Custom third-party `PatchOperation` subclasses (XML Extensions, CE's `PatchOperationMakeGunCECompatible`, `PatchOperationAddOrReplace`, etc.) | Arbitrary `ApplyWorker`; no guaranteed field convention | **Partial, best-effort** | Plain-mutation custom ops that ultimately call the normal `SelectNodes`/`Apply` plumbing are covered like 1-9. Branching custom ops that happen to follow the `match`/`nomatch` field-naming convention get *capture-only* coverage from the new generic reflection fallback (part of the #40 fix) — flagged into `unresolvedGateMods`, no consumer/seed wired yet. Anything that mutates the tree without going through the hooked call path at all (e.g. constructing XML nodes in code without `SelectNodes`) is invisible — this is exactly the class issue #26's `riskyMods`/invisible-op audit exists to bound, not eliminate. |
 
 ## Coverage diagram
@@ -41,6 +42,7 @@ flowchart TD
         SEQ["PatchOperationSequence<br/>(pass-through container)"]
         MR["MayRequire / MayRequireAnyOf<br/>(attribute, any node)"]
         COND["PatchOperationConditional<br/>(xpath/node-existence branch)"]
+        OPGATE["MayRequire on an operation's own<br/>li/Operation wrapper (case 3, #40)"]
     end
 
     subgraph Gap["🔴 Known gap — in flight"]
@@ -60,6 +62,7 @@ flowchart TD
     MR -->|"IndexMayRequire doc-scan<br/>→ mayRequire index"| SEED6[("DirtySetComputer<br/>Seed 6 (P4)<br/>XOR on packageId presence")]
     COND -->|"BranchParentId<br/>(issue #25)"| ALLOWLIST[("RecomputeAllowlist<br/>expand / needsFullRebuild")]
     FM -.->|"NEW: typed reader resolves<br/>mods (names) → packageIds"| SEED6
+    OPGATE -->|"RecordOperationGate/IndexOperationGate<br/>(deserialization-boundary hook)"| SEED6
     CUSTOM -.->|"generic reflection fallback:<br/>match/nomatch field detection"| UNRESOLVED[("unresolvedGateMods<br/>(capture-only, no consumer yet)")]
     TEST -.->|"no match/nomatch shape<br/>to reflect on"| NOTHING["(nothing — not caught)"]
 
@@ -130,14 +133,13 @@ different from all three already covered/attempted:
 | P4 (done) | `MayRequire` on content *inside* a def (e.g. `<li MayRequire="...">`) | Yes — persists in the patched tree, doc-scan (`IndexMayRequire`) finds it |
 | `LoadFolders.xml` (built, not the cause here) | `IfModActive`/`IfModActiveAll`/`IfModNotActive` on a `<loadFolders>` folder entry | Yes, in principle — `ModContentPack.foldersToLoadDescendingOrder` is readable at `ApplyPatches` time (implemented this session, live-validated not to crash, but no live fixture proving it catches a real case yet) |
 | `PatchOperationFindMod` (done) | Mod **display name** tested via `mods` field → `match`/`nomatch` | Yes — the object exists, has readable fields, our `Apply` hook sees it |
-| **This case (open)** | `MayRequire` on the `<li Class="PatchOperationX" MayRequire="...">` wrapper element | **No** — consumed by the generic XML list-item deserializer before the `PatchOperation` object is constructed; nothing survives for any existing hook to see |
+| This case (fixed, see update 3 below) | `MayRequire` on the `<li Class="PatchOperationX" MayRequire="...">` wrapper element | **No** — consumed by the generic XML list-item deserializer before the `PatchOperation` object is constructed; nothing survives on the object for `PatchOperation.Apply` to see. **But** a dedicated hook at the deserialization boundary itself (not `Apply`) can and does capture it — see below. |
 
 Closing this gap needs a hook at RimWorld's generic `<li>`-list XML deserialization (where
 `MayRequire`/`MayRequireAnyOf` is read off the raw `XmlNode` before constructing the list item),
-not anything under `PatchOperation.Apply`. Not yet scoped or attempted — likely the true next step
-for issue #40's live repro. The `LoadFolders.xml` mechanism built this session is kept as real,
-independently-useful, live-crash-tested coverage (a mod could still hit that gap on a different
-def set) but is confirmed **not** what closes `oppey.eyegenes2`'s case.
+not anything under `PatchOperation.Apply`. The `LoadFolders.xml` mechanism built this session is kept
+as real, independently-useful, live-crash-tested coverage (a mod could still hit that gap on a
+different def set) but is confirmed **not** what closes `oppey.eyegenes2`'s case.
 
 **Consequence:** `LoadFolders.xml`'s `IfModActive` / `IfModActiveAll` / `IfModNotActive` is a
 *fourteenth* coverage row, structurally earlier than every mechanism in the catalogue above — it
@@ -147,6 +149,50 @@ layer today, so this is a **new, uncaptured gap**, not a variant of the #40 `Pat
 fix. The `PatchOperationFindMod` fix (`FindModCapture.cs` etc.) may still be independently correct
 for mods that actually use that construct — it just doesn't fix *this* live repro. Left in place
 pending a decision on priority; not reverted.
+
+## Issue #40 update 3 (2026-07-16): case-3 capture existed but was silently zeroed — fixed
+
+A capture mechanism for case 3 (`MayRequire` on a `PatchOperation`'s own wrapper element) was
+implemented back in commits `a0127ea`/`3d4d3a0` (`DirectXmlToObject_Patch.cs`'s
+`ModContentPack_LoadPatches_GateCapture_Patch` and
+`DirectXmlToObject_GetObjectFromXmlMethod_GateCapture_Patch`, plus `ProvenanceRecorder`'s
+`pendingOperationGates`/`RecordOperationGate`/`IndexOperationGate`) — but re-running the live repro
+against it (`--modlist-verbatim=modlists/realmix-baseline.txt
+--remove=nals.facialanimation,nals.facialanimationexperimentals`, with `oppey.eyegenes2`
+resubscribed after briefly vanishing from the local Workshop cache) still failed identically:
+`nonDirtyMismatches=68` (34 `GeneDef`/`FacialAnimation.EyeballColorDef` pairs). Direct inspection of
+a fresh capture's `DependencyGraph.json` showed its `mayRequire` index had **zero** entries for
+`nals`/`facial`/`eyegene`/`oppey`, despite the mechanism appearing structurally applicable.
+
+**Root cause** (confirmed via decompile of `Verse.LoadedModManager.LoadAllActiveMods`, not a
+hypothesis): `ApplyPatches_Patch.Prefix` (`LoadedModManager_Patch.cs`) calls
+`ProvenanceRecorder.Reset()`, which unconditionally cleared `pendingOperationGates` — the stash
+`RecordOperationGate` fills during capture. But the real load order is:
+
+```
+... TKeySystem.Parse (cold-load only)
+  → ErrorCheckPatches()   // FIRST access to every mod's .Patches property → lazily
+                          // triggers ModContentPack.LoadPatches() for every mod HERE
+  → ApplyPatches(...)     // our Prefix runs first: ProvenanceRecorder.Reset() wiped
+                          // pendingOperationGates clean
+```
+
+`LoadPatches()` is exactly where the case-3 capture hooks fire and stash every operation's gate.
+Since `ErrorCheckPatches()` runs *before* `ApplyPatches()`, every stash from *this same cold load*
+was discarded by `Reset()` before `IndexOperationGate` (driven later, per-op, from
+`PatchOperation_Patch`'s `Apply` postfix) ever got a chance to drain it — zeroing case-3 for
+**every** mod using this wrapper-`MayRequire` pattern, not just `eyegenes2`. It went undetected
+because the existing `--expect-mayrequire` fixture only exercises P4 (`IndexMayRequire`, a doc-scan
+run from `ApplyPatches`'s *postfix*, after all `.Apply()` calls — unaffected by this ordering bug).
+
+**Fix**: split the `pendingOperationGates` clear out of `Reset()` into
+`ResetPendingOperationGates()`, called instead from `TKeySystem_Parse_Patch.Postfix` — an existing
+hook that fires exactly once per cold load, strictly before any mod's `.Patches` can be lazily
+populated (confirmed via the same decompile). New dedicated fixture: `TestMods/TestMod_OpGate`
+(packageId `joof.testharness.opgate`), exercised via `run_test.sh --expect-opgate` — a
+`PatchOperationSequence` wrapping one `PatchOperationRemove` gated with
+`MayRequire="joof.testharness.gate"` directly on the `<li>`, reproducing `eyegenes2`'s exact shape
+without depending on a drifting real-world Workshop mod.
 
 ## Takeaways for future work
 

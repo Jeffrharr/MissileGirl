@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!-- Reproduces the #40 case-3 bug shape exactly: oppey.eyegenes2's real
+       Patch_FacialRemoveEyes.xml wraps each of 34 PatchOperationRemove ops as
+       <li Class="PatchOperationRemove" MayRequire="nals.facialanimation"> inside a top-level
+       PatchOperationSequence. Here, one such wrapped Remove strips TC_OG_Host's GatedTag, gated
+       on joof.testharness.gate directly on the li, NOT via PatchOperationFindMod (that's
+       expect-findmod's shape) and NOT as content inside a def (that's expect-mayrequire's
+       P4 shape). MayRequire on an operation's own wrapper element is consumed by RimWorld's list
+       deserializer (Verse.DirectXmlToObject.ListFromXml) before the PatchOperation is
+       constructed; Verse.PatchOperation has no MayRequire field to reflect on after the fact. -->
+  <Operation Class="PatchOperationSequence">
+    <operations>
+      <li Class="PatchOperationRemove" MayRequire="joof.testharness.gate">
+        <xpath>Defs/ThingDef[defName="TC_OG_Host"]/tradeTags/li[text()="GatedTag"]</xpath>
+      </li>
+    </operations>
+  </Operation>
+</Patch>

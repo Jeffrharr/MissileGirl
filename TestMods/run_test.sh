@@ -92,6 +92,24 @@
 #                       (nonDirtyMismatches==0) AND the new type-provider seed fired (seeds.typeProvider
 #                       > 0 in DirtySet.json). Recompute is informational (not yet asserted required) --
 #                       PR 2 will add a TypeProviderGate mirroring MayRequireGate and tighten this bar.
+#     --expect-opgate   Live fixture for issue #40 case 3 (operation-wrapper MayRequire capture).
+#                       joof.testharness.opgate (UNCHANGED, byte-identical between runs) carries a
+#                       top-level PatchOperationSequence whose single <li Class="PatchOperationRemove"
+#                       MayRequire="joof.testharness.gate"> strips a tag from its own TC_OG_Host --
+#                       mirroring the real oppey.eyegenes2/nals.facialanimation shape exactly: MayRequire
+#                       sits directly on the operation's own wrapper element (NOT inside a
+#                       PatchOperationFindMod branch like --expect-findmod, and NOT as def content like
+#                       --expect-mayrequire's P4). RimWorld's list deserializer consumes that attribute
+#                       before the PatchOperation is even constructed, so the ordinary Apply hook never
+#                       sees it -- capture only happens via ProvenanceRecorder.RecordOperationGate /
+#                       IndexOperationGate at the deserialization boundary. The gate mod is active for
+#                       Run A and REMOVED before Run B (same toggle as --expect-mayrequire/--expect-findmod),
+#                       so TC_OG_Host's resolved content flips with neither mod's files changing. Asserts
+#                       the dirty-set gate stays a superset (nonDirtyMismatches==0) AND the MayRequire seed
+#                       fired (seeds.mayRequire > 0 in DirtySet.json) -- proof the pendingOperationGates
+#                       ordering fix (Reset() split -> ResetPendingOperationGates(), called from
+#                       TKeySystem_Parse_Patch.Postfix) lets IndexOperationGate actually drain the stash
+#                       instead of it being wiped by ApplyPatches_Patch.Prefix before use.
 #     --expect-ownership  Live fixture for issue #50 (def-ownership rematch for a changed-but-not-added
 #                       mod). joof.testharness.owner is present in BOTH runs' modlist (no ModsConfig
 #                       change at all -- unlike --expect-added/--add=, this never touches ModsConfig).
@@ -197,6 +215,7 @@ P1_MOD_DIR="$SCRIPT_DIR/TestMod_P1"
 GENOP_MOD_DIR="$SCRIPT_DIR/TestMod_GenOp"
 ROGUEOP_MOD_DIR="$SCRIPT_DIR/TestMod_RogueOp"
 FINDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_FindMod"
+OPGATE_MOD_DIR="$SCRIPT_DIR/TestMod_OpGate"
 THIRDMOD_MOD_DIR="$SCRIPT_DIR/TestMod_ThirdMod"
 OWNERBASE_MOD_DIR="$SCRIPT_DIR/TestMod_OwnerBase"
 OWNER_MOD_DIR="$SCRIPT_DIR/TestMod_Owner"
@@ -211,6 +230,17 @@ TYPECONSUMER_MOD_DIR="$SCRIPT_DIR/TestMod_TypeConsumer"
 # it) and REMOVED before run B (a pure mod-list change). TC_FM_Host must show up dirty via the MayRequire
 # seed (DirtySet.json seeds.mayRequire > 0), same as P4, since FindModCapture feeds the same index.
 EXPECT_FINDMOD=0
+
+# --expect-opgate: exercise the #40 case-3 pendingOperationGates ordering fix. joof.testharness.opgate
+# (an UNCHANGED mod) carries a top-level PatchOperationSequence whose single <li Class=
+# "PatchOperationRemove" MayRequire="joof.testharness.gate"> strips a tag from its own TC_OG_Host --
+# MayRequire on the operation's own wrapper element (the real oppey.eyegenes2/nals.facialanimation
+# shape), not via PatchOperationFindMod branching and not as def content. The gate mod is active for
+# run A (so the Remove fires and RecordOperationGate/IndexOperationGate index it) and REMOVED before
+# run B (a pure mod-list change). TC_OG_Host must show up dirty via the MayRequire seed (DirtySet.json
+# seeds.mayRequire > 0), proving pendingOperationGates survives to be drained instead of being wiped
+# by ApplyPatches_Patch.Prefix's old Reset() timing.
+EXPECT_OPGATE=0
 
 # --expect-ownership: exercise the #50 def-ownership rematch fix. joof.testharness.owner is present
 # in BOTH run A and run B's modlist (never added/removed via ModsConfig -- no presence flip at all).
@@ -437,6 +467,8 @@ for arg in "$@"; do
         EXPECT_THIRDMOD=1
     elif [[ "$arg" == "--expect-findmod" ]]; then
         EXPECT_FINDMOD=1
+    elif [[ "$arg" == "--expect-opgate" ]]; then
+        EXPECT_OPGATE=1
     elif [[ "$arg" == "--expect-ownership" ]]; then
         EXPECT_OWNERSHIP=1
     elif [[ "$arg" == "--expect-op-kind" ]]; then
@@ -475,7 +507,7 @@ done
 # instead of each hand-listing the flags (which drifted silently until now: add a new EXPECT_* and
 # forget one of the two sums, and the new mode just silently combines with another instead of
 # erroring).
-EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD $EXPECT_TRIALEXEC $EXPECT_TYPEPROVIDER)
+EXPECT_FLAGS=($EXPECT_FALLBACK $EXPECT_ADDED $EXPECT_MAYREQUIRE $EXPECT_P1 $EXPECT_GAP $EXPECT_NESTED $EXPECT_SEQNESTED $EXPECT_THIRDMOD $EXPECT_FINDMOD $EXPECT_OPGATE $EXPECT_OWNERSHIP $EXPECT_OPKIND $EXPECT_ORDERPRESERVED $EXPECT_TESTOP $EXPECT_SCOPEESCAPE $EXPECT_ROGUEOP $EXPECT_PATCHINJECTEDCHILD $EXPECT_TRIALEXEC $EXPECT_TYPEPROVIDER)
 sum_expect_flags() {
     local sum=0
     for f in "${EXPECT_FLAGS[@]}"; do
@@ -583,15 +615,15 @@ elif [[ $EXPECT_PATCHINJECTEDCHILD -eq 1 ]]; then
     # inheritance closure to TestMod_Static's (unchanged) patch-injected TC_PatchInjected_Child.
     RUN_A_CHANGE="Change_RunA_PatchInjectedChild.xml"
     RUN_B_CHANGE="Change_RunB_PatchInjectedChild.xml"
-elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || $EXPECT_TRIALEXEC -eq 1 || $EXPECT_TYPEPROVIDER -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
-    # P2 / P4 / P1 / CASE 9 / #40 FindMod / issue #72 trial-execution / issue #86 type-provider /
-    # --remove / --add: hold
-    # Change.xml at run A for BOTH runs so the change vehicle's patch file does NOT change. The only
-    # between-run delta is mode-specific (P2: a mod added before run B; P4: the gate mod removed; P1:
-    # the JoofTest.PropDef def file swapped; CASE 9: TestMod_ThirdMod removed; #40: the gate mod
-    # removed (same toggle as P4); issue #72: joof.testharness.trialexec added before run B, same
-    # mod-list-change shape as P2; issue #86: joof.testharness.typeprovider removed before run B,
-    # same toggle as P4;
+elif [[ $EXPECT_ADDED -eq 1 || $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_P1 -eq 1 || $EXPECT_THIRDMOD -eq 1 || $EXPECT_FINDMOD -eq 1 || $EXPECT_OPGATE -eq 1 || $EXPECT_TRIALEXEC -eq 1 || $EXPECT_TYPEPROVIDER -eq 1 || -n "$REMOVE_MOD" || -n "$ADD_MOD" ]]; then
+    # P2 / P4 / P1 / CASE 9 / #40 FindMod / #40 case-3 op-gate / issue #72 trial-execution /
+    # issue #86 type-provider / --remove / --add: hold Change.xml at run A for BOTH runs so the
+    # change vehicle's patch file does NOT change. The only between-run delta is mode-specific
+    # (P2: a mod added before run B; P4: the gate mod removed; P1: the JoofTest.PropDef def file
+    # swapped; CASE 9: TestMod_ThirdMod removed; #40 FindMod: the gate mod removed (same toggle as
+    # P4); #40 case-3: the gate mod removed (same toggle as P4/FindMod); issue #72:
+    # joof.testharness.trialexec added before run B, same mod-list-change shape as P2; issue #86:
+    # joof.testharness.typeprovider removed before run B, same toggle as P4;
     # --remove/--add: a real mod removed/added before run B), so the dirty set is driven purely by
     # that channel rather than a patch-file edit.
     RUN_A_CHANGE="Change_RunA.xml"
@@ -683,6 +715,7 @@ teardown() {
     rm -f "$MODS_DIR/joof-testharness-rogueop"
     rm -f "$MODS_DIR/joof-testharness-thirdmod"
     rm -f "$MODS_DIR/joof-testharness-findmod"
+    rm -f "$MODS_DIR/joof-testharness-opgate"
     rm -f "$MODS_DIR/joof-testharness-ownerbase"
     rm -f "$MODS_DIR/joof-testharness-owner"
     rm -f "$MODS_DIR/joof-testharness-trialexec"
@@ -1222,6 +1255,9 @@ ln -sfn "$THIRDMOD_MOD_DIR"   "$MODS_DIR/joof-testharness-thirdmod"
 # The FindMod fixture (#40) is symlinked unconditionally; only --expect-findmod activates it (and the
 # shared gate mod) in ModsConfig for run A.
 ln -sfn "$FINDMOD_MOD_DIR"    "$MODS_DIR/joof-testharness-findmod"
+# The op-gate fixture (#40 case 3) is symlinked unconditionally; only --expect-opgate activates it
+# (and the shared gate mod) in ModsConfig for run A.
+ln -sfn "$OPGATE_MOD_DIR"     "$MODS_DIR/joof-testharness-opgate"
 # The ownership fixture (#50) is symlinked unconditionally; both mods are ALWAYS in ModsConfig (never
 # added/removed) in --expect-ownership -- the whole point is zero mod-list delta between runs.
 ln -sfn "$OWNERBASE_MOD_DIR" "$MODS_DIR/joof-testharness-ownerbase"
@@ -1262,8 +1298,8 @@ write_modsconfig() {
     local label="$3"
     log "--- writing ModsConfig.xml for $label ---"
 EXPECT_ADDED="$EXPECT_ADDED" EXPECT_MAYREQUIRE="$EXPECT_MAYREQUIRE" EXPECT_P1="$EXPECT_P1" \
-EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" EXPECT_OWNERSHIP="$EXPECT_OWNERSHIP" \
-EXPECT_TYPEPROVIDER="$EXPECT_TYPEPROVIDER" \
+EXPECT_THIRDMOD="$EXPECT_THIRDMOD" EXPECT_FINDMOD="$EXPECT_FINDMOD" EXPECT_OPGATE="$EXPECT_OPGATE" \
+EXPECT_OWNERSHIP="$EXPECT_OWNERSHIP" EXPECT_TYPEPROVIDER="$EXPECT_TYPEPROVIDER" \
 MODLIST_FILE="$target_modlist_file" MODLIST_VERBATIM="$target_modlist_verbatim" MAX_MODS="$MAX_MODS" \
 RIMWORLD="$RIMWORLD" python3 - "$MODSCONFIG" <<'PYEOF'
 import os, sys, re
@@ -1333,6 +1369,10 @@ if os.environ.get("EXPECT_THIRDMOD", "0") == "1":
 # toggle shape as --expect-mayrequire, reusing the same gate mod).
 if os.environ.get("EXPECT_FINDMOD", "0") == "1":
     test_mods += ["joof.testharness.gate", "joof.testharness.findmod"]
+# --expect-opgate (#40 case 3): gate + opgate are active for run A; gate is removed before run B
+# (same toggle shape as --expect-mayrequire/--expect-findmod, reusing the same gate mod).
+if os.environ.get("EXPECT_OPGATE", "0") == "1":
+    test_mods += ["joof.testharness.gate", "joof.testharness.opgate"]
 # --expect-ownership (#50): both mods are active in BOTH runs -- no add/remove at all, unlike every
 # other EXPECT_* mode above. ownerbase must precede owner so owner's Run B declaration wins.
 if os.environ.get("EXPECT_OWNERSHIP", "0") == "1":
@@ -1567,8 +1607,8 @@ fi
 # baseline graph that includes the gate's content + MayRequire index. This pure mod-list change is
 # what flips the gated content (TC_MR_Gated dropped, TC_MR_Host's gated li stripped) for run B, so
 # the MayRequire seed must dirty those defs. (Teardown still restores the original from the step-1
-# backup.)
-if [[ $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_FINDMOD -eq 1 ]]; then
+# backup.) Same toggle for --expect-findmod and --expect-opgate (#40 case 3).
+if [[ $EXPECT_MAYREQUIRE -eq 1 || $EXPECT_FINDMOD -eq 1 || $EXPECT_OPGATE -eq 1 ]]; then
     log "Removing joof.testharness.gate from ModsConfig for Run B (the mod-list change)..."
     python3 - "$MODSCONFIG" <<'PYEOF'
 import sys, re
@@ -1741,6 +1781,20 @@ findmod_ok=1
 if [[ $EXPECT_FINDMOD -eq 1 ]]; then
     log "FindMod channel result (#40):"
     findmod_ok=0; parse_dirtyset_mayrequire && findmod_ok=1 || findmod_ok=0
+    recompute_required=0
+fi
+
+# --expect-opgate (#40 case 3): require the SAME MayRequire seed to have fired (seeds.mayRequire > 0)
+# — proof ProvenanceRecorder.RecordOperationGate/IndexOperationGate captured the operation-wrapper
+# MayRequire and fed TC_OG_Host's node id into the shared mayRequire index, so Seed 6's existing XOR
+# check dirtied it on gate removal (i.e. the pendingOperationGates ordering fix actually let this
+# survive to be drained instead of being wiped by the old Reset() timing). Recompute is informational
+# (not yet asserted required): the op is wrapped in a PatchOperationSequence, so this is expected to
+# decline via the same safe-fallback path --expect-findmod exercises, not a clean recompute.
+opgate_ok=1
+if [[ $EXPECT_OPGATE -eq 1 ]]; then
+    log "Op-gate channel result (#40 case 3):"
+    opgate_ok=0; parse_dirtyset_mayrequire && opgate_ok=1 || opgate_ok=0
     recompute_required=0
 fi
 
