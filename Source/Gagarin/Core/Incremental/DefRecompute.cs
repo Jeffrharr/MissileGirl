@@ -164,6 +164,13 @@ namespace Gagarin
             var changedModSet = new HashSet<string>(
                 changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             HashSet<string> topLevelIdsToRun = BuildTopLevelIdsToRun(graph, needed);
+            // Only built when the flag is on: building it is cheap, but it also makes the
+            // gate below unreachable-by-construction on a graph from before the flag existed
+            // (TypeProviderIndex absent -> Dictionary.Empty), matching the "no-op when OFF"
+            // contract every incremental flag in GagarinPrefs carries.
+            Dictionary<string, string> typeProviderByNodeId = GagarinPrefs.TypeProviderRecompute
+                ? (graph?.BuildTypeProviderByNodeId() ?? new Dictionary<string, string>(StringComparer.Ordinal))
+                : new Dictionary<string, string>(StringComparer.Ordinal);
 
             // 3c. A PENDING id (no raw body — patch-injected) can only ever be resolved by
             //     actually replaying the patch that creates it. But BuildTopLevelIdsToRun above
@@ -282,6 +289,21 @@ namespace Gagarin
                             node.Attributes["MayRequireAnyOf"]?.Value,
                             ModLister.AllModsActiveNoSuffix,
                             ModLister.AnyModActiveNoSuffix))
+                    {
+                        removedConcreteIds.Add(id);
+                        continue;
+                    }
+
+                    // Type-provider fidelity (issue #86): a custom Def type (e.g.
+                    // FacialAnimation.EyeballColorDef) can come from a DIFFERENT mod's assembly
+                    // than the one whose XML declares the instance. The real loader
+                    // (DirectXmlLoader.DefFromNode) resolves the type by element name and drops
+                    // the def entirely if it can't be found in any loaded assembly -- invisible
+                    // in the def's own XML, so it can only be checked against the captured
+                    // typeProviders index, not the node itself. A dirty def whose provider mod
+                    // left the load is routed to removedConcreteIds, matching the rebuild.
+                    if (typeProviderByNodeId.TryGetValue(id, out string providerPackageId) &&
+                        !TypeProviderGate.Passes(providerPackageId, ModLister.AnyModActiveNoSuffix))
                     {
                         removedConcreteIds.Add(id);
                         continue;

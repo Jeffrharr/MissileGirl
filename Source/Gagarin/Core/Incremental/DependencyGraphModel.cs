@@ -76,6 +76,21 @@ namespace Gagarin
         public readonly Dictionary<string, List<string>> TypeProviderIndex =
             new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
 
+        // Inverts TypeProviderIndex (packageId -> nodeIds) to nodeId -> packageId, for a
+        // recompute-time per-def lookup ("which mod's assembly, if any, supplied this node's
+        // .NET Type?" -- see TypeProviderGate). Built on demand rather than during Parse since
+        // only DefRecompute's fidelity check needs it, and it's cheap (one pass, capture-time
+        // graphs have at most a few hundred type-provided nodes).
+        public Dictionary<string, string> BuildTypeProviderByNodeId()
+        {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var kv in TypeProviderIndex)
+                foreach (string nodeId in kv.Value)
+                    if (nodeId != null)
+                        result[nodeId] = kv.Key;
+            return result;
+        }
+
         // defOverrides (issue #43): packageId -> def node ids whose real DefDatabase
         // content that packageId's own Defs file supplies by re-declaring the same
         // defName (last-loaded mod wins; see Verse.DefDatabase<T>.Add). No PatchOperation

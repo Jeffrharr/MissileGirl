@@ -148,7 +148,7 @@
 #     the cases the dirty-only dead-end could not satisfy.
 #
 # Flags / build:
-#   - This script enables the four incremental-cache diagnostics at LAUNCH via GAGARIN_*
+#   - This script enables the incremental-cache diagnostics at LAUNCH via GAGARIN_*
 #     environment variables (exports below); the DLL no longer needs them edited in.
 #   - It deploys the freshly-built dev Gagarin.dll (DEV_GAGARIN_DLL) over the workshop copy
 #     the game loads (vr.missilegirl), backing up the original and restoring it on teardown.
@@ -183,12 +183,19 @@ DEV_GAGARIN_DLL="/home/deck/Developer/RimWorldMods/MissileGirl/1.6/Plugins/Stabl
 WORKSHOP_GAGARIN_DLL="$WORKSHOP_MISSILEGIRL/1.6/Plugins/Stable/Gagarin.dll"
 WORKSHOP_GAGARIN_BAK="/tmp/Gagarin_testharness.bak.dll"
 
-# Enable the four incremental-cache diagnostics at launch (GagarinPrefs reads these on first
+# Enable the incremental-cache diagnostics at launch (GagarinPrefs reads these on first
 # access). Exported here so the RimWorldLinux child process launched below inherits them.
 export GAGARIN_CAPTURE_PROVENANCE=1
 export GAGARIN_DIRTYSET_DIAGNOSTIC=1
 export GAGARIN_DIRTYSET_GATE=1
 export GAGARIN_DIRTYSET_RECOMPUTE=1
+# TypeProviderGate recompute fidelity (issue #86 PR 2, GagarinPrefs.TypeProviderRecompute) —
+# not yet live-validated, so it stays behind its own flag rather than folding unconditionally
+# into DirtySetRecompute like MayRequireGate. Enabled here so --expect-typeprovider (and every
+# other fixture, harmlessly -- no TypeProviderIndex entries means an empty lookup) actually
+# exercises it; once a live run confirms recomputeMismatches==0 this can fold into the
+# unconditional DefRecompute path and this export can be dropped.
+export GAGARIN_TYPEPROVIDER_RECOMPUTE=1
 # The master toggle enables PriorStateSnapshot (the sidecar under .../MissileGirl/Incremental/prior/).
 # It is the ONLY source of the TRUE prior modlist/Unified/hash that survives OnInitialization's
 # modlist-change teardown — the live ModList.xml is re-dumped to the CURRENT order before the
