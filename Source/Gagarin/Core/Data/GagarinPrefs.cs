@@ -61,6 +61,18 @@ namespace Gagarin
         // Default OFF.
         public static bool DirtySetRecompute = false;
 
+        // Dev-only flag for the TypeProviderGate recompute-fidelity step (issue #86 PR 2). When ON
+        // (alongside DirtySetRecompute, whose splice it participates in), DefRecompute drops a
+        // dirty def whose .NET Type was supplied by a mod assembly that has left the load —
+        // mirroring what MayRequireGate does for MayRequire/MayRequireAnyOf. Unlike MayRequireGate,
+        // this piece has not yet been live-validated (only offline-tested), so it gets its own flag
+        // rather than folding straight into the unconditional DefRecompute path MayRequireGate
+        // uses: a bug here should not be able to regress the already-proven MayRequire/P1/etc.
+        // recompute fixtures while this is under validation. Default OFF; once a live run confirms
+        // recomputeMismatches==0 on --expect-typeprovider this can fold in unconditionally like
+        // MayRequireGate did.
+        public static bool TypeProviderRecompute = false;
+
         // Dev-only flag for the week-long real-world evidence base. When ON, the incremental-cache
         // pipeline PERSISTS metrics to an append-only JSON-Lines log (MetricsLog) that survives
         // cache clears, so a human can run the cache during normal play for a week and accumulate
@@ -122,6 +134,7 @@ namespace Gagarin
         //   GAGARIN_DIRTYSET_DIAGNOSTIC  -> DirtySetDiagnostic
         //   GAGARIN_DIRTYSET_GATE        -> DirtySetGate
         //   GAGARIN_DIRTYSET_RECOMPUTE   -> DirtySetRecompute
+        //   GAGARIN_TYPEPROVIDER_RECOMPUTE -> TypeProviderRecompute (issue #86 PR 2; see field comment)
         //   GAGARIN_METRICS              -> Metrics
         //   GAGARIN_INCREMENTAL_CACHE    -> IncrementalCache (the master toggle)
         //   GAGARIN_DISABLE_LOG_CAP      -> DisableLogCap (testing-only; see field comment)
@@ -132,6 +145,7 @@ namespace Gagarin
             DirtySetDiagnostic = EnvFlag("GAGARIN_DIRTYSET_DIAGNOSTIC", DirtySetDiagnostic);
             DirtySetGate       = EnvFlag("GAGARIN_DIRTYSET_GATE",       DirtySetGate);
             DirtySetRecompute  = EnvFlag("GAGARIN_DIRTYSET_RECOMPUTE",  DirtySetRecompute);
+            TypeProviderRecompute = EnvFlag("GAGARIN_TYPEPROVIDER_RECOMPUTE", TypeProviderRecompute);
             Metrics            = EnvFlag("GAGARIN_METRICS",             Metrics);
             IncrementalCache   = EnvFlag("GAGARIN_INCREMENTAL_CACHE",   IncrementalCache);
             DisableLogCap      = EnvFlag("GAGARIN_DISABLE_LOG_CAP",     DisableLogCap);
