@@ -168,9 +168,9 @@ namespace Gagarin
             // gate below unreachable-by-construction on a graph from before the flag existed
             // (TypeProviderIndex absent -> Dictionary.Empty), matching the "no-op when OFF"
             // contract every incremental flag in GagarinPrefs carries.
-            Dictionary<string, string> typeProviderByNodeId = GagarinPrefs.TypeProviderRecompute
-                ? (graph?.BuildTypeProviderByNodeId() ?? new Dictionary<string, string>(StringComparer.Ordinal))
-                : new Dictionary<string, string>(StringComparer.Ordinal);
+            Dictionary<string, List<string>> typeProviderByNodeId = GagarinPrefs.TypeProviderRecompute
+                ? (graph?.BuildTypeProviderByNodeId() ?? new Dictionary<string, List<string>>(StringComparer.Ordinal))
+                : new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
             // 3c. A PENDING id (no raw body — patch-injected) can only ever be resolved by
             //     actually replaying the patch that creates it. But BuildTopLevelIdsToRun above
@@ -300,10 +300,13 @@ namespace Gagarin
                     // (DirectXmlLoader.DefFromNode) resolves the type by element name and drops
                     // the def entirely if it can't be found in any loaded assembly -- invisible
                     // in the def's own XML, so it can only be checked against the captured
-                    // typeProviders index, not the node itself. A dirty def whose provider mod
-                    // left the load is routed to removedConcreteIds, matching the rebuild.
-                    if (typeProviderByNodeId.TryGetValue(id, out string providerPackageId) &&
-                        !TypeProviderGate.Passes(providerPackageId, ModLister.AnyModActiveNoSuffix))
+                    // typeProviders index, not the node itself. A node can list more than one
+                    // candidate provider (two mods sharing an identity-matching assembly); the
+                    // gate passes as long as any one of them is still active. Only when EVERY
+                    // recorded provider has left the load is the dirty def routed to
+                    // removedConcreteIds, matching the rebuild.
+                    if (typeProviderByNodeId.TryGetValue(id, out List<string> providerPackageIds) &&
+                        !TypeProviderGate.Passes(providerPackageIds, ModLister.AnyModActiveNoSuffix))
                     {
                         removedConcreteIds.Add(id);
                         continue;

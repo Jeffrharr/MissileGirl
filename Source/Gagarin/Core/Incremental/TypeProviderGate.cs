@@ -41,18 +41,29 @@ namespace Gagarin
 {
     public static class TypeProviderGate
     {
-        // True if a def node whose .NET Type was supplied by `providerPackageId` (null when the
-        // node's Type came from a base-game/vanilla assembly -- i.e. no gate applies at all)
-        // would still resolve under the CURRENT mod list, i.e. should be KEPT in the recomputed
-        // cache. False means the type-providing mod has left the load, so RimWorld can no longer
-        // construct instances of that Type in ANY mod's XML -- the def should be spliced out,
-        // treated the same as a deletion.
+        // True if a def node whose .NET Type could have been supplied by any of
+        // `providerPackageIds` (null/empty when the node's Type came from a base-game/vanilla
+        // assembly -- i.e. no gate applies at all) would still resolve under the CURRENT mod
+        // list, i.e. should be KEPT in the recomputed cache. False means every candidate
+        // providing mod has left the load, so RimWorld can no longer construct instances of
+        // that Type in ANY mod's XML -- the def should be spliced out, treated the same as a
+        // deletion.
+        //
+        // More than one candidate can be recorded for a single node: two mods can share an
+        // identity-matching assembly (.NET/Mono's Assembly.LoadFrom binding can resolve both
+        // to the same Assembly object -- see AssemblyOwnerLookup), so removing whichever one
+        // happened to be captured must NOT drop the def if another recorded candidate is still
+        // active. Passing as long as ANY candidate is active is the correct, conservative
+        // reading: the def only becomes unconstructable once every possible source is gone.
         //
         // anyActive is the ModLister oracle (DefRecompute supplies ModLister.AnyModActiveNoSuffix
         // in-game, matching MayRequireGate's usage); tests supply a synthetic lambda.
-        public static bool Passes(string providerPackageId, Func<IEnumerable<string>, bool> anyActive)
+        public static bool Passes(IEnumerable<string> providerPackageIds, Func<IEnumerable<string>, bool> anyActive)
         {
-            return providerPackageId == null || anyActive(new[] { providerPackageId });
+            if (providerPackageIds == null)
+                return true;
+            List<string> ids = providerPackageIds as List<string> ?? new List<string>(providerPackageIds);
+            return ids.Count == 0 || anyActive(ids);
         }
     }
 }

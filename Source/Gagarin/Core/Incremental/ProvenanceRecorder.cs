@@ -347,10 +347,16 @@ namespace Gagarin
                 // removal of the providing mod makes the Type itself disappear, so RimWorld
                 // can no longer construct this element in ANY mod's XML -- even one that
                 // never changed and has no MayRequire. See AssemblyOwnerLookup and
-                // ProvenanceGraph.AddTypeProvider.
-                string providerPackageId = AssemblyOwnerLookup.PackageIdFor(def.GetType().Assembly);
-                if (providerPackageId != null && nodeId != null)
-                    graph.AddTypeProvider(providerPackageId, nodeId);
+                // ProvenanceGraph.AddTypeProvider. A node can have more than one candidate
+                // provider (two mods sharing an identity-matching assembly via .NET's
+                // LoadFrom binding) -- record all of them so TypeProviderGate can pass as
+                // long as ANY one survives, not just whichever mod loaded last.
+                List<string> providerPackageIds = AssemblyOwnerLookup.PackageIdsFor(def.GetType().Assembly);
+                if (nodeId != null)
+                {
+                    foreach (string providerPackageId in providerPackageIds)
+                        graph.AddTypeProvider(providerPackageId, nodeId);
+                }
             }
             finally
             {
