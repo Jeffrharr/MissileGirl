@@ -65,5 +65,18 @@ namespace Gagarin
             List<string> ids = providerPackageIds as List<string> ?? new List<string>(providerPackageIds);
             return ids.Count == 0 || anyActive(ids);
         }
+
+        // Pulled out of DefRecompute so the "no-op when the flag is off" contract is pinned by
+        // an offline test rather than only by a live run. DefRecompute's own method is
+        // RimWorld-coupled (ModContentPack, XmlInheritance, ModLister) and can't run in the
+        // offline suite, but this ternary only touches a bool and the pure DependencyGraphData
+        // -- when `enabled` is false the gate must be unreachable-by-construction (an empty
+        // dict never satisfies TryGetValue), regardless of what the graph actually contains.
+        public static Dictionary<string, List<string>> ResolveProviderIndex(bool enabled, DependencyGraphData graph)
+        {
+            if (!enabled)
+                return new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            return graph?.BuildTypeProviderByNodeId() ?? new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        }
     }
 }
