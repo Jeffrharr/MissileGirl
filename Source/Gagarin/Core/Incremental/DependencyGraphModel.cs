@@ -76,18 +76,31 @@ namespace Gagarin
         public readonly Dictionary<string, List<string>> TypeProviderIndex =
             new Dictionary<string, List<string>>(System.StringComparer.OrdinalIgnoreCase);
 
-        // Inverts TypeProviderIndex (packageId -> nodeIds) to nodeId -> packageId, for a
-        // recompute-time per-def lookup ("which mod's assembly, if any, supplied this node's
-        // .NET Type?" -- see TypeProviderGate). Built on demand rather than during Parse since
-        // only DefRecompute's fidelity check needs it, and it's cheap (one pass, capture-time
+        // Inverts TypeProviderIndex (packageId -> nodeIds) to nodeId -> packageIds, for a
+        // recompute-time per-def lookup ("which mod(s)' assemblies, if any, could have
+        // supplied this node's .NET Type?" -- see TypeProviderGate). A node can list more
+        // than one packageId here when two mods shared an identity-matching assembly at
+        // capture time (see AssemblyOwnerLookup) -- TypeProviderGate passes as long as ANY
+        // one of them is still active. Built on demand rather than during Parse since only
+        // DefRecompute's fidelity check needs it, and it's cheap (one pass, capture-time
         // graphs have at most a few hundred type-provided nodes).
-        public Dictionary<string, string> BuildTypeProviderByNodeId()
+        public Dictionary<string, List<string>> BuildTypeProviderByNodeId()
         {
-            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            var result = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             foreach (var kv in TypeProviderIndex)
+            {
                 foreach (string nodeId in kv.Value)
-                    if (nodeId != null)
-                        result[nodeId] = kv.Key;
+                {
+                    if (nodeId == null)
+                        continue;
+                    if (!result.TryGetValue(nodeId, out List<string> providerIds))
+                    {
+                        providerIds = new List<string>();
+                        result[nodeId] = providerIds;
+                    }
+                    providerIds.Add(kv.Key);
+                }
+            }
             return result;
         }
 

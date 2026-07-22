@@ -29,22 +29,28 @@ namespace Gagarin.Tests
         [Test]
         public void NoProvider_AlwaysPasses()
         {
-            // null providerPackageId means the Type came from a base-game/vanilla assembly --
+            // null providerPackageIds means the Type came from a base-game/vanilla assembly --
             // no gate applies regardless of what's active.
             Assert.That(TypeProviderGate.Passes(null, AnyActive()), Is.True);
         }
 
         [Test]
+        public void EmptyProviderList_AlwaysPasses()
+        {
+            Assert.That(TypeProviderGate.Passes(new List<string>(), AnyActive()), Is.True);
+        }
+
+        [Test]
         public void ProviderActive_Passes()
         {
-            Assert.That(TypeProviderGate.Passes("nals.facialanimation",
+            Assert.That(TypeProviderGate.Passes(new[] { "nals.facialanimation" },
                 AnyActive("nals.facialanimation")), Is.True);
         }
 
         [Test]
         public void ProviderRemoved_Drops()
         {
-            Assert.That(TypeProviderGate.Passes("nals.facialanimation",
+            Assert.That(TypeProviderGate.Passes(new[] { "nals.facialanimation" },
                 AnyActive("some.othermod")), Is.False);
         }
 
@@ -53,8 +59,25 @@ namespace Gagarin.Tests
         {
             // ProvenanceRecorder/AssemblyOwnerLookup treat packageIds via ModLister's own
             // comparisons; the real ModLister lowercases too.
-            Assert.That(TypeProviderGate.Passes("Nals.FacialAnimation",
+            Assert.That(TypeProviderGate.Passes(new[] { "Nals.FacialAnimation" },
                 AnyActive("nals.facialanimation")), Is.True);
+        }
+
+        [Test]
+        public void OneOfMultipleProvidersStillActive_Passes()
+        {
+            // Two mods can share an identity-matching assembly (.NET/Mono's Assembly.LoadFrom
+            // binding). Removing whichever one was captured as "the" provider must not drop the
+            // def while another recorded candidate is still active.
+            Assert.That(TypeProviderGate.Passes(new[] { "mod.a", "mod.b" },
+                AnyActive("mod.b")), Is.True);
+        }
+
+        [Test]
+        public void AllProvidersRemoved_Drops()
+        {
+            Assert.That(TypeProviderGate.Passes(new[] { "mod.a", "mod.b" },
+                AnyActive("some.othermod")), Is.False);
         }
     }
 
@@ -75,14 +98,14 @@ namespace Gagarin.Tests
                 "JoofTest.GadgetDef/TC_Gadget_A",
             };
 
-            Dictionary<string, string> byNodeId = graph.BuildTypeProviderByNodeId();
+            Dictionary<string, List<string>> byNodeId = graph.BuildTypeProviderByNodeId();
 
             Assert.That(byNodeId["FacialAnimation.EyeballColorDef/Eyes_Red"],
-                Is.EqualTo("nals.facialanimation"));
+                Is.EquivalentTo(new[] { "nals.facialanimation" }));
             Assert.That(byNodeId["FacialAnimation.EyeballColorDef/Eyes_Gray"],
-                Is.EqualTo("nals.facialanimation"));
+                Is.EquivalentTo(new[] { "nals.facialanimation" }));
             Assert.That(byNodeId["JoofTest.GadgetDef/TC_Gadget_A"],
-                Is.EqualTo("joof.testharness.typeprovider"));
+                Is.EquivalentTo(new[] { "joof.testharness.typeprovider" }));
             Assert.That(byNodeId.Count, Is.EqualTo(3));
         }
 
@@ -91,6 +114,21 @@ namespace Gagarin.Tests
         {
             var graph = new DependencyGraphData();
             Assert.That(graph.BuildTypeProviderByNodeId(), Is.Empty);
+        }
+
+        [Test]
+        public void BuildTypeProviderByNodeId_MultipleProvidersForSameNode_CollectsAll()
+        {
+            // Mirrors AssemblyOwnerLookup recording every candidate mod that shares an
+            // identity-matching assembly for one node (see ProvenanceRecorder.RegisterNode).
+            var graph = new DependencyGraphData();
+            graph.TypeProviderIndex["mod.a"] = new List<string> { "JoofTest.GadgetDef/TC_Shared" };
+            graph.TypeProviderIndex["mod.b"] = new List<string> { "JoofTest.GadgetDef/TC_Shared" };
+
+            Dictionary<string, List<string>> byNodeId = graph.BuildTypeProviderByNodeId();
+
+            Assert.That(byNodeId["JoofTest.GadgetDef/TC_Shared"],
+                Is.EquivalentTo(new[] { "mod.a", "mod.b" }));
         }
     }
 }
