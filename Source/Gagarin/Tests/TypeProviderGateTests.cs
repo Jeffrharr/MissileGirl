@@ -79,6 +79,44 @@ namespace Gagarin.Tests
             Assert.That(TypeProviderGate.Passes(new[] { "mod.a", "mod.b" },
                 AnyActive("some.othermod")), Is.False);
         }
+
+        [Test]
+        public void ResolveProviderIndex_FlagOff_ReturnsEmpty_RegardlessOfGraphContent()
+        {
+            // Pins DefRecompute's entire pre-live-validation safety argument: with the flag
+            // off, the resolved index must be empty no matter what the graph contains, so the
+            // gate is unreachable-by-construction (TryGetValue can never succeed).
+            var graph = new DependencyGraphData();
+            graph.TypeProviderIndex["nals.facialanimation"] = new List<string>
+            {
+                "FacialAnimation.EyeballColorDef/Eyes_Red",
+            };
+
+            Dictionary<string, List<string>> result = TypeProviderGate.ResolveProviderIndex(false, graph);
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void ResolveProviderIndex_FlagOn_ReturnsGraphsProviderIndex()
+        {
+            var graph = new DependencyGraphData();
+            graph.TypeProviderIndex["nals.facialanimation"] = new List<string>
+            {
+                "FacialAnimation.EyeballColorDef/Eyes_Red",
+            };
+
+            Dictionary<string, List<string>> result = TypeProviderGate.ResolveProviderIndex(true, graph);
+
+            Assert.That(result["FacialAnimation.EyeballColorDef/Eyes_Red"],
+                Is.EquivalentTo(new[] { "nals.facialanimation" }));
+        }
+
+        [Test]
+        public void ResolveProviderIndex_FlagOn_NullGraph_ReturnsEmpty()
+        {
+            Assert.That(TypeProviderGate.ResolveProviderIndex(true, null), Is.Empty);
+        }
     }
 
     [TestFixture]

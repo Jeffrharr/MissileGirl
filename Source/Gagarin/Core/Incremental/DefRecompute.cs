@@ -167,10 +167,11 @@ namespace Gagarin
             // Only built when the flag is on: building it is cheap, but it also makes the
             // gate below unreachable-by-construction on a graph from before the flag existed
             // (TypeProviderIndex absent -> Dictionary.Empty), matching the "no-op when OFF"
-            // contract every incremental flag in GagarinPrefs carries.
-            Dictionary<string, List<string>> typeProviderByNodeId = GagarinPrefs.TypeProviderRecompute
-                ? (graph?.BuildTypeProviderByNodeId() ?? new Dictionary<string, List<string>>(StringComparer.Ordinal))
-                : new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            // contract every incremental flag in GagarinPrefs carries. Pulled into
+            // TypeProviderGate.ResolveProviderIndex so this contract is offline-tested rather
+            // than only proven by a live run (this method itself is RimWorld-coupled).
+            Dictionary<string, List<string>> typeProviderByNodeId =
+                TypeProviderGate.ResolveProviderIndex(GagarinPrefs.TypeProviderRecompute, graph);
 
             // 3c. A PENDING id (no raw body — patch-injected) can only ever be resolved by
             //     actually replaying the patch that creates it. But BuildTopLevelIdsToRun above
