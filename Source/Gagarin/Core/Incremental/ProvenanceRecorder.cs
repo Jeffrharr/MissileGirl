@@ -411,12 +411,22 @@ namespace Gagarin
             try
             {
                 string parentName = element.GetAttribute("ParentName");
+                // issue #81: resolve the node's real source file the same way RegisterNode does,
+                // instead of unconditionally passing null. CombineIntoUnifiedXML_Patch stashes the
+                // exact node->asset map RimWorld built while combining defs into Context.DefsXmlAssets
+                // before ApplyPatches/ParseAndProcessXML run, so a genuinely raw-XML abstract base
+                // (e.g. <ThingDef Name="BuildingBase" Abstract="True">) resolves a real SourceFile
+                // here just like a concrete def does. A node absent from that map (e.g. one injected
+                // by a patch, which never got its own assetlookup entry) still resolves to null,
+                // preserving the "no SourceFile => patch-injected" signal CanRecompute's
+                // unrecoverable-patch-injected check depends on.
+                Context.DefsXmlAssets.TryGetValue(node, out LoadableXmlAsset asset);
                 // defName is passed as null so the node id stays the abstract "{DefType}@{Name}"
                 // shape even when an abstract base also declares a <defName>; mixing in the
                 // defName would key it as a concrete "{DefType}/{defName}" node, which both
                 // changes its identity (DefRecompute.IsConcrete keys off '/') and would let a
                 // ParentName reference resolve to the wrong shape.
-                graph.AddNode(element.Name, null, nameAttr, mod?.PackageId, null, parentName);
+                graph.AddNode(element.Name, null, nameAttr, mod?.PackageId, asset?.FullFilePath, parentName);
             }
             finally
             {
