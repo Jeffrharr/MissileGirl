@@ -619,28 +619,28 @@ namespace Gagarin.Tests
             Assert.That(divergence, Is.Empty);
         }
 
-        // XFAIL WORKLIST addition (2026-07-16, PR #76 interview): issue #73's fix only ever walks the
-        // `dirty` set (see PatchInjectedNode_NoSourceFile_AbsentFromPatchInjectedOwners_
-        // ShouldDecline_OnceGapClosed above) -- it never checks `relevantTargets` (dirty ∪ ancestors,
-        // built at line ~286). An inheritance ANCESTOR of a dirty def can have the exact same
-        // unrecoverable-patch-injected shape: a patch-injected abstract base (e.g. a PatchOperationAdd
-        // splicing in Name="FooBase" Abstract="True") whose owning mod's captured edge only names the
-        // Defs-root anchor, never the base's own id -- identical to the #73 scenario, one hop up the
-        // inheritance chain. This matters more than a typical decline gap: DefRecompute's AddAncestors
-        // pulls the ancestor's raw body into the sub-doc to resolve inheritance, so an unreproducible
-        // ancestor silently corrupts the recompute the same way an unreproducible dirty def would.
+        // Issue #81, closed: issue #73's fix only ever walked the `dirty` set (see
+        // PatchInjectedNode_NoSourceFile_AbsentFromPatchInjectedOwners_ShouldDecline_OnceGapClosed
+        // above) -- it never checked `relevantTargets` (dirty ∪ ancestors, built at line ~286). An
+        // inheritance ANCESTOR of a dirty def can have the exact same unrecoverable-patch-injected
+        // shape: a patch-injected abstract base (e.g. a PatchOperationAdd splicing in
+        // Name="FooBase" Abstract="True") whose owning mod's captured edge only names the Defs-root
+        // anchor, never the base's own id -- identical to the #73 scenario, one hop up the
+        // inheritance chain. This matters more than a typical decline gap: DefRecompute's
+        // AddAncestors pulls the ancestor's raw body into the sub-doc to resolve inheritance, so an
+        // unreproducible ancestor silently corrupts the recompute the same way an unreproducible
+        // dirty def would.
         //
-        // Do NOT "fix" this by just extending the loop below from `dirty` to `relevantTargets` --
-        // ProvenanceRecorder.RegisterAbstract passes sourceFile: null UNCONDITIONALLY for every
-        // Name-based abstract base, including completely ordinary raw-XML templates. Naively widening
-        // the check would make every abstract ancestor in the game look like an unrecoverable
-        // patch-injected node and decline almost every load that dirties anything inheriting from a
-        // common abstract base -- see issue #81 for the two-part fix (thread a real SourceFile through
-        // RegisterAbstract first, then widen this check). Un-ignore this test once #81 lands.
+        // The naive fix (just extending the loop from `dirty` to `relevantTargets`) was unsafe on
+        // its own: ProvenanceRecorder.RegisterAbstract used to pass sourceFile: null
+        // UNCONDITIONALLY for every Name-based abstract base, including completely ordinary raw-XML
+        // templates, which would have made every abstract ancestor in the game look
+        // unrecoverable-patch-injected. Fixed as the two-part change #81 called for:
+        // RegisterAbstract now resolves the node's real SourceFile via Context.DefsXmlAssets (the
+        // same node->asset map CombineIntoUnifiedXML_Patch already captures, keyed by the exact
+        // XmlNode XmlInheritance.TryRegister receives) before CanRecompute's
+        // unrecoverable-patch-injected check was widened from `dirty` to `relevantTargets`.
         [Test]
-        [Ignore("Known gap, tracked by issue #81 -- CanRecompute's unrecoverable-patch-injected check " +
-                "only walks `dirty`, not `relevantTargets`, so an unrecoverable ancestor is admitted by " +
-                "silence. Un-ignore once the gap is closed.")]
         public void PatchInjectedAncestor_NoSourceFile_AbsentFromPatchInjectedOwners_ShouldDecline_OnceGapClosed()
         {
             var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
@@ -655,8 +655,30 @@ namespace Gagarin.Tests
             });
 
             Assert.That(Can(g, Set("ThingDef/Child"), Set(), out string cat), Is.False,
-                "CanRecompute has no signal today to decline an unrecoverable patch-injected ANCESTOR -- see comment above");
+                "CanRecompute should decline an unrecoverable patch-injected ANCESTOR the same way it "
+                + "declines an unrecoverable patch-injected dirty def");
             Assert.That(cat, Is.EqualTo("unrecoverable-patch-injected"));
+        }
+
+        // Companion regression for the naive-fix hazard #81 called out: a genuine raw-XML abstract
+        // ancestor (a real SourceFile, now threaded through by RegisterAbstract) must still be
+        // ADMITTED -- only an ancestor that looks patch-injected (no SourceFile, no
+        // PatchInjectedOwners attribution) should decline. Without this, widening the check to
+        // relevantTargets would regress every ordinary load that dirties a def inheriting from a
+        // common abstract base.
+        [Test]
+        public void PatchInjectedAncestor_WithSourceFile_StillAdmitted()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"Child\"]/label", "ThingDef/Child"));
+            Inherit(g, "ThingDef/OrdinaryAncestorBase", "ThingDef/Child");
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "ThingDef/OrdinaryAncestorBase", DefType = "ThingDef", DefName = null,
+                SourceMod = "mod", SourceFile = "Defs/ThingDefs/Bases.xml",
+            });
+
+            Assert.That(Can(g, Set("ThingDef/Child"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
     }
 }

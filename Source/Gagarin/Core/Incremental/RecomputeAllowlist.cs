@@ -319,12 +319,16 @@ namespace Gagarin
                 if (IsConditional(edge.OperationType))
                     conditionalReads[edge.PatchId] = edge.MatchedNodeIds;
 
-            // Tracks which DIRTY ids were actually produced by a real (non-conditional-test) edge
-            // during the loop below. A dirty id left OUT of this set falls through to the
-            // nodeById/PatchInjectedOwners check just before the final return — the "no producing
-            // edge found" case is only trivially safe for a genuinely unpatched raw def; a
-            // patch-injected top-level def with the same (empty) producing-edge shape needs that
-            // extra check to tell the two apart (issue #73).
+            // Tracks which ids in relevantTargets (dirty ∪ ancestors) were actually produced by a
+            // real (non-conditional-test) edge during the loop below. An id left OUT of this set
+            // falls through to the nodeById/PatchInjectedOwners check just before the final return —
+            // the "no producing edge found" case is only trivially safe for a genuinely unpatched raw
+            // def; a patch-injected node with the same (empty) producing-edge shape needs that extra
+            // check to tell the two apart. Originally only tracked `dirty` (issue #73); widened to
+            // `relevantTargets` (issue #81) so an unrecoverable patch-injected ANCESTOR is caught the
+            // same way an unrecoverable patch-injected dirty def is — DefRecompute's AddAncestors
+            // pulls an ancestor's raw body into the sub-doc too, so an unreproducible ancestor
+            // corrupts the recompute exactly like an unreproducible dirty def would.
             var produced = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (GraphPatchEdge edge in graph.PatchEdges)
@@ -342,7 +346,7 @@ namespace Gagarin
 
                 if (edge.ModifiedNodeIds != null)
                     foreach (string id in edge.ModifiedNodeIds)
-                        if (dirty.Contains(id))
+                        if (relevantTargets.Contains(id))
                             produced.Add(id);
 
                 // Capture gap: an op the capture could not attribute a kind to. Cannot prove safe.
@@ -417,27 +421,30 @@ namespace Gagarin
                 // siblings into context; otherwise it would have set needsFullRebuild upstream.)
             }
 
-            // Every dirty id with a producing edge has been allowlisted above. What remains is any
-            // dirty id with ZERO producing edges — today's fallthrough treats that as trivially safe
-            // (a genuinely unpatched raw def carries its own body verbatim, nothing to recompute).
-            // But a patch-injected top-level def (no raw SourceFile — see ProvenanceGraph's
-            // patchInjectedOwners comment) can ALSO show zero producing edges: its creating op's
-            // captured edge names the `Defs`-root anchor it matched, never the child's own id (the
-            // same target-vs-content asymmetry DefRecompute's step 3c works around for
+            // Every relevant id (dirty ∪ ancestors) with a producing edge has been allowlisted above.
+            // What remains is any relevant id with ZERO producing edges — today's fallthrough treats
+            // that as trivially safe (a genuinely unpatched raw def/ancestor carries its own body
+            // verbatim, nothing to recompute). But a patch-injected node (no raw SourceFile — see
+            // ProvenanceGraph's patchInjectedOwners comment) can ALSO show zero producing edges: its
+            // creating op's captured edge names the `Defs`-root anchor it matched, never the child's
+            // own id (the same target-vs-content asymmetry DefRecompute's step 3c works around for
             // PatchOperationAdd). When the owning mod is additionally missing from
             // graph.PatchInjectedOwners (the only fallback attribution for that shape), we have no
             // way to reproduce or even attribute this def over a sub-doc — decline rather than admit
-            // by silence (issue #73). A dirty id with NO GraphNode entry at all is left on the
-            // existing "admit" path: every pre-#73 test fixture never populates graph.Nodes, and an
-            // id truly unknown to the graph is not evidence of a patch-injected node either way.
-            if (produced.Count < dirty.Count)
+            // by silence. A relevant id with NO GraphNode entry at all is left on the existing "admit"
+            // path: an id truly unknown to the graph is not evidence of a patch-injected node either
+            // way. Originally checked only `dirty` (issue #73); widened to `relevantTargets` (issue
+            // #81) now that RegisterAbstract threads a real SourceFile through for genuine raw-XML
+            // abstract bases (see its comment), so this no longer misfires on every ordinary ancestor
+            // template.
+            if (produced.Count < relevantTargets.Count)
             {
                 var nodeById = new Dictionary<string, GraphNode>(StringComparer.Ordinal);
                 foreach (GraphNode node in graph.Nodes)
                     if (!string.IsNullOrEmpty(node.Id))
                         nodeById[node.Id] = node;
 
-                foreach (string id in dirty)
+                foreach (string id in relevantTargets)
                 {
                     if (produced.Contains(id))
                         continue;
@@ -452,7 +459,7 @@ namespace Gagarin
                         continue; // attributed to its owning mod — recoverable
 
                     Block("unrecoverable-patch-injected",
-                        $"dirty id {id} has no producing edge, no raw SourceFile, and no PatchInjectedOwners attribution — cannot prove recompute-safe",
+                        $"relevant id {id} has no producing edge, no raw SourceFile, and no PatchInjectedOwners attribution — cannot prove recompute-safe",
                         out blockReason, out blockCategory);
                     return false;
                 }
