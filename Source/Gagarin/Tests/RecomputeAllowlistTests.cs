@@ -680,5 +680,35 @@ namespace Gagarin.Tests
 
             Assert.That(Can(g, Set("ThingDef/Child"), Set(), out string cat), Is.True, $"declined as {cat}");
         }
+
+        // Pins the third of the three coordinated `dirty` -> `relevantTargets` edits #81 made: the
+        // `produced` tracking loop (`if (relevantTargets.Contains(id)) produced.Add(id)`), not just
+        // the guard and the final decline loop. Both prior tests' only edge modifies the dirty def
+        // itself, so `dirty.Contains` and `relevantTargets.Contains` agree there by coincidence and
+        // neither would catch a regression of just this one spot. Here the safe-leaf edge modifies the
+        // ANCESTOR's own id directly (a real shape: something already patched the base def before this
+        // load dirtied its descendant). With `relevantTargets.Contains`, the ancestor is correctly
+        // marked produced and never reaches the SourceFile/PatchInjectedOwners fallback check at all.
+        // Revert line 349 alone back to `dirty.Contains` and this flips to declined: the ancestor's
+        // real safe-leaf edge stops counting as "produced", so it falls through to that fallback check,
+        // which sees no SourceFile and no PatchInjectedOwners attribution (patch-injected-shaped by
+        // construction here) and wrongly declines a genuinely safe recompute.
+        [Test]
+        public void AncestorProducedByOwnSafeLeafEdge_Admitted_ProducedTrackingMustUseRelevantTargets()
+        {
+            var g = Graph(Edge("mod#0", "Verse.PatchOperationReplace",
+                "Defs/ThingDef[defName=\"AncestorBase\"]/label", "ThingDef/AncestorBase"));
+            Inherit(g, "ThingDef/AncestorBase", "ThingDef/Child");
+            // Patch-injected-shaped on purpose (no SourceFile, no PatchInjectedOwners attribution) so
+            // a regression of the produced-tracking line falls through to the fallback check and
+            // declines instead of skipping it as already-produced.
+            g.Nodes.Add(new GraphNode
+            {
+                Id = "ThingDef/AncestorBase", DefType = "ThingDef", DefName = null,
+                SourceMod = "mod", SourceFile = null,
+            });
+
+            Assert.That(Can(g, Set("ThingDef/Child"), Set(), out string cat), Is.True, $"declined as {cat}");
+        }
     }
 }
