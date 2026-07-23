@@ -421,6 +421,17 @@ namespace Gagarin
                 // preserving the "no SourceFile => patch-injected" signal CanRecompute's
                 // unrecoverable-patch-injected check depends on.
                 Context.DefsXmlAssets.TryGetValue(node, out LoadableXmlAsset asset);
+                // Miss is EXPECTED for a genuinely patch-injected node (never had its own assetlookup
+                // entry) -- so this can't distinguish that from a broken node-identity assumption on
+                // its own. It's here purely as a visibility hook: if TryGetValue started missing for
+                // content that should resolve (e.g. every abstract base across a whole load), this is
+                // where that would first become observable, cross-referenced against which of these
+                // ids later shows up under CanRecompute's "unrecoverable-patch-injected" blockCategory
+                // in incremental-metrics.jsonl (DirtySetGate.cs's MetricsLog.Append call).
+                if (asset == null && GagarinPrefs.CaptureVerbose)
+                    Logger.Debug($"GAGARIN: RegisterAbstract found no DefsXmlAssets entry for " +
+                        $"\"{element.Name}@{nameAttr}\" (mod={mod?.PackageId ?? "?"}) -- SourceFile " +
+                        "will be null.");
                 // defName is passed as null so the node id stays the abstract "{DefType}@{Name}"
                 // shape even when an abstract base also declares a <defName>; mixing in the
                 // defName would key it as a concrete "{DefType}/{defName}" node, which both
