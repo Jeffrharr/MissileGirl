@@ -262,7 +262,13 @@ namespace Gagarin
             // ProvenanceRecorder.RecordAddedChildren for Add-shaped operations -- see that
             // method's comment) was created directly by that mod's patch, so its SourceMod
             // is the real owner for the XOR check below, not an approximation.
-            if (graph.Nodes != null && graph.Nodes.Count > 0)
+            //
+            // Gated behind the same load-order check as Seed 3: the XOR below can only ever
+            // fire when the mod set differs between loads, so a pure content-only change
+            // (mod set identical) is guaranteed to add nothing -- skip the O(N) walk over
+            // every captured node entirely rather than pay it for a certain no-op (issue #63).
+            if (!SameOrder(change.PriorLoadOrder, change.CurrentLoadOrder)
+                && graph.Nodes != null && graph.Nodes.Count > 0)
             {
                 var prior = new HashSet<string>(
                     change.PriorLoadOrder ?? (IEnumerable<string>)System.Array.Empty<string>(),
