@@ -66,16 +66,14 @@ namespace Gagarin
             return ids.Count == 0 || anyActive(ids);
         }
 
-        // Pulled out of DefRecompute so the "no-op when the flag is off" contract is pinned by
-        // an offline test rather than only by a live run. DefRecompute's own method is
-        // RimWorld-coupled (ModContentPack, XmlInheritance, ModLister) and can't run in the
-        // offline suite, but this ternary only touches a bool and the pure DependencyGraphData
-        // -- when `enabled` is false the gate must be unreachable-by-construction (an empty
-        // dict never satisfies TryGetValue), regardless of what the graph actually contains.
-        public static Dictionary<string, List<string>> ResolveProviderIndex(bool enabled, DependencyGraphData graph)
+        // Pulled out of DefRecompute so the inversion is offline-testable rather than only
+        // provable by a live run. DefRecompute's own method is RimWorld-coupled (ModContentPack,
+        // XmlInheritance, ModLister) and can't run in the offline suite, but this is a pure
+        // DependencyGraphData transform. Unconditional since the 2026-07-22 --expect-typeprovider
+        // live run confirmed recomputeMismatches==0 (issue #86 PR 2) -- no gating flag anymore,
+        // matching MayRequireGate's wiring.
+        public static Dictionary<string, List<string>> ResolveProviderIndex(DependencyGraphData graph)
         {
-            if (!enabled)
-                return new Dictionary<string, List<string>>(StringComparer.Ordinal);
             return graph?.BuildTypeProviderByNodeId() ?? new Dictionary<string, List<string>>(StringComparer.Ordinal);
         }
     }

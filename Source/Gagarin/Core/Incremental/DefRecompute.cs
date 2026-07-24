@@ -164,14 +164,11 @@ namespace Gagarin
             var changedModSet = new HashSet<string>(
                 changedModIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             HashSet<string> topLevelIdsToRun = BuildTopLevelIdsToRun(graph, needed);
-            // Only built when the flag is on: building it is cheap, but it also makes the
-            // gate below unreachable-by-construction on a graph from before the flag existed
-            // (TypeProviderIndex absent -> Dictionary.Empty), matching the "no-op when OFF"
-            // contract every incremental flag in GagarinPrefs carries. Pulled into
-            // TypeProviderGate.ResolveProviderIndex so this contract is offline-tested rather
-            // than only proven by a live run (this method itself is RimWorld-coupled).
+            // Unconditional since the 2026-07-22 --expect-typeprovider live run confirmed
+            // recomputeMismatches==0 (issue #86 PR 2) -- no gating flag anymore, matching
+            // MayRequireGate. Cheap no-op on a graph with no TypeProviderIndex entries.
             Dictionary<string, List<string>> typeProviderByNodeId =
-                TypeProviderGate.ResolveProviderIndex(GagarinPrefs.TypeProviderRecompute, graph);
+                TypeProviderGate.ResolveProviderIndex(graph);
 
             // 3c. A PENDING id (no raw body — patch-injected) can only ever be resolved by
             //     actually replaying the patch that creates it. But BuildTopLevelIdsToRun above
