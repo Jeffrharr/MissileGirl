@@ -375,6 +375,23 @@ namespace Gagarin.Tests
         }
 
         [Test]
+        public void OwnerModRemoved_SameLoadOrder_SkipsScanEntirely()
+        {
+            // issue #63: an identical load order can never flip Seed 8's XOR (every owner is
+            // in both sets), so the whole node scan is gated behind the same SameOrder check
+            // Seed 3 uses, rather than walking every node just to find nothing.
+            var change = new GraphChange
+            {
+                PriorLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun"),
+                CurrentLoadOrder = Order("ludeon.rimworld", "v.rooboid.faun")
+            };
+            var r = DirtySetComputer.Compute(BuildSoleOwnerGraph(), change);
+            Assert.That(r.SeedOwnerModRemoved, Is.EqualTo(0));
+            Assert.That(r.Nodes, Does.Not.Contain("GeneDef/RBM_UnguligradeLegs"));
+            Assert.That(r.Nodes, Does.Not.Contain("FurDef/RBM_UnguligradeLegs"));
+        }
+
+        [Test]
         public void OwnerModRemoved_ModAdded_DoesNotSeed()
         {
             // Seed 8 is asymmetric by design (removal only) -- a newly-added mod's defs are
